@@ -257,7 +257,7 @@ let viewMode = 'price';
 
 const periods = [
   {{label:'1D',days:1}},{{label:'2D',days:2}},{{label:'3D',days:3}},{{label:'4D',days:4}},
-  {{label:'1W',days:7}},{{label:'2W',days:14}},{{label:'1M',months:1}},
+  {{label:'1W',days:7}},{{label:'2W',days:14}},{{label:'3W',days:21}},{{label:'1M',months:1}},
   {{label:'3M',months:3}},{{label:'6M',months:6}},{{label:'YTD',ytd:true}},
   {{label:'1Y',months:12}},{{label:'2Y',months:24}},{{label:'All',all:true}}
 ];
@@ -470,7 +470,7 @@ class Handler(BaseHTTPRequestHandler):
             print(f"  [Update done] Last date: {last_date}")
         except Exception as e:
             err = json.dumps({"ok": False, "error": str(e)}).encode("utf-8")
-            self.send_response(MEONLY  500)
+            self.send_response(500)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", len(err))
             self.end_headers()
