@@ -5,7 +5,14 @@
       "Bash(git commit *)",
       "Bash(git push *)",
       "Bash(git branch *)",
-      "Bash(git remote *)"
+      "Bash(git remote *)",
+      "WebFetch(domain:fintual.cl)",
+      "WebSearch",
+      "Bash(curl -s -X POST https://fintual.cl/api/access_tokens -H 'Content-Type: application/json' -d '{\"user\":{\"email\":\"diegorostn@gmail.com\",\"password\":\".3XNiFVZeRP_Kv2\"}}')",
+      "Bash(curl -s \"https://fintual.cl/api/goals?user_token=PU_JsaodzqYy82Esj_Cz&user_email=diegorostn@gmail.com\")",
+      "Bash(pip install *)",
+      "Bash(python3 -c \"import browser_cookie3; print\\('OK'\\)\")",
+      "Bash(python3 -c ' *)"
     ]
   }
 }
