@@ -13,6 +13,7 @@ Requirements:
     - yfinance:  pip install yfinance
 """
 
+import csv as _csv
 import json
 import os
 import sys
@@ -88,6 +89,30 @@ def fetch_fintual_goals():
             return {"error": f"HTTP {r.status_code} — cookies may have expired. Run update_fintual_cookies.py"}
     except Exception as e:
         return {"error": str(e)}
+
+
+# ── APV ──────────────────────────────────────────────────────────────────────
+
+def read_apv_data():
+    """Parse apv CSV; return sorted [[date_iso, valor_cuota, saldo_clp], ...]"""
+    csv_path = os.path.join(DIR, "apv", "certificado_de_transacciones_apv.csv")
+    if not os.path.exists(csv_path):
+        return []
+    rows = []
+    with open(csv_path, encoding="utf-8-sig") as f:
+        reader = _csv.DictReader(f)
+        for row in reader:
+            try:
+                d, m, y = row["Fecha"].strip().split("/")
+                date_str = f"{y}-{m}-{d}"
+                vc = float(row["Valor Cuota"].strip().replace(".", "").replace(",", "."))
+                saldo_str = row["Saldo Pesos Chilenos Final Dia"].strip().lstrip("$").replace(".", "")
+                saldo = int(saldo_str)
+                rows.append([date_str, vc, saldo])
+            except Exception:
+                continue
+    rows.sort(key=lambda x: x[0])
+    return rows
 
 
 # ── Data helpers ─────────────────────────────────────────────────────────────
@@ -169,12 +194,17 @@ def build_html(all_data, lows_data, current_prices):
     default_swings_js = json.dumps(SWINGS_TICKERS)
     default_holds_js  = json.dumps(HOLDS_TICKERS)
 
+    apv_rows   = read_apv_data()
+    apv_data_js = json.dumps(apv_rows, separators=(",", ":"))
+
     return _render_html(last_date, lows_js, cp_js, all_data_js,
-                        swings_data_js, default_swings_js, default_holds_js)
+                        swings_data_js, default_swings_js, default_holds_js,
+                        apv_data_js)
 
 
 def _render_html(last_date, lows_js, cp_js, all_data_js,
-                 swings_data_js, default_swings_js, default_holds_js):
+                 swings_data_js, default_swings_js, default_holds_js,
+                 apv_data_js):
     today = datetime.now().strftime("%Y-%m-%d")
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -235,10 +265,17 @@ def _render_html(last_date, lows_js, cp_js, all_data_js,
   .month{{color:var(--muted);font-size:.68rem;margin-right:2px}}
   .ret{{color:var(--green);font-size:.7rem}}
   .empty{{color:var(--border)}}
+  /* Tabs */
+  .tab-bar{{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:32px}}
+  .tab-btn{{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);padding:10px 22px;cursor:pointer;font-family:var(--mono);font-size:.82rem;letter-spacing:.06em;text-transform:uppercase;transition:color .15s,border-color .15s;margin-bottom:-1px}}
+  .tab-btn:hover{{color:var(--text)}}
+  .tab-btn.active{{color:var(--text);border-bottom-color:var(--accent2)}}
+  .tab-panel{{display:none}}
+  .tab-panel.active{{display:block}}
 </style>
 </head>
 <body>
-<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:40px;flex-wrap:wrap">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:28px;flex-wrap:wrap">
   <header style="margin-bottom:0">
     <h1>ETF Leveraged — Historical Lows</h1>
     <p id="update-status">UPDATED: {last_date} &nbsp;·&nbsp; TOP {TOP_N} ANNUAL LOWS SINCE {START_YEAR} &nbsp;·&nbsp; MIN GAP {GAP_DAYS} DAYS</p>
@@ -266,6 +303,36 @@ function setTheme(t) {{
 }}
 (function(){{ setTheme('dark'); }})();
 </script>
+
+<!-- Tab bar -->
+<div class="tab-bar">
+  <button class="tab-btn" data-tab="etf"    onclick="showTab('etf')">ETF Lows</button>
+  <button class="tab-btn" data-tab="swings" onclick="showTab('swings')">Swings &amp; Holds</button>
+  <button class="tab-btn" data-tab="apv"    onclick="showTab('apv')">APV</button>
+</div>
+
+<script>
+let swingsChartInitialized = false;
+let apvChartInitialized    = false;
+function showTab(name) {{
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.querySelector('.tab-btn[data-tab="' + name + '"]').classList.add('active');
+  localStorage.setItem('activeTab', name);
+  if (name === 'swings' && !swingsChartInitialized) {{
+    swingsChartInitialized = true;
+    buildSwingsChart();
+  }}
+  if (name === 'apv' && !apvChartInitialized) {{
+    apvChartInitialized = true;
+    buildApvChart();
+  }}
+}}
+</script>
+
+<!-- ═══════════════════════════ TAB: ETF LOWS ════════════════════════════ -->
+<div id="tab-etf" class="tab-panel">
 
 <div class="legend">
   <div class="legend-item"><div class="legend-dot" style="background:#e63946"></div> Low #1 of year</div>
@@ -512,7 +579,6 @@ async function triggerUpdate() {{
     const res=await fetch('/update');
     if(!res.ok) throw new Error('Server error '+res.status);
     const json=await res.json();
-    // Merge new data
     Object.assign(allData, json.allData);
     Object.assign(currentPrices, json.currentPrices);
     Object.assign(data, json.lowsData);
@@ -566,8 +632,12 @@ document.getElementById('date-to').value=chartTo;
 buildChart();
 </script>
 
-<!-- SWINGS & HOLDS CHART SECTION -->
-<div style="margin-top:48px;border-top:1px solid var(--border);padding-top:36px">
+</div><!-- end #tab-etf -->
+
+
+<!-- ═══════════════════════════ TAB: SWINGS & HOLDS ════════════════════════════ -->
+<div id="tab-swings" class="tab-panel">
+
   <div style="border-left:3px solid #2ec4b6;padding-left:16px;margin-bottom:24px">
     <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--text)">Quick Swings &amp; Holds</div>
     <div style="font-size:.75rem;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.08em">Click to toggle · × to remove · type &amp; add new tickers</div>
@@ -605,7 +675,6 @@ buildChart();
   <div style="position:relative;width:100%;height:360px">
     <canvas id="swingsChart"></canvas>
   </div>
-</div>
 
 <script>
 const swingsHoldsAllData = {swings_data_js};
@@ -797,31 +866,246 @@ periods.forEach(p => {{
   shPeriodDiv.appendChild(btn);
 }});
 
-// Enter key support
 document.getElementById('swings-add-input').addEventListener('keydown', e=>{{ if(e.key==='Enter') addTicker('swings'); }});
 document.getElementById('holds-add-input').addEventListener('keydown',  e=>{{ if(e.key==='Enter') addTicker('holds');  }});
 
-// Init — load persisted lists, fetch any extra tickers not in default data
+// Init: load persisted lists, fetch extra tickers, render toggles (chart deferred to tab activation)
 shLoad();
 [...swingsTickers,...holdsTickers].forEach(shColor);
 shActive = new Set([...swingsTickers,...holdsTickers]);
 document.getElementById('swings-date-from').value = shFrom;
 document.getElementById('swings-date-to').value   = shTo;
 
-const _defaultSet    = new Set([...defaultSwings,...defaultHolds]);
-const _extraTickers  = [...swingsTickers,...holdsTickers].filter(t=>!_defaultSet.has(t)&&!swingsHoldsAllData[t]);
+const _defaultSet   = new Set([...defaultSwings,...defaultHolds]);
+const _extraTickers = [...swingsTickers,...holdsTickers].filter(t=>!_defaultSet.has(t)&&!swingsHoldsAllData[t]);
 if(_extraTickers.length) {{
   const loading = document.getElementById('swings-loading');
   loading.style.display = 'block';
   Promise.all(_extraTickers.map(t =>
     fetch('/ticker-data?ticker='+encodeURIComponent(t))
       .then(r=>r.json()).then(j=>{{ if(j.ok) swingsHoldsAllData[t]=j.data; }}).catch(()=>{{}})
-  )).then(()=>{{ loading.style.display='none'; renderToggles(); buildSwingsChart(); }});
+  )).then(()=>{{
+    loading.style.display='none';
+    renderToggles();
+    if(!document.getElementById('tab-swings').classList.contains('active')) return;
+    buildSwingsChart();
+    swingsChartInitialized = true;
+  }});
 }} else {{
   renderToggles();
-  buildSwingsChart();
 }}
 </script>
+
+</div><!-- end #tab-swings -->
+
+
+<!-- ═══════════════════════════ TAB: APV ════════════════════════════ -->
+<div id="tab-apv" class="tab-panel">
+
+  <div style="border-left:3px solid #a29bfe;padding-left:16px;margin-bottom:24px">
+    <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--text)">APV — Ahorro APV-B</div>
+    <div style="font-size:.75rem;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.08em">Risky Norris · Valor cuota diario</div>
+  </div>
+
+  <!-- Summary row -->
+  <div id="apv-summary" style="display:flex;gap:32px;flex-wrap:wrap;margin-bottom:24px"></div>
+
+  <!-- Controls -->
+  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px">
+    <div style="display:flex;gap:8px">
+      <button id="apv-saldo-btn"  onclick="setApvMode('saldo')"  style="background:#a29bfe22;border:1px solid #a29bfe;color:#a29bfe;padding:5px 14px;border-radius:3px;cursor:pointer;font-size:.78rem;font-family:inherit;">Saldo CLP</button>
+      <button id="apv-cuota-btn"  onclick="setApvMode('cuota')"  style="background:var(--surface);border:1px solid #a29bfe66;color:#a29bfe88;padding:5px 14px;border-radius:3px;cursor:pointer;font-size:.78rem;font-family:inherit;">Valor Cuota</button>
+    </div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px" id="apv-period-buttons"></div>
+  <div style="font-size:.72rem;color:var(--muted);margin-bottom:12px">
+    Custom range:
+    <input type="date" id="apv-date-from" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 6px;font-size:.72rem;border-radius:3px;color-scheme:dark">
+    →
+    <input type="date" id="apv-date-to" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 6px;font-size:.72rem;border-radius:3px;color-scheme:dark">
+    <button onclick="applyApvCustom()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:3px 10px;font-size:.72rem;border-radius:3px;cursor:pointer;margin-left:4px">Apply</button>
+  </div>
+  <div style="position:relative;width:100%;height:380px">
+    <canvas id="apvChart"></canvas>
+  </div>
+
+<script>
+const apvData = {apv_data_js};
+let apvMode = 'saldo';
+let apvChartInstance = null;
+let apvActiveBtn = null;
+
+// Compute summary from data
+(function() {{
+  if(!apvData.length) return;
+  const last = apvData[apvData.length-1];
+  const first = apvData[0];
+  const depositedSaldo = first[2];  // first recorded saldo = initial deposit
+  const currentSaldo   = last[2];
+  const gain = currentSaldo - depositedSaldo;
+  const gainPct = ((gain / depositedSaldo) * 100).toFixed(1);
+  const fmtCLP = n => '$ ' + Math.round(n).toLocaleString('es-CL');
+  const items = [
+    ['Saldo actual', fmtCLP(currentSaldo), '#a29bfe'],
+    ['Aportado', fmtCLP(depositedSaldo), 'var(--muted)'],
+    ['Ganancia', fmtCLP(gain) + ' (+' + gainPct + '%)', gain>=0?'var(--green)':'var(--accent)'],
+  ];
+  const div = document.getElementById('apv-summary');
+  items.forEach(([label, value, color]) => {{
+    div.innerHTML += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px 20px;">
+      <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">${{label}}</div>
+      <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;color:${{color}}">${{value}}</div>
+    </div>`;
+  }});
+}})();
+
+const _apvNow = new Date(); _apvNow.setMonth(_apvNow.getMonth()-3);
+let apvFrom = apvData.length ? apvData[0][0] : _apvNow.toISOString().slice(0,10);
+let apvTo   = new Date().toISOString().slice(0,10);
+let apvActivePeriodBtn = null;
+
+function setApvMode(mode) {{
+  apvMode = mode;
+  document.getElementById('apv-saldo-btn').style.cssText = (mode==='saldo'
+    ? 'background:#a29bfe22;border:1px solid #a29bfe;color:#a29bfe;'
+    : 'background:var(--surface);border:1px solid #a29bfe66;color:#a29bfe88;')
+    + 'padding:5px 14px;border-radius:3px;cursor:pointer;font-size:.78rem;font-family:inherit;';
+  document.getElementById('apv-cuota-btn').style.cssText = (mode==='cuota'
+    ? 'background:#a29bfe22;border:1px solid #a29bfe;color:#a29bfe;'
+    : 'background:var(--surface);border:1px solid #a29bfe66;color:#a29bfe88;')
+    + 'padding:5px 14px;border-radius:3px;cursor:pointer;font-size:.78rem;font-family:inherit;';
+  buildApvChart();
+}}
+
+function buildApvChart() {{
+  if(!apvData.length) return;
+  const rows   = apvData.filter(([d]) => d >= apvFrom && d <= apvTo);
+  const labels = rows.map(([d]) => d);
+  const values = rows.map(([d, vc, saldo]) => apvMode === 'saldo' ? saldo : vc);
+  const depositedVal = apvData[0][2];
+
+  const datasets = [{{
+    label: apvMode === 'saldo' ? 'Saldo CLP' : 'Valor Cuota',
+    data: values,
+    borderColor: '#a29bfe',
+    borderWidth: 2,
+    pointRadius: 0,
+    pointHoverRadius: 4,
+    tension: .1,
+    fill: false,
+    spanGaps: true,
+  }}];
+
+  // Deposited reference line (only in saldo mode)
+  if(apvMode === 'saldo') {{
+    datasets.push({{
+      label: 'Aportado',
+      data: labels.map(() => depositedVal),
+      borderColor: 'rgba(255,255,255,.18)',
+      borderWidth: 1,
+      borderDash: [6,4],
+      pointRadius: 0,
+      fill: false,
+      spanGaps: true,
+    }});
+  }}
+
+  const fmtYVal = v => apvMode === 'saldo'
+    ? '$' + (v/1e6).toFixed(2) + 'M'
+    : '$' + v.toFixed(0);
+  const fmtTooltip = v => apvMode === 'saldo'
+    ? '$ ' + Math.round(v).toLocaleString('es-CL')
+    : '$' + v.toFixed(4);
+
+  const apvXhair = {{id:'apvXhair', afterDraw(chart) {{
+    if(chart._cx==null) return;
+    const {{ctx, chartArea:{{top,bottom,left,right}}, scales}} = chart;
+    ctx.save();
+    ctx.beginPath(); ctx.moveTo(chart._cx,top); ctx.lineTo(chart._cx,bottom);
+    ctx.strokeStyle='rgba(200,200,200,.35)'; ctx.lineWidth=1; ctx.setLineDash([4,3]); ctx.stroke();
+    if(chart._cy!=null) {{
+      ctx.beginPath(); ctx.moveTo(left,chart._cy); ctx.lineTo(right,chart._cy); ctx.stroke();
+      const yVal = scales.y.getValueForPixel(chart._cy);
+      const lbl  = fmtYVal(yVal);
+      const lw=ctx.measureText(lbl).width+10, lh=16;
+      ctx.setLineDash([]); ctx.fillStyle='rgba(30,35,48,.92)';
+      ctx.strokeStyle='rgba(200,200,200,.35)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.rect(left-lw-2,chart._cy-lh/2,lw,lh); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='#e8eaf0'; ctx.font='11px IBM Plex Mono,monospace';
+      ctx.textAlign='right'; ctx.textBaseline='middle'; ctx.fillText(lbl,left-5,chart._cy);
+    }}
+    ctx.restore();
+  }}}};
+
+  if(apvChartInstance) apvChartInstance.destroy();
+  apvChartInstance = new Chart(document.getElementById('apvChart'), {{
+    type:'line', data:{{labels, datasets}}, plugins:[apvXhair],
+    options:{{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{{mode:'index', intersect:false}},
+      plugins:{{
+        legend:{{display:false}},
+        tooltip:{{callbacks:{{label:ctx => ` ${{ctx.dataset.label}}: ${{fmtTooltip(ctx.parsed.y)}}`}}}}
+      }},
+      scales:{{
+        x:{{ticks:{{autoSkip:false,maxRotation:0,color:'#888',font:{{size:11}},callback(val,idx){{
+          const d=labels[idx]; if(!d) return '';
+          const[yr,mo]=d.split('-'); const q=Math.ceil(parseInt(mo)/3);
+          const fi=labels.findIndex(l=>{{const[ly,lm]=l.split('-');return ly===yr&&Math.ceil(parseInt(lm)/3)===q;}});
+          return idx===fi?yr+'-'+mo:'';
+        }}}}, grid:{{color:'rgba(128,128,128,.08)'}}}},
+        y:{{ticks:{{color:'#888',font:{{size:11}},callback:v=>fmtYVal(v)}}, grid:{{color:'rgba(128,128,128,.08)'}}}}
+      }},
+      onHover(evt,_,chart) {{
+        const rect=chart.canvas.getBoundingClientRect(); const ca=chart.chartArea;
+        const mx=evt.native?evt.native.clientX-rect.left:null;
+        const my=evt.native?evt.native.clientY-rect.top:null;
+        if(mx!=null&&mx>=ca.left&&mx<=ca.right&&my>=ca.top&&my<=ca.bottom) {{chart._cx=mx;chart._cy=my;}}
+        else {{chart._cx=null;chart._cy=null;}}
+        chart.draw();
+      }}
+    }}
+  }});
+  apvChartInstance.canvas.addEventListener('mouseleave',()=>{{apvChartInstance._cx=null;apvChartInstance._cy=null;apvChartInstance.draw();}});
+}}
+
+function applyApvCustom() {{
+  const f=document.getElementById('apv-date-from').value;
+  const t=document.getElementById('apv-date-to').value;
+  if(f&&t) {{ apvFrom=f; apvTo=t; if(apvActivePeriodBtn){{apvActivePeriodBtn.style.color='';apvActivePeriodBtn.style.borderColor='';apvActivePeriodBtn=null;}} buildApvChart(); }}
+}}
+
+// APV period buttons
+const apvPeriodDiv = document.getElementById('apv-period-buttons');
+periods.forEach(p => {{
+  const btn = document.createElement('button');
+  btn.textContent = p.label;
+  btn.style.cssText = 'background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:3px;cursor:pointer;font-size:.75rem;font-family:inherit;';
+  btn.onclick = () => {{
+    [apvFrom, apvTo] = getDateRange(p);
+    document.getElementById('apv-date-from').value = apvFrom;
+    document.getElementById('apv-date-to').value   = apvTo;
+    if(apvActivePeriodBtn) {{ apvActivePeriodBtn.style.color=''; apvActivePeriodBtn.style.borderColor=''; }}
+    btn.style.color='#e8eaf0'; btn.style.borderColor='#4a5068';
+    apvActivePeriodBtn=btn; buildApvChart();
+  }};
+  apvPeriodDiv.appendChild(btn);
+}});
+
+document.getElementById('apv-date-from').value = apvFrom;
+document.getElementById('apv-date-to').value   = apvTo;
+</script>
+
+</div><!-- end #tab-apv -->
+
+<script>
+// Restore last active tab (after all tab panels and their scripts are loaded)
+(function() {{
+  const saved = localStorage.getItem('activeTab') || 'etf';
+  showTab(saved);
+}})();
+</script>
+
 </body>
 </html>"""
 
@@ -870,7 +1154,6 @@ class Handler(BaseHTTPRequestHandler):
             all_data, lows_data, current_prices = fetch_all()
             last_date = max(rows[-1][0] for rows in all_data.values() if rows)
 
-            # Rebuild HTML and update cache
             _cache["html"] = build_html(all_data, lows_data, current_prices)
             _cache["all_data"]       = all_data
             _cache["lows_data"]      = lows_data
@@ -948,7 +1231,6 @@ def main():
     print(f"  Click '↻ Update' in the dashboard to refresh data.")
     print(f"  Press Ctrl+C to stop.\n")
 
-    # Open browser after a short delay
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()
 
     try:
