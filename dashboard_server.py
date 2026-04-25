@@ -15,6 +15,7 @@ Requirements:
 
 import csv as _csv
 import json
+import math
 import os
 import sys
 import threading
@@ -56,7 +57,8 @@ def fetch_fintual_goals():
     if not os.path.exists(FINTUAL_COOKIES_FILE):
         return {"error": "fintual_cookies.json not found"}
     try:
-        cfg = json.load(open(FINTUAL_COOKIES_FILE))
+        with open(FINTUAL_COOKIES_FILE) as f:
+            cfg = json.load(f)
     except Exception as e:
         return {"error": f"Could not read fintual_cookies.json: {e}"}
 
@@ -123,7 +125,6 @@ def fetch_data(etf):
     df = ticker.history(start=f"{START_YEAR}-01-01", interval="1d")
     if df.empty:
         raise ValueError(f"No data returned for {etf}")
-    import math
     rows = [
         [dt.strftime("%Y-%m-%d"), round(float(c), 3)]
         for dt, c in zip(df.index, df["Close"])
@@ -301,7 +302,7 @@ function setTheme(t) {{
 
 <!-- Tab bar -->
 <div class="tab-bar">
-  <button class="tab-btn" data-tab="etf"    onclick="showTab('etf')">ETF Lows</button>
+  <button class="tab-btn" data-tab="etf"    onclick="showTab('etf')">LETFs</button>
   <button class="tab-btn" data-tab="swings" onclick="showTab('swings')">Swings &amp; Holds</button>
   <button class="tab-btn" data-tab="apv"    onclick="showTab('apv')">APV</button>
 </div>
