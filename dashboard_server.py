@@ -36,6 +36,11 @@ try:
 except ImportError:
     _requests = None
 
+try:
+    import xlrd as _xlrd
+except ImportError:
+    _xlrd = None
+
 # ── Configuration ────────────────────────────────────────────────────────────
 
 ETFS           = ["UPRO", "TQQQ", "TECL", "SOXL", "GC=F", "SI=F", "SPY", "QQQ", "SOXX", "XLK"]
@@ -115,6 +120,90 @@ def read_apv_data():
                 continue
     rows.sort(key=lambda x: x[0])
     return rows
+
+
+# ── AFP ───────────────────────────────────────────────────────────────────────
+
+AFP_KEY_MAP = {
+    "Obligatoria": ("obligatoria", "Cuenta Obligatoria"),
+    "Voluntario":  ("cuenta2",     "Ahorro Voluntario (C2)"),
+    "APV":         ("apv",         "APV"),
+    "Previsional": ("apv",         "APV"),
+}
+
+def read_afp_data():
+    """Read AFP XLS files; returns {key: {name, cum_series, summary}}"""
+    if _xlrd is None:
+        return {}
+    afp_dir = os.path.join(DIR, "afp")
+    if not os.path.exists(afp_dir):
+        return {}
+    try:
+        xls_files = sorted(f for f in os.listdir(afp_dir)
+                           if f.lower().endswith(".xls") and not f.startswith("tmp"))
+    except Exception:
+        return {}
+
+    result = {}
+    for fname in xls_files:
+        path = os.path.join(afp_dir, fname)
+        try:
+            wb = _xlrd.open_workbook(path)
+            sh = wb.sheets()[0]
+            title = sh.cell_value(6, 0)
+            key, name = next(
+                ((k, n) for kw, (k, n) in AFP_KEY_MAP.items() if kw in title),
+                (None, None)
+            )
+            if key is None:
+                continue
+
+            rows = []
+            for r in range(13, sh.nrows):
+                try:
+                    fecha = str(sh.cell_value(r, 1)).strip()
+                    if not fecha or fecha.count("-") != 2:
+                        continue
+                    d, m, y = fecha.split("-")
+                    date_iso = f"{y}-{m}-{d}"
+                    abonos = float(sh.cell_value(r, 3) or 0)
+                    cargos = float(sh.cell_value(r, 4) or 0)
+                    cuotas = float(sh.cell_value(r, 6) or 0)
+                    vc     = float(sh.cell_value(r, 7) or 0)
+                    rows.append([date_iso, abonos, cargos, cuotas, vc])
+                except Exception:
+                    continue
+
+            rows.sort(key=lambda x: x[0])
+
+            cum = 0.0
+            total_abonos = total_cargos = 0.0
+            daily = {}
+            for date, abonos, cargos, cuotas_delta, vc in rows:
+                cum += cuotas_delta
+                total_abonos += abonos
+                total_cargos += cargos
+                daily[date] = (round(cum, 4), vc)
+
+            cum_series = [[d, v[0], v[1]] for d, v in sorted(daily.items())]
+            net_cuotas = cum_series[-1][1] if cum_series else 0
+            last_vc    = cum_series[-1][2] if cum_series else 0
+
+            result[key] = {
+                "name": name,
+                "cum_series": cum_series,
+                "summary": {
+                    "net_cuotas":    round(net_cuotas, 4),
+                    "last_valor_cuota": round(last_vc, 4),
+                    "estimated_clp": round(net_cuotas * last_vc),
+                    "total_abonos":  round(total_abonos),
+                    "total_cargos":  round(total_cargos),
+                },
+            }
+        except Exception as e:
+            print(f"  [AFP] Error reading {fname}: {e}")
+
+    return result
 
 
 # ── Data helpers ─────────────────────────────────────────────────────────────
@@ -198,14 +287,21 @@ def build_html(all_data, lows_data, current_prices):
     apv_rows   = read_apv_data()
     apv_data_js = json.dumps(apv_rows, separators=(",", ":"))
 
+    afp_data    = read_afp_data()
+    afp_data_js = json.dumps(afp_data, separators=(",", ":"))
+    afp_earliest = min(
+        (v["cum_series"][0][0] for v in afp_data.values() if v.get("cum_series")),
+        default="2001-01-01",
+    )
+
     return _render_html(last_date, lows_js, cp_js, all_data_js,
                         swings_data_js, default_swings_js, default_holds_js,
-                        apv_data_js)
+                        apv_data_js, afp_data_js, afp_earliest)
 
 
 def _render_html(last_date, lows_js, cp_js, all_data_js,
                  swings_data_js, default_swings_js, default_holds_js,
-                 apv_data_js):
+                 apv_data_js, afp_data_js, afp_earliest):
     today = datetime.now().strftime("%Y-%m-%d")
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -305,11 +401,13 @@ function setTheme(t) {{
   <button class="tab-btn" data-tab="etf"    onclick="showTab('etf')">LETFs</button>
   <button class="tab-btn" data-tab="swings" onclick="showTab('swings')">Swings &amp; Holds</button>
   <button class="tab-btn" data-tab="apv"    onclick="showTab('apv')">APV</button>
+  <button class="tab-btn" data-tab="afp"    onclick="showTab('afp')">AFP</button>
 </div>
 
 <script>
 let swingsChartInitialized = false;
 let apvChartInitialized    = false;
+let afpChartInitialized    = false;
 function showTab(name) {{
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -323,6 +421,10 @@ function showTab(name) {{
   if (name === 'apv' && !apvChartInitialized) {{
     apvChartInitialized = true;
     buildApvChart();
+  }}
+  if (name === 'afp' && !afpChartInitialized) {{
+    afpChartInitialized = true;
+    buildAfpChart();
   }}
 }}
 </script>
@@ -542,7 +644,7 @@ function buildChart() {{
           const d=labels[idx];if(!d)return'';
           const[yr,mo]=d.split('-');const q=Math.ceil(parseInt(mo)/3);
           const fi=labels.findIndex(l=>{{const[ly,lm]=l.split('-');return ly===yr&&Math.ceil(parseInt(lm)/3)===q;}});
-          return idx===fi?yr+'-'+mo:'';
+          return idx===fi?yr+' Q'+q:'';
         }}}},grid:{{color:'rgba(128,128,128,.08)'}}}},
         y:{{ticks:{{color:'#888',font:{{size:11}},callback:v=>viewMode==='pct'?v+'%':'$'+v}},grid:{{color:'rgba(128,128,128,.08)'}}}}
       }},
@@ -788,7 +890,7 @@ function buildSwingsChart() {{
           const d=labels[idx]; if(!d) return '';
           const[yr,mo]=d.split('-'); const q=Math.ceil(parseInt(mo)/3);
           const fi=labels.findIndex(l=>{{const[ly,lm]=l.split('-');return ly===yr&&Math.ceil(parseInt(lm)/3)===q;}});
-          return idx===fi?yr+'-'+mo:'';
+          return idx===fi?yr+' Q'+q:'';
         }}}}, grid:{{color:'rgba(128,128,128,.08)'}}}},
         y:{{ticks:{{color:'#888',font:{{size:11}},callback:v=>shViewMode==='pct'?v+'%':'$'+v}}, grid:{{color:'rgba(128,128,128,.08)'}}}}
       }},
@@ -906,13 +1008,6 @@ if(_extraTickers.length) {{
   <!-- Summary row -->
   <div id="apv-summary" style="display:flex;gap:32px;flex-wrap:wrap;margin-bottom:24px"></div>
 
-  <!-- Controls -->
-  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px">
-    <div style="display:flex;gap:8px">
-      <button id="apv-saldo-btn"  onclick="setApvMode('saldo')"  style="background:#a29bfe22;border:1px solid #a29bfe;color:#a29bfe;padding:5px 14px;border-radius:3px;cursor:pointer;font-size:.78rem;font-family:inherit;">Saldo CLP</button>
-      <button id="apv-cuota-btn"  onclick="setApvMode('cuota')"  style="background:var(--surface);border:1px solid #a29bfe66;color:#a29bfe88;padding:5px 14px;border-radius:3px;cursor:pointer;font-size:.78rem;font-family:inherit;">Valor Cuota</button>
-    </div>
-  </div>
   <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px" id="apv-period-buttons"></div>
   <div style="font-size:.72rem;color:var(--muted);margin-bottom:12px">
     Custom range:
@@ -1048,7 +1143,7 @@ function buildApvChart() {{
           const d=labels[idx]; if(!d) return '';
           const[yr,mo]=d.split('-'); const q=Math.ceil(parseInt(mo)/3);
           const fi=labels.findIndex(l=>{{const[ly,lm]=l.split('-');return ly===yr&&Math.ceil(parseInt(lm)/3)===q;}});
-          return idx===fi?yr+'-'+mo:'';
+          return idx===fi?yr+' Q'+q:'';
         }}}}, grid:{{color:'rgba(128,128,128,.08)'}}}},
         y:{{ticks:{{color:'#888',font:{{size:11}},callback:v=>fmtYVal(v)}}, grid:{{color:'rgba(128,128,128,.08)'}}}}
       }},
@@ -1093,6 +1188,200 @@ document.getElementById('apv-date-to').value   = apvTo;
 </script>
 
 </div><!-- end #tab-apv -->
+
+
+<!-- ═══════════════════════════ TAB: AFP ════════════════════════════ -->
+<div id="tab-afp" class="tab-panel">
+
+  <div style="border-left:3px solid #4fc3f7;padding-left:16px;margin-bottom:24px">
+    <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--text)">AFP</div>
+    <div style="font-size:.75rem;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.08em">CLP estimado · Fondo A</div>
+  </div>
+
+  <!-- Summary cards -->
+  <div id="afp-summary" style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:24px"></div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px" id="afp-period-buttons"></div>
+  <div style="font-size:.72rem;color:var(--muted);margin-bottom:12px">
+    Custom range:
+    <input type="date" id="afp-date-from" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 6px;font-size:.72rem;border-radius:3px;color-scheme:dark">
+    →
+    <input type="date" id="afp-date-to" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:3px 6px;font-size:.72rem;border-radius:3px;color-scheme:dark">
+    <button onclick="applyAfpCustom()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:3px 10px;font-size:.72rem;border-radius:3px;cursor:pointer;margin-left:4px">Apply</button>
+  </div>
+
+  <!-- Legend -->
+  <div id="afp-legend" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px"></div>
+
+  <div style="position:relative;width:100%;height:380px">
+    <canvas id="afpChart"></canvas>
+  </div>
+
+<script>
+const afpRaw    = {afp_data_js};
+const afpColors = {{obligatoria:'#4fc3f7', cuenta2:'#81c784', apv:'#ffb74d'}};
+const afpOrder  = ['obligatoria','cuenta2','apv'];
+const afpNames  = {{obligatoria:'Cuenta Obligatoria', cuenta2:'Ahorro Voluntario (C2)', apv:'APV'}};
+let afpChartInst = null;
+let afpActBtn    = null;
+let activeAfpKeys = new Set();
+const AFP_START  = '{afp_earliest}';
+let afpFrom = AFP_START;
+let afpTo   = new Date().toISOString().slice(0,10);
+
+// Summary cards
+(function(){{
+  const div = document.getElementById('afp-summary');
+  const fmtCLP = n => '$ ' + Math.round(n).toLocaleString('es-CL');
+  let totalClp = 0;
+  afpOrder.forEach(key => {{
+    if(!afpRaw[key]) return;
+    const {{name, summary}} = afpRaw[key];
+    const color = afpColors[key];
+    totalClp += summary.estimated_clp;
+    div.innerHTML += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px 20px;min-width:180px">
+      <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">${{name}}</div>
+      <div style="font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;color:${{color}}">${{fmtCLP(summary.estimated_clp)}}</div>
+      <div style="font-size:.68rem;color:var(--muted);margin-top:4px">${{summary.net_cuotas.toFixed(4)}} cuotas · ${{Math.round(summary.last_valor_cuota).toLocaleString('es-CL')}}/c</div>
+    </div>`;
+  }});
+  div.innerHTML += `<div style="background:var(--surface);border:1px solid #4fc3f7;border-radius:6px;padding:12px 20px;min-width:180px">
+    <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Total</div>
+    <div style="font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;color:#4fc3f7">${{fmtCLP(totalClp)}}</div>
+  </div>`;
+  afpOrder.filter(k => afpRaw[k]).forEach(k => activeAfpKeys.add(k));
+  const leg = document.getElementById('afp-legend');
+  afpOrder.forEach(key => {{
+    if(!afpRaw[key]) return;
+    const color = afpColors[key];
+    const isOn = () => activeAfpKeys.has(key);
+    const btn = document.createElement('button');
+    const apply = () => {{
+      btn.style.cssText = (isOn()
+        ? `background:${{color}}22;border:1px solid ${{color}};color:${{color}};`
+        : `background:var(--surface);border:1px solid var(--border);color:var(--muted);opacity:.45;`)
+        + 'display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:4px;cursor:pointer;font-size:.72rem;font-family:inherit;';
+    }};
+    btn.innerHTML = `<div style="width:10px;height:10px;border-radius:2px;background:${{color}};flex-shrink:0"></div>${{afpNames[key]}}`;
+    btn.onclick = () => {{
+      if(isOn()) {{
+        if(activeAfpKeys.size > 1) activeAfpKeys.delete(key);
+        else return;
+      }} else {{
+        activeAfpKeys.add(key);
+      }}
+      apply();
+      buildAfpChart();
+    }};
+    apply();
+    leg.appendChild(btn);
+  }});
+}})();
+
+function buildAfpChart() {{
+  const keys = afpOrder.filter(k => afpRaw[k] && activeAfpKeys.has(k));
+  if(!keys.length) return;
+  const allDates = new Set();
+  keys.forEach(k => {{
+    afpRaw[k].cum_series.forEach(([d]) => {{ if(d >= afpFrom && d <= afpTo) allDates.add(d); }});
+  }});
+  const labels = [...allDates].sort();
+  const fmtCLP = n => '$ ' + Math.round(n).toLocaleString('es-CL');
+  const fmtM   = v => v >= 1e6 ? '$' + (v/1e6).toFixed(1) + 'M' : v >= 1e3 ? '$' + (v/1e3).toFixed(0) + 'K' : '$' + Math.round(v);
+  const datasets = keys.map(k => {{
+    const dm = {{}};
+    afpRaw[k].cum_series.forEach(([d, cum, vc]) => {{ if(d <= afpTo) dm[d] = cum * vc; }});
+    return {{label:afpNames[k], data:labels.map(d=>dm[d]??null),
+      borderColor:afpColors[k], borderWidth:1.8, pointRadius:0, pointHoverRadius:4,
+      tension:.1, fill:false, spanGaps:true}};
+  }});
+  const xhair = {{id:'afpXhair', afterDraw(chart) {{
+    if(chart._cx==null) return;
+    const {{ctx,chartArea:{{top,bottom,left,right}},scales}} = chart;
+    ctx.save();
+    ctx.beginPath(); ctx.moveTo(chart._cx,top); ctx.lineTo(chart._cx,bottom);
+    ctx.strokeStyle='rgba(200,200,200,.35)'; ctx.lineWidth=1; ctx.setLineDash([4,3]); ctx.stroke();
+    if(chart._cy!=null) {{
+      ctx.beginPath(); ctx.moveTo(left,chart._cy); ctx.lineTo(right,chart._cy); ctx.stroke();
+      const lbl=fmtM(scales.y.getValueForPixel(chart._cy));
+      const lw=ctx.measureText(lbl).width+10, lh=16;
+      ctx.setLineDash([]); ctx.fillStyle='rgba(30,35,48,.92)';
+      ctx.strokeStyle='rgba(200,200,200,.35)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.rect(left-lw-2,chart._cy-lh/2,lw,lh); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='#e8eaf0'; ctx.font='11px IBM Plex Mono,monospace';
+      ctx.textAlign='right'; ctx.textBaseline='middle'; ctx.fillText(lbl,left-5,chart._cy);
+    }}
+    ctx.restore();
+  }}}};
+  if(afpChartInst) afpChartInst.destroy();
+  afpChartInst = new Chart(document.getElementById('afpChart'), {{
+    type:'line', data:{{labels,datasets}}, plugins:[xhair],
+    options:{{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{{mode:'index',intersect:false}},
+      plugins:{{legend:{{display:false}},tooltip:{{callbacks:{{label:ctx=>` ${{ctx.dataset.label}}: ${{fmtCLP(ctx.parsed.y)}}`}}}}}},
+      scales:{{
+        x:{{ticks:{{autoSkip:false,maxRotation:0,color:'#888',font:{{size:11}},callback(val,idx){{
+          const d=labels[idx]; if(!d) return '';
+          const yr=d.slice(0,4);
+          return labels.findIndex(l=>l.slice(0,4)===yr)===idx?yr:'';
+        }}}},grid:{{color:'rgba(128,128,128,.08)'}}}},
+        y:{{ticks:{{color:'#888',font:{{size:11}},callback:v=>fmtM(v)}},grid:{{color:'rgba(128,128,128,.08)'}}}}
+      }},
+      onHover(evt,_,chart) {{
+        const rect=chart.canvas.getBoundingClientRect(); const ca=chart.chartArea;
+        const mx=evt.native?evt.native.clientX-rect.left:null;
+        const my=evt.native?evt.native.clientY-rect.top:null;
+        if(mx!=null&&mx>=ca.left&&mx<=ca.right&&my>=ca.top&&my<=ca.bottom){{chart._cx=mx;chart._cy=my;}}
+        else{{chart._cx=null;chart._cy=null;}}
+        chart.draw();
+      }}
+    }}
+  }});
+  afpChartInst.canvas.addEventListener('mouseleave',()=>{{afpChartInst._cx=null;afpChartInst._cy=null;afpChartInst.draw();}});
+}}
+
+function applyAfpCustom() {{
+  const f=document.getElementById('afp-date-from').value;
+  const t=document.getElementById('afp-date-to').value;
+  if(f&&t){{afpFrom=f;afpTo=t;if(afpActBtn){{afpActBtn.style.color='';afpActBtn.style.borderColor='';afpActBtn=null;}}buildAfpChart();}}
+}}
+
+// Standalone period buttons — no dependency on shared `periods` or START_YEAR
+(function(){{
+  const pDiv = document.getElementById('afp-period-buttons');
+  function mkFrom(months) {{
+    const d = new Date(); d.setMonth(d.getMonth()-months); return d.toISOString().slice(0,10);
+  }}
+  const defs = [
+    ['1M', ()=>mkFrom(1)],  ['3M', ()=>mkFrom(3)],   ['6M', ()=>mkFrom(6)],
+    ['YTD', ()=>new Date().getFullYear()+'-01-01'],
+    ['1Y', ()=>mkFrom(12)], ['2Y', ()=>mkFrom(24)],  ['5Y', ()=>mkFrom(60)],
+    ['10Y',()=>mkFrom(120)],['All', ()=>AFP_START],
+  ];
+  defs.forEach(([label, fromFn]) => {{
+    const btn = document.createElement('button');
+    btn.textContent = label;
+    btn.style.cssText = 'background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:3px;cursor:pointer;font-size:.75rem;font-family:inherit;';
+    btn.onclick = () => {{
+      afpFrom = fromFn();
+      afpTo   = new Date().toISOString().slice(0,10);
+      document.getElementById('afp-date-from').value = afpFrom;
+      document.getElementById('afp-date-to').value   = afpTo;
+      if(afpActBtn){{afpActBtn.style.color='';afpActBtn.style.borderColor='';}}
+      btn.style.color='#e8eaf0'; btn.style.borderColor='#4a5068';
+      afpActBtn = btn; buildAfpChart();
+    }};
+    pDiv.appendChild(btn);
+  }});
+}})();
+
+document.getElementById('afp-date-from').value = afpFrom;
+document.getElementById('afp-date-to').value   = afpTo;
+</script>
+
+</div><!-- end #tab-afp -->
+
 
 <script>
 // Restore last active tab (after all tab panels and their scripts are loaded)

@@ -12,7 +12,9 @@
       "Bash(curl -s \"https://fintual.cl/api/goals?user_token=PU_JsaodzqYy82Esj_Cz&user_email=diegorostn@gmail.com\")",
       "Bash(pip install *)",
       "Bash(python3 -c \"import browser_cookie3; print\\('OK'\\)\")",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(python -c ' *)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('dashboard_server.py'\\).read\\(\\)\\); print\\('OK'\\)\")"
     ]
   }
 }
