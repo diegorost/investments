@@ -277,19 +277,14 @@ def _render_html(last_date, lows_js, cp_js, all_data_js,
 <body>
 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:28px;flex-wrap:wrap">
   <header style="margin-bottom:0">
-    <h1>ETF Leveraged — Historical Lows</h1>
-    <p id="update-status">UPDATED: {last_date} &nbsp;·&nbsp; TOP {TOP_N} ANNUAL LOWS SINCE {START_YEAR} &nbsp;·&nbsp; MIN GAP {GAP_DAYS} DAYS</p>
+    <h1>Diego's Numbers</h1>
+    <p id="update-status">UPDATED: {last_date}</p>
   </header>
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:12px">
     <div style="display:flex;gap:8px;align-items:center">
       <button class="theme-btn active" id="btn-dark"  onclick="setTheme('dark')"  title="Dark"  style="background:#0a0c10"></button>
       <button class="theme-btn"        id="btn-grey"  onclick="setTheme('grey')"  title="Grey"  style="background:#2a2d35"></button>
       <button class="theme-btn"        id="btn-light" onclick="setTheme('light')" title="Light" style="background:#f5f5f0"></button>
-    </div>
-    <div id="fintual-top" style="text-align:right">
-      <div style="font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Fintual · APV-B</div>
-      <div id="fintual-nav" style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:var(--text)">—</div>
-      <div id="fintual-profit" style="font-size:.75rem;color:var(--green);margin-top:2px">—</div>
     </div>
   </div>
 </div>
