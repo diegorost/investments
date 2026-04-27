@@ -207,6 +207,11 @@ def build_html(ticker, long_name, rows, data_js, server_mode=False):
   <canvas id="priceChart"></canvas>
 </div>
 
+<div class="chart-panel" style="margin-top:16px;">
+  <div style="font-family:'Space Mono',monospace;font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Drawdown from Period High</div>
+  <canvas id="drawdownChart" style="max-height:180px;"></canvas>
+</div>
+
 <div class="divider"></div>
 
 <div class="table-section">
@@ -262,6 +267,7 @@ document.getElementById('dateTo').min   = toInputDate(minDate);
 document.getElementById('dateTo').max   = toInputDate(maxDate);
 
 let chart = null;
+let drawdownChart = null;
 let chartMode = 'price';
 let lastFrom = null, lastTo = null;
 
@@ -461,6 +467,74 @@ function render(from, to) {{
             color: '#6b6b88',
             font: {{ family: 'Space Mono', size: 10 }},
             callback: v => isPct ? (v >= 0 ? '+' : '') + v.toFixed(1) + '%' : '$' + v.toFixed(0)
+          }}
+        }}
+      }}
+    }}
+  }});
+
+  // Drawdown chart
+  let peak = data[0].price;
+  const ddValues = data.map(d => {{
+    if (d.price > peak) peak = d.price;
+    return +((( d.price - peak) / peak) * 100).toFixed(4);
+  }});
+  const maxDD = Math.min(...ddValues);
+
+  if (drawdownChart) drawdownChart.destroy();
+  const ddCtx = document.getElementById('drawdownChart').getContext('2d');
+  const ddGrad = ddCtx.createLinearGradient(0, 0, 0, 180);
+  ddGrad.addColorStop(0, 'rgba(248,113,113,0.0)');
+  ddGrad.addColorStop(1, 'rgba(248,113,113,0.28)');
+
+  drawdownChart = new Chart(ddCtx, {{
+    type: 'line',
+    data: {{
+      labels,
+      datasets: [{{
+        label: 'Drawdown',
+        data: ddValues,
+        borderColor: '#f87171',
+        backgroundColor: ddGrad,
+        borderWidth: 1.5,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointHoverBackgroundColor: '#f87171',
+        fill: true,
+        tension: 0.2
+      }}]
+    }},
+    options: {{
+      responsive: true,
+      interaction: {{ mode: 'index', intersect: false }},
+      plugins: {{
+        legend: {{ display: false }},
+        tooltip: {{
+          backgroundColor: '#111118', borderColor: '#1e1e2e', borderWidth: 1,
+          titleColor: '#f0c040', bodyColor: '#e8e8f0',
+          titleFont: {{ family: 'Space Mono', size: 11 }},
+          bodyFont:  {{ family: 'Space Mono', size: 11 }},
+          padding: 12,
+          callbacks: {{
+            title: (items) => fmtDate(new Date(items[0].parsed.x)),
+            label: (item) => ` Drawdown: ${{item.parsed.y.toFixed(2)}}%`
+          }}
+        }}
+      }},
+      scales: {{
+        x: {{
+          type: 'time',
+          time: {{ unit: data.length > 500 ? 'year' : data.length > 120 ? 'month' : 'week' }},
+          grid: {{ color: '#1e1e2e' }},
+          ticks: {{ color: '#6b6b88', font: {{ family: 'Space Mono', size: 10 }} }}
+        }},
+        y: {{
+          max: 0,
+          grid: {{ color: '#1e1e2e' }},
+          ticks: {{
+            color: '#6b6b88',
+            font: {{ family: 'Space Mono', size: 10 }},
+            callback: v => v.toFixed(0) + '%'
           }}
         }}
       }}
