@@ -1420,6 +1420,14 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self.send_response(400)
                 self.end_headers()
+        elif self.path == "/pricedate":
+            self._serve_pricedate_html()
+        elif self.path.startswith("/api/pricedate"):
+            qs     = parse_qs(urlparse(self.path).query)
+            ticker = qs.get("ticker", [""])[0].strip().upper()
+            entry  = qs.get("entry",  [""])[0].strip()
+            exit_  = qs.get("exit",   [""])[0].strip()
+            self._serve_pricedate_api(ticker, entry, exit_)
         else:
             self.send_response(404)
             self.end_headers()
@@ -1494,6 +1502,168 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(err)
             print(f"  [Ticker fetch ERROR] {ticker}: {e}")
+
+
+    def _serve_pricedate_html(self):
+        html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Price Lookup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #0f1117; color: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+  .card { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 12px; padding: 36px 40px; width: 420px; }
+  h1 { font-size: 1.3rem; font-weight: 600; margin-bottom: 28px; color: #fff; }
+  label { display: block; font-size: 0.78rem; color: #888; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+  input { width: 100%; background: #0f1117; border: 1px solid #2a2d3a; border-radius: 7px; color: #e0e0e0; font-size: 1rem; padding: 10px 14px; outline: none; transition: border-color .2s; }
+  input:focus { border-color: #4f8ef7; }
+  .row { margin-bottom: 18px; }
+  .dates { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  button { width: 100%; margin-top: 8px; padding: 12px; background: #4f8ef7; border: none; border-radius: 7px; color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background .2s; }
+  button:hover { background: #3a7de8; }
+  button:disabled { background: #2a3a5a; cursor: default; }
+  #result { margin-top: 24px; display: none; }
+  .price-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #2a2d3a; }
+  .price-row:last-child { border-bottom: none; }
+  .price-label { font-size: 0.85rem; color: #888; }
+  .price-value { font-size: 1.15rem; font-weight: 600; }
+  .return-row { margin-top: 16px; background: #0f1117; border-radius: 8px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; }
+  .return-row .label { font-size: 0.85rem; color: #888; }
+  .return-row .value { font-size: 1.4rem; font-weight: 700; }
+  .pos { color: #4ade80; }
+  .neg { color: #f87171; }
+  #error { margin-top: 18px; color: #f87171; font-size: 0.9rem; display: none; }
+  #spinner { margin-top: 18px; color: #888; font-size: 0.85rem; display: none; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Price Lookup</h1>
+  <div class="row">
+    <label for="ticker">Ticker</label>
+    <input id="ticker" type="text" placeholder="AAPL" autocomplete="off" autocapitalize="characters">
+  </div>
+  <div class="dates">
+    <div class="row">
+      <label for="entry">Entry Date</label>
+      <input id="entry" type="date">
+    </div>
+    <div class="row">
+      <label for="exit">Exit Date</label>
+      <input id="exit" type="date">
+    </div>
+  </div>
+  <button id="btn" onclick="lookup()">Look up</button>
+  <div id="spinner">Fetching...</div>
+  <div id="error"></div>
+  <div id="result">
+    <div class="price-row">
+      <span class="price-label">Entry price</span>
+      <span class="price-value" id="entry-price"></span>
+    </div>
+    <div class="price-row">
+      <span class="price-label">Exit price</span>
+      <span class="price-value" id="exit-price"></span>
+    </div>
+    <div class="return-row">
+      <span class="label">Return</span>
+      <span class="value" id="return-value"></span>
+    </div>
+  </div>
+</div>
+<script>
+  async function lookup() {
+    const ticker = document.getElementById('ticker').value.trim().toUpperCase();
+    const entry  = document.getElementById('entry').value;
+    const exit_  = document.getElementById('exit').value;
+    const btn    = document.getElementById('btn');
+    const errEl  = document.getElementById('error');
+    const res    = document.getElementById('result');
+    const spin   = document.getElementById('spinner');
+
+    errEl.style.display = 'none';
+    res.style.display   = 'none';
+
+    if (!ticker || !entry || !exit_) { errEl.textContent = 'Fill in all fields.'; errEl.style.display = 'block'; return; }
+    if (entry > exit_) { errEl.textContent = 'Entry date must be before exit date.'; errEl.style.display = 'block'; return; }
+
+    btn.disabled = true;
+    spin.style.display = 'block';
+
+    try {
+      const r = await fetch(`/api/pricedate?ticker=${encodeURIComponent(ticker)}&entry=${entry}&exit=${exit_}`);
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error);
+
+      document.getElementById('entry-price').textContent = `$${d.entry_price.toFixed(2)} (${d.entry_date})`;
+      document.getElementById('exit-price').textContent  = `$${d.exit_price.toFixed(2)} (${d.exit_date})`;
+
+      const pct = d.return_pct;
+      const retEl = document.getElementById('return-value');
+      retEl.textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`;
+      retEl.className = 'value ' + (pct >= 0 ? 'pos' : 'neg');
+
+      res.style.display = 'block';
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      spin.style.display = 'none';
+    }
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') lookup(); });
+</script>
+</body>
+</html>"""
+        data = html.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", len(data))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def _serve_pricedate_api(self, ticker, entry, exit_):
+        from datetime import datetime, timedelta
+        def get_close(t, date_str):
+            d = datetime.strptime(date_str, "%Y-%m-%d")
+            # look up to 5 trading days forward to handle weekends/holidays
+            end = (d + timedelta(days=7)).strftime("%Y-%m-%d")
+            df = yf.download(t, start=date_str, end=end, progress=False)
+            if df.empty:
+                raise ValueError(f"No data for {t} on or after {date_str}")
+            actual = df.index[0].strftime("%Y-%m-%d")
+            price  = float(df["Close"].iloc[0].item())
+            return price, actual
+
+        try:
+            if not ticker or not entry or not exit_:
+                raise ValueError("ticker, entry, and exit are required")
+            entry_price, entry_actual = get_close(ticker, entry)
+            exit_price,  exit_actual  = get_close(ticker, exit_)
+            ret_pct = (exit_price / entry_price - 1) * 100
+            payload = json.dumps({
+                "ok": True,
+                "ticker": ticker,
+                "entry_price": entry_price, "entry_date": entry_actual,
+                "exit_price":  exit_price,  "exit_date":  exit_actual,
+                "return_pct":  ret_pct,
+            }).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", len(payload))
+            self.end_headers()
+            self.wfile.write(payload)
+        except Exception as e:
+            err = json.dumps({"ok": False, "error": str(e)}).encode("utf-8")
+            self.send_response(400)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", len(err))
+            self.end_headers()
+            self.wfile.write(err)
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
