@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Price Lookup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #0f1117; color: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+  .card { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 12px; padding: 36px 40px; width: 440px; }
+  h1 { font-size: 1.3rem; font-weight: 600; margin-bottom: 28px; color: #fff; }
+  label { display: block; font-size: 0.78rem; color: #888; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+  input { width: 100%; background: #0f1117; border: 1px solid #2a2d3a; border-radius: 7px; color: #e0e0e0; font-size: 1rem; padding: 10px 14px; outline: none; transition: border-color .2s; }
+  input:focus { border-color: #4f8ef7; }
+  .row { margin-bottom: 18px; }
+  .dates { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  button { width: 100%; margin-top: 8px; padding: 12px; background: #4f8ef7; border: none; border-radius: 7px; color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background .2s; }
+  button:hover { background: #3a7de8; }
+  button:disabled { background: #2a3a5a; cursor: default; }
+  #result { margin-top: 24px; display: none; }
+  .price-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #2a2d3a; }
+  .price-row:last-child { border-bottom: none; }
+  .price-label { font-size: 0.85rem; color: #888; }
+  .price-value { font-size: 1.1rem; font-weight: 600; }
+  .return-row { margin-top: 16px; background: #0f1117; border-radius: 8px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; }
+  .return-label { font-size: 0.85rem; color: #888; }
+  .return-value { font-size: 1.5rem; font-weight: 700; }
+  .pos { color: #4ade80; }
+  .neg { color: #f87171; }
+  #error { margin-top: 18px; color: #f87171; font-size: 0.88rem; display: none; background: #2a1a1a; border-radius: 7px; padding: 10px 14px; }
+  #spinner { margin-top: 14px; color: #888; font-size: 0.85rem; display: none; text-align: center; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Price Lookup</h1>
+
+  <div class="row">
+    <label for="ticker">Ticker</label>
+    <input id="ticker" type="text" placeholder="AAPL" autocomplete="off">
+  </div>
+
+  <div class="dates">
+    <div class="row">
+      <label for="entry">Entry</label>
+      <input id="entry" type="date">
+    </div>
+    <div class="row">
+      <label for="exit">Exit</label>
+      <input id="exit" type="date">
+    </div>
+  </div>
+
+  <button id="btn" onclick="lookup()">Look up</button>
+
+  <div id="spinner">Fetching prices...</div>
+  <div id="error"></div>
+
+  <div id="result">
+    <div class="price-row">
+      <span class="price-label">Entry</span>
+      <span class="price-value" id="entry-price"></span>
+    </div>
+    <div class="price-row">
+      <span class="price-label">Exit</span>
+      <span class="price-value" id="exit-price"></span>
+    </div>
+    <div class="return-row">
+      <span class="return-label">Return</span>
+      <span class="return-value" id="return-value"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+  async function getPrice(ticker, dateStr) {
+    // fetch a 7-day window so weekends/holidays snap to next trading day
+    const start = Math.floor(new Date(dateStr + 'T00:00:00Z').getTime() / 1000);
+    const end   = start + 7 * 86400;
+    const url   = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${start}&period2=${end}&interval=1d`;
+
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`Yahoo Finance returned ${r.status} for ${ticker}`);
+    const data = await r.json();
+
+    const result = data?.chart?.result?.[0];
+    if (!result) {
+      const err = data?.chart?.error?.description || 'No data found';
+      throw new Error(err);
+    }
+
+    const timestamps = result.timestamp || [];
+    const closes     = result.indicators?.quote?.[0]?.close || [];
+
+    for (let i = 0; i < timestamps.length; i++) {
+      if (closes[i] != null) {
+        const actualDate = new Date(timestamps[i] * 1000).toISOString().split('T')[0];
+        return { price: closes[i], date: actualDate };
+      }
+    }
+    throw new Error(`No trading data for ${ticker} on or after ${dateStr}`);
+  }
+
+  async function lookup() {
+    const ticker = document.getElementById('ticker').value.trim().toUpperCase();
+    const entry  = document.getElementById('entry').value;
+    const exit_  = document.getElementById('exit').value;
+    const btn    = document.getElementById('btn');
+    const errEl  = document.getElementById('error');
+    const resEl  = document.getElementById('result');
+    const spin   = document.getElementById('spinner');
+
+    errEl.style.display = 'none';
+    resEl.style.display = 'none';
+
+    if (!ticker || !entry || !exit_) {
+      errEl.textContent = 'Fill in all fields.';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (entry > exit_) {
+      errEl.textContent = 'Entry date must be before exit date.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    spin.style.display = 'block';
+
+    try {
+      const [e, x] = await Promise.all([getPrice(ticker, entry), getPrice(ticker, exit_)]);
+
+      document.getElementById('entry-price').textContent = `$${e.price.toFixed(2)}  (${e.date})`;
+      document.getElementById('exit-price').textContent  = `$${x.price.toFixed(2)}  (${x.date})`;
+
+      const pct   = (x.price / e.price - 1) * 100;
+      const retEl = document.getElementById('return-value');
+      retEl.textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`;
+      retEl.className   = 'return-value ' + (pct >= 0 ? 'pos' : 'neg');
+
+      resEl.style.display = 'block';
+    } catch (e) {
+      errEl.textContent   = e.message;
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled       = false;
+      spin.style.display = 'none';
+    }
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') lookup(); });
+</script>
+</body>
+</html>
