@@ -20,7 +20,9 @@
       "Bash(pyinstaller --onefile ticker_analysis/ticker_analysis.py)",
       "PowerShell(Get-Item \"dist\\\\ticker_analysis.exe\" | Select-Object Name, @{Name=\"Size_MB\";Expression={[math]::Round\\($_.Length/1MB,1\\)}})",
       "PowerShell($f = Get-Item \"dist\\\\ticker_analysis.exe\"; \"$\\($f.Name\\) — $\\([math]::Round\\($f.Length/1MB,1\\)\\) MB\")",
-      "Bash(pyinstaller --onefile pricedate/pricedate.py)"
+      "Bash(pyinstaller --onefile pricedate/pricedate.py)",
+      "Bash(git rm *)",
+      "Bash(git add *)"
     ]
   }
 }
