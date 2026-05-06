@@ -68,11 +68,6 @@ FIELD_PATTERNS = {
         r"(?:CLP|Pesos?)\s*(?:Monto|Total|Neto|Valor\s+Transado|Total\s+a\s+Pagar)\s*:?\s*\$?\s*([0-9.,]+)",
         r"Total\s+(?:Factura|Boleta)\s*:?\s*\$?\s*([0-9.,]+)",
     ],
-    "fx_rate": [
-        r"Tipo\s+de\s+Cambio\s*:?\s*\$?\s*([0-9.,]+)",
-        r"Dolar\s*(?:Observado|Referencia)?\s*:?\s*\$?\s*([0-9.,]+)",
-        r"TC\s*:?\s*\$?\s*([0-9.,]+)",
-    ],
 }
 
 HTML_TEMPLATE = """
@@ -123,7 +118,7 @@ HTML_TEMPLATE = """
     <thead>
       <tr>
         <th>PDF</th><th>Fecha</th><th>Tipo</th>
-        <th>Precio /U</th><th>Cantidad USD</th><th>TC</th><th>Monto CLP</th>
+        <th>Precio /U</th><th>Cantidad USD</th><th>Monto CLP</th>
       </tr>
     </thead>
     <tbody>
@@ -134,7 +129,6 @@ HTML_TEMPLATE = """
         <td class="{{ '' if row.side == 'Compra' else 'muted' }}">{{ row.side or "" }}</td>
         <td>{{ fmt_usd(row.price_usd) }}</td>
         <td>{{ fmt_usd(row.amount_usd) }}</td>
-        <td>{{ fmt_fx(row.fx_rate) }}</td>
         <td>{{ fmt_clp(row.amount_clp) }}</td>
       </tr>
     {% endfor %}
@@ -237,8 +231,6 @@ def table_field_for_label(label):
         return "amount_clp"
     if "TOTAL" in label and ("PAGAR" in label or "CLP" in label or "PESO" in label):
         return "amount_clp"
-    if "TIPO CAMBIO" in label or label == "TC":
-        return "fx_rate"
     if "UNIDADES" in label or "ACCIONES" in label:
         return "quantity"
     if "NEMO" in label or "INSTRUMENTO" in label:
@@ -269,7 +261,6 @@ def fields_in_header_line(line):
         (r"\bCANTIDAD\b", "amount_usd"),
         (r"\bPRECIO\s*/\s*U\b", "price_usd"),
         (r"\b(?:MONTO|TOTAL).*(?:CLP|PESOS?)\b", "amount_clp"),
-        (r"\b(?:TIPO\s+CAMBIO|TC)\b", "fx_rate"),
         (r"\b(?:UNIDADES|ACCIONES)\b", "quantity"),
     ]
     found = []
@@ -379,12 +370,11 @@ def parse_boleta(pdf_path):
         "quantity": parse_number(first_match(compact, FIELD_PATTERNS["quantity"])),
         "price_usd": parse_number(first_match(compact, FIELD_PATTERNS["price_usd"])),
         "amount_usd": parse_number(first_match(compact, FIELD_PATTERNS["amount_usd"])),
-        "fx_rate": parse_number(first_match(compact, FIELD_PATTERNS["fx_rate"])),
         "amount_clp": parse_number(first_match(compact, FIELD_PATTERNS["amount_clp"])),
         "raw_text": raw_text,
     }
 
-    for key in ("quantity", "price_usd", "amount_usd", "fx_rate", "amount_clp"):
+    for key in ("quantity", "price_usd", "amount_usd", "amount_clp"):
         if row[key] is None and table_guess.get(key) is not None:
             row[key] = table_guess[key]
         if row[key] is None and line_guess.get(key) is not None:
@@ -402,8 +392,6 @@ def parse_boleta(pdf_path):
             ["Monto", "Total", "Neto", "Valor Transado", "Total a Pagar"],
             ["CLP", "Pesos"],
         )
-    if row["fx_rate"] is None and row["amount_usd"] and row["amount_clp"]:
-        row["fx_rate"] = row["amount_clp"] / row["amount_usd"]
     return row
 
 
@@ -438,10 +426,6 @@ def fmt_clp(value):
     return "" if value is None else f"$ {value:,.0f}"
 
 
-def fmt_fx(value):
-    return "" if value is None else f"{value:,.10f}".rstrip("0").rstrip(".")
-
-
 def print_rows(rows, pdf_count, folder):
     purchases = [row for row in rows if (row["side"] or "").lower() == "compra"]
     total_usd = sum(row["amount_usd"] or 0 for row in purchases)
@@ -450,22 +434,22 @@ def print_rows(rows, pdf_count, folder):
     print(f"Compras: {len(purchases)}  |  Total USD: {fmt_usd(total_usd)}  |  Total CLP: {fmt_clp(total_clp)}\n")
     print(
         f"{'PDF':<30} {'Fecha':<10} {'Tipo':<8} "
-        f"{'Precio /U':>14} {'Cantidad USD':>14} {'TC':>16} {'Monto CLP':>14}"
+        f"{'Precio /U':>14} {'Cantidad USD':>14} {'Monto CLP':>14}"
     )
-    print("-" * 142)
+    print("-" * 124)
     for row in rows:
         print(
             f"{row['source']:<30} {(row['date'] or ''):<10} "
             f"{(row['side'] or ''):<8} "
             f"{fmt_usd(row['price_usd']):>14} {fmt_usd(row['amount_usd']):>14} "
-            f"{fmt_fx(row['fx_rate']):>16} {fmt_clp(row['amount_clp']):>14}"
+            f"{fmt_clp(row['amount_clp']):>14}"
         )
 
 
 def main():
-    default_folder = Path(__file__).parent / "vector"
+    default_folder = Path(r"C:\Users\diego\OneDrive\Inversiones\Racional\Boletas Vector")
     parser = argparse.ArgumentParser(description="Parser de boletas Vector Capital")
-    parser.add_argument("folder", nargs="?", default=str(default_folder), help="Carpeta con PDFs (default: ./vector/)")
+    parser.add_argument("folder", nargs="?", default=str(default_folder), help=f"Carpeta con PDFs (default: {default_folder})")
     parser.add_argument("--no-serve", action="store_true", help="Imprimir en consola en vez de servir HTML")
     parser.add_argument("--dump-text", action="store_true", help="Imprimir el texto extraido de cada PDF")
     parser.add_argument("--port", type=int, default=5051, help="Puerto para el servidor HTML (default: 5051)")
@@ -513,7 +497,6 @@ def main():
             fmt_qty=fmt_qty,
             fmt_usd=fmt_usd,
             fmt_clp=fmt_clp,
-            fmt_fx=fmt_fx,
         )
 
     url = f"http://localhost:{args.port}"

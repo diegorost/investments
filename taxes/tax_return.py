@@ -37,9 +37,9 @@ TX_RE = re.compile(
     r"(BUY|SELL)\s+"                        # Activity Type
     r"([A-Z]+(?:\.[A-Z]+)?)\s+-\s+"        # Ticker symbol
     r".+?(?:Principal|Agency)\.\s+"         # Description (lazy) + exec type
-    r"-?([\d,]+\.[\d]+)\s+"                # Quantity
-    r"([\d,]+\.[\d]+)\s+"                  # Price
-    r"\(?([\d,]+\.[\d]+)\)?"              # Amount
+    r"-?([\d,]+(?:\.[\d]+)?)\s+"           # Quantity
+    r"([\d,]+(?:\.[\d]+)?)\s+"             # Price
+    r"\(?([\d,]+(?:\.[\d]+)?)\)?"         # Amount
 )
 
 HTML_TEMPLATE = """
@@ -90,19 +90,20 @@ HTML_TEMPLATE = """
   <div class="ticker-header">
     <span class="ticker-name">{{ ticker }}</span>
     {% set last = rows[-1] %}
+    {% set buy_shares = rows | selectattr("side", "equalto", "buy") | sum(attribute="qty") %}
     {% if last.shares_after > 0.000001 %}
       <span class="ticker-summary position-open">
-        {{ "%.6f"|format(last.shares_after) }} shares &bull; avg ${{ "%.4f"|format(last.avg_after) }}
+        {{ "%.8f"|format(last.shares_after) }} shares &bull; suma {{ "%.8f"|format(buy_shares) }} &bull; capital invertido ${{ "%.2f"|format(last.capital_after) }} &bull; avg ${{ "%.4f"|format(last.avg_after) }}
       </span>
     {% else %}
-      <span class="ticker-summary position-closed">closed</span>
+      <span class="ticker-summary position-closed">closed &bull; suma {{ "%.8f"|format(buy_shares) }} &bull; capital invertido ${{ "%.2f"|format(last.capital_after) }}</span>
     {% endif %}
   </div>
   <table>
     <thead>
       <tr>
         <th>Date</th><th>Side</th>
-        <th>Shares</th><th>Price</th>
+        <th>Shares</th><th>Price</th><th>Capital invertido</th>
         <th>Acc. Shares</th><th>Avg Cost</th>
       </tr>
     </thead>
@@ -111,9 +112,10 @@ HTML_TEMPLATE = """
       <tr>
         <td>{{ r.date }}</td>
         <td class="{{ r.side }}">{{ r.side }}</td>
-        <td class="{{ r.side }}">{{ '+' if r.side == 'buy' else '-' }}{{ "%.6f"|format(r.qty) }}</td>
+        <td class="{{ r.side }}">{{ '+' if r.side == 'buy' else '-' }}{{ "%.8f"|format(r.qty) }}</td>
         <td>${{ "%.4f"|format(r.price) }}</td>
-        <td>{{ "%.6f"|format(r.shares_after) }}</td>
+        <td>${{ "%.2f"|format(r.capital_after) }}</td>
+        <td>{{ "%.8f"|format(r.shares_after) }}</td>
         <td>${{ "%.4f"|format(r.avg_after) }}</td>
       </tr>
     {% endfor %}
@@ -184,15 +186,15 @@ def compute_avg(transactions):
             total_shares += tx["qty"]
             total_cost   += tx["qty"] * tx["price"]
         else:
+            avg_before = total_cost / total_shares if total_shares > 0 else 0.0
             total_shares -= tx["qty"]
             if total_shares < 0:
                 total_shares = 0.0
                 total_cost   = 0.0
             else:
-                avg_before = total_cost / (total_shares + tx["qty"]) if (total_shares + tx["qty"]) > 0 else 0
                 total_cost = total_shares * avg_before
         avg_after = total_cost / total_shares if total_shares > 0 else 0.0
-        result.append({**tx, "shares_after": total_shares, "avg_after": avg_after})
+        result.append({**tx, "shares_after": total_shares, "avg_after": avg_after, "capital_after": total_cost})
     return result
 
 
@@ -200,19 +202,26 @@ def print_ticker(ticker, rows):
     print(f"\n{'='*70}")
     print(f"  {ticker}")
     print(f"{'='*70}")
-    print(f"  {'Fecha':<12} {'Lado':<5} {'Shares':>12} {'Precio':>10} {'Shares Acc':>12} {'Avg Cost':>10}")
-    print(f"  {'-'*60}")
+    print(f"  {'Fecha':<12} {'Lado':<5} {'Shares':>12} {'Precio':>10} {'Cap. Inv.':>12} {'Shares Acc':>12} {'Avg Cost':>10}")
+    print(f"  {'-'*76}")
     for r in rows:
         sign = "+" if r["side"] == "buy" else "-"
         print(
             f"  {r['date']:<12} {r['side']:<5} "
-            f"{sign}{r['qty']:>11.6f} "
+            f"{sign}{r['qty']:>11.8f} "
             f"${r['price']:>9.4f} "
-            f"{r['shares_after']:>12.6f} "
+            f"${r['capital_after']:>11.2f} "
+            f"{r['shares_after']:>12.8f} "
             f"${r['avg_after']:>9.4f}"
         )
     last = rows[-1]
-    print(f"\n  -> Posicion actual: {last['shares_after']:.6f} shares  |  Avg: ${last['avg_after']:.4f}")
+    buy_shares = sum(r["qty"] for r in rows if r["side"] == "buy")
+    print(
+        f"\n  -> Posicion actual: {last['shares_after']:.8f} shares"
+        f"  |  Suma shares: {buy_shares:.8f}"
+        f"  |  Capital invertido: ${last['capital_after']:.2f}"
+        f"  |  Avg: ${last['avg_after']:.4f}"
+    )
 
 
 def load_data(folder, filter_tickers=None):
