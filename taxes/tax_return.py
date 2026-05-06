@@ -5,9 +5,9 @@ per-ticker transaction history with running avg cost.
 
 Usage:
     python tax_return.py                          # serves HTML on :5050
-    python tax_return.py ./pdf/
-    python tax_return.py ./pdf/ --ticker AGQ
-    python tax_return.py ./pdf/ --no-serve        # plain text output
+    python tax_return.py ./Racional/
+    python tax_return.py ./Racional/ --ticker AGQ
+    python tax_return.py ./Racional/ --no-serve   # plain text output
 """
 
 import re
@@ -239,9 +239,9 @@ def load_data(folder, filter_tickers=None):
 
 
 def main():
-    default_folder = Path(__file__).parent / "pdf"
+    default_folder = Path(__file__).parent / "Racional"
     parser = argparse.ArgumentParser(description="Parser de estados de cuenta Racional/DriveWealth")
-    parser.add_argument("folder", nargs="?", default=str(default_folder), help="Carpeta con los PDFs (default: ./pdf/)")
+    parser.add_argument("folder", nargs="?", default=str(default_folder), help="Carpeta con los PDFs (default: ./Racional/)")
     parser.add_argument("--ticker", nargs="*", help="Filtrar por ticker(s)")
     parser.add_argument("--no-serve", action="store_true", help="Imprimir en consola en vez de servir HTML")
     parser.add_argument("--port", type=int, default=5050, help="Puerto para el servidor HTML (default: 5050)")
