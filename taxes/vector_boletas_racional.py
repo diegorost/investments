@@ -33,7 +33,7 @@ except ImportError:
     render_template_string = None
 
 
-MONEY_RE = re.compile(r"(?:USD|US\$|\$)?\s*-?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?|-?\d+(?:[.,]\d+)?")
+MONEY_RE = re.compile(r"(?:USD|US\$|\$)?\s*-?\d{1,3}(?:[.,]\d{3}(?!\d))*(?:[.,]\d+)?|-?\d+(?:[.,]\d+)?")
 DATE_RE = re.compile(r"\b(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})\b")
 DOC_RE = re.compile(r"(?:N[ro.\s]*|Numero\s+)(?:boleta|factura|documento)?\s*:?\s*(\d+)", re.I)
 
@@ -75,11 +75,11 @@ HTML_TEMPLATE = """
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>Vector Boletas</title>
+<title>Boletas</title>
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; background: #101418; color: #e7edf3; }
-  main { padding: 28px; max-width: 1280px; margin: 0 auto; }
+  main { padding: 28px; max-width: 1400px; margin: 0 auto; }
   .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
   h1 { margin: 0 0 6px; font-size: 24px; font-weight: 650; }
   .subtitle { color: #8fa1b2; }
@@ -92,18 +92,20 @@ HTML_TEMPLATE = """
   table { width: 100%; border-collapse: collapse; background: #182029; border: 1px solid #293542; border-radius: 8px; overflow: hidden; }
   th, td { padding: 10px 12px; border-bottom: 1px solid #293542; white-space: nowrap; text-align: right; }
   th { color: #8fa1b2; font-size: 12px; font-weight: 600; text-transform: uppercase; }
-  td:first-child, td:nth-child(2), th:first-child, th:nth-child(2) { text-align: left; }
+  td:first-child, td:nth-child(2), td:nth-child(3), th:first-child, th:nth-child(2), th:nth-child(3) { text-align: left; }
   tr:last-child td { border-bottom: 0; }
   .warn { color: #f6c177; }
   .muted { color: #8fa1b2; }
+  .broker-vector { color: #79c0ff; font-weight: 600; }
+  .broker-btg { color: #56d364; font-weight: 600; }
 </style>
 </head>
 <body>
 <main>
   <div class="topbar">
     <div>
-      <h1>Vector Boletas</h1>
-      <div class="subtitle">{{ pdf_count }} PDFs desde {{ folder }}</div>
+      <h1>Boletas</h1>
+      <div class="subtitle">{{ pdf_count }} PDFs</div>
     </div>
     <form method="get" action="/">
       <button type="submit">Rescan</button>
@@ -113,20 +115,29 @@ HTML_TEMPLATE = """
     <div class="stat"><div class="label">Compras</div><div class="value">{{ purchase_count }}</div></div>
     <div class="stat"><div class="label">Total USD</div><div class="value">{{ fmt_usd(total_usd) }}</div></div>
     <div class="stat"><div class="label">Total CLP</div><div class="value">{{ fmt_clp(total_clp) }}</div></div>
+    {% for broker, count, usd, clp in broker_stats %}
+    <div class="stat">
+      <div class="label {{ 'broker-vector' if broker == 'VECTOR' else 'broker-btg' }}">{{ broker }}</div>
+      <div style="margin-top:6px; font-size:12px; color:#8fa1b2;">{{ count }} compras</div>
+      <div style="font-size:14px; font-weight:600; margin-top:2px;">{{ fmt_usd(usd) }}</div>
+      <div style="font-size:13px; color:#8fa1b2;">{{ fmt_clp(clp) }}</div>
+    </div>
+    {% endfor %}
   </div>
   <table>
     <thead>
       <tr>
-        <th>PDF</th><th>Fecha</th><th>Tipo</th>
+        <th>Corredor</th><th>PDF</th><th>Fecha</th><th>Tipo</th>
         <th>Precio /U</th><th>Cantidad USD</th><th>Monto CLP</th>
       </tr>
     </thead>
     <tbody>
     {% for row in rows %}
       <tr>
+        <td class="{{ 'broker-vector' if row.broker == 'VECTOR' else 'broker-btg' }}">{{ row.broker }}</td>
         <td>{{ row.source }}</td>
         <td>{{ row.date or "" }}</td>
-        <td class="{{ '' if row.side == 'Compra' else 'muted' }}">{{ row.side or "" }}</td>
+        <td class="{{ '' if (row.side or '').upper() == 'COMPRA' else 'muted' }}">{{ row.side or "" }}</td>
         <td>{{ fmt_usd(row.price_usd) }}</td>
         <td>{{ fmt_usd(row.amount_usd) }}</td>
         <td>{{ fmt_clp(row.amount_clp) }}</td>
@@ -160,8 +171,11 @@ def parse_number(value):
             value = value.replace(",", "")
     elif "," in value:
         parts = value.split(",")
-        if len(parts[-1]) in (1, 2):
+        if len(parts[-1]) in (1, 2) or len(parts[-1]) >= 4:
             value = value.replace(".", "").replace(",", ".")
+        elif len(parts) == 2 and len(parts[0]) <= 3:
+            # single comma, short integer part (e.g. "861,651") → decimal in Chilean convention
+            value = value.replace(",", ".")
         else:
             value = value.replace(",", "")
     elif "." in value:
@@ -395,11 +409,76 @@ def parse_boleta(pdf_path):
     return row
 
 
-def load_boletas(folder):
-    pdfs = sorted(folder.glob("*.pdf"))
-    rows = [parse_boleta(pdf) for pdf in pdfs]
-    rows.sort(key=lambda row: (date_key(row["date"]), row["source"]))
-    return pdfs, rows
+def parse_btg_boleta(pdf_path):
+    raw_text = extract_text(pdf_path)
+    text = strip_accents(raw_text)
+
+    date_match = re.search(r"Fecha\s+Emision\s*:\s*(\d{1,2}-\d{1,2}-\d{4})", text, re.I)
+    date = date_match.group(1) if date_match else None
+
+    doc_match = re.search(r"Bolsa\s+N[o°o]?\s+(\d+)", text, re.I)
+    document = doc_match.group(1) if doc_match else None
+
+    side = None
+    amount_clp = None
+    with pdfplumber.open(pdf_path) as pdf:
+        words = pdf.pages[0].extract_words()
+    ventas_x1  = next((w["x1"] for w in words if w["text"] == "VENTAS"),  None)
+    compras_x1 = next((w["x1"] for w in words if w["text"] == "COMPRAS"), None)
+    if ventas_x1 and compras_x1:
+        mid = (ventas_x1 + compras_x1) / 2
+        col_amounts = [
+            w for w in words
+            if "." in w["text"] and len(w["text"]) > 4
+            and w["text"].replace(".", "").replace(",", "").isdigit()
+            and w["x1"] > 200
+        ]
+        if col_amounts:
+            side = "COMPRA" if col_amounts[0]["x1"] < mid else "VENTA"
+            amount_clp = parse_number(col_amounts[0]["text"])
+
+    qty_match = re.search(r"([\d.,]+)\s+USD\s+Spot", text, re.I)
+    amount_usd = parse_number(qty_match.group(1)) if qty_match else None
+
+    price_match = re.search(r"USD\s+Spot\s+([\d.]+)", text, re.I)
+    price_usd = parse_number(price_match.group(1)) if price_match else None
+
+    return {
+        "source": pdf_path.name,
+        "date": date,
+        "document": document,
+        "side": side,
+        "ticker": "USD",
+        "quantity": amount_usd,
+        "price_usd": price_usd,
+        "amount_usd": amount_usd,
+        "amount_clp": amount_clp,
+        "raw_text": raw_text,
+    }
+
+
+SOURCES = [
+    (Path(r"C:\Users\diego\OneDrive\Inversiones\Racional\Boletas Vector"), "VECTOR"),
+    (Path(r"C:\Users\diego\OneDrive\Inversiones\BTGPactual"), "BTGPactual"),
+]
+
+
+def load_boletas(sources=None):
+    if sources is None:
+        sources = SOURCES
+    all_pdfs = []
+    all_rows = []
+    for folder, broker in sources:
+        if not folder.is_dir():
+            continue
+        pdfs = sorted(folder.glob("*.pdf"))
+        all_pdfs.extend(pdfs)
+        for pdf in pdfs:
+            row = parse_btg_boleta(pdf) if broker == "BTGPactual" else parse_boleta(pdf)
+            row["broker"] = broker
+            all_rows.append(row)
+    all_rows.sort(key=lambda row: (date_key(row["date"]), row["source"]))
+    return all_pdfs, all_rows
 
 
 def date_key(value):
@@ -426,20 +505,34 @@ def fmt_clp(value):
     return "" if value is None else f"$ {value:,.0f}"
 
 
-def print_rows(rows, pdf_count, folder):
+def broker_totals(rows):
+    brokers = sorted({row.get("broker", "") for row in rows})
+    result = []
+    for broker in brokers:
+        p = [r for r in rows if r.get("broker") == broker and (r["side"] or "").lower() == "compra"]
+        result.append((broker, len(p), sum(r["amount_usd"] or 0 for r in p), sum(r["amount_clp"] or 0 for r in p)))
+    return result
+
+
+def print_rows(rows, pdf_count, folder=None):
     purchases = [row for row in rows if (row["side"] or "").lower() == "compra"]
     total_usd = sum(row["amount_usd"] or 0 for row in purchases)
     total_clp = sum(row["amount_clp"] or 0 for row in purchases)
-    print(f"\nLeyendo {pdf_count} PDFs desde {folder}")
-    print(f"Compras: {len(purchases)}  |  Total USD: {fmt_usd(total_usd)}  |  Total CLP: {fmt_clp(total_clp)}\n")
+    label = f"desde {folder}" if folder else f"({pdf_count} PDFs)"
+    parts = [f"Total: {len(purchases)} compras  {fmt_usd(total_usd)}  {fmt_clp(total_clp)}"]
+    for broker, count, usd, clp in broker_totals(rows):
+        parts.append(f"{broker}: {count}  {fmt_usd(usd)}  {fmt_clp(clp)}")
+    print(f"\nLeyendo {pdf_count} PDFs {label}")
+    print("   |   ".join(parts))
+    print()
     print(
-        f"{'PDF':<30} {'Fecha':<10} {'Tipo':<8} "
+        f"{'Corredor':<12} {'PDF':<35} {'Fecha':<12} {'Tipo':<8} "
         f"{'Precio /U':>14} {'Cantidad USD':>14} {'Monto CLP':>14}"
     )
-    print("-" * 124)
+    print("-" * 135)
     for row in rows:
         print(
-            f"{row['source']:<30} {(row['date'] or ''):<10} "
+            f"{row.get('broker', ''):<12} {row['source']:<35} {(row['date'] or ''):<12} "
             f"{(row['side'] or ''):<8} "
             f"{fmt_usd(row['price_usd']):>14} {fmt_usd(row['amount_usd']):>14} "
             f"{fmt_clp(row['amount_clp']):>14}"
@@ -447,53 +540,46 @@ def print_rows(rows, pdf_count, folder):
 
 
 def main():
-    default_folder = Path(r"C:\Users\diego\OneDrive\Inversiones\Racional\Boletas Vector")
-    parser = argparse.ArgumentParser(description="Parser de boletas Vector Capital")
-    parser.add_argument("folder", nargs="?", default=str(default_folder), help=f"Carpeta con PDFs (default: {default_folder})")
+    parser = argparse.ArgumentParser(description="Parser de boletas Vector / BTGPactual")
     parser.add_argument("--no-serve", action="store_true", help="Imprimir en consola en vez de servir HTML")
     parser.add_argument("--dump-text", action="store_true", help="Imprimir el texto extraido de cada PDF")
     parser.add_argument("--port", type=int, default=5051, help="Puerto para el servidor HTML (default: 5051)")
     args = parser.parse_args()
 
-    folder = Path(args.folder).expanduser()
-    if not folder.is_dir():
-        print(f"[!] No existe la carpeta: {folder}")
-        sys.exit(1)
-
     if args.dump_text:
-        pdfs, rows = load_boletas(folder)
+        pdfs, rows = load_boletas()
         if not pdfs:
-            print(f"[!] No se encontraron PDFs en {folder}")
+            print("[!] No se encontraron PDFs")
             sys.exit(1)
         for row in rows:
-            print(f"\n{'=' * 90}\n{row['source']}\n{'=' * 90}")
+            print(f"\n{'=' * 90}\n{row.get('broker', '')}  {row['source']}\n{'=' * 90}")
             print(row["raw_text"])
         return
 
     if args.no_serve or Flask is None:
-        pdfs, rows = load_boletas(folder)
+        pdfs, rows = load_boletas()
         if not pdfs:
-            print(f"[!] No se encontraron PDFs en {folder}")
+            print("[!] No se encontraron PDFs")
             sys.exit(1)
         if Flask is None and not args.no_serve:
             print("[!] Flask no esta instalado. Mostrando salida de consola.")
-        print_rows(rows, len(pdfs), folder)
+        print_rows(rows, len(pdfs))
         return
 
     app = Flask(__name__)
 
     @app.route("/")
     def index():
-        pdfs, rows = load_boletas(folder)
+        pdfs, rows = load_boletas()
         purchases = [row for row in rows if (row["side"] or "").lower() == "compra"]
         return render_template_string(
             HTML_TEMPLATE,
             rows=rows,
-            folder=folder,
             pdf_count=len(pdfs),
             purchase_count=len(purchases),
             total_usd=sum(row["amount_usd"] or 0 for row in purchases),
             total_clp=sum(row["amount_clp"] or 0 for row in purchases),
+            broker_stats=broker_totals(rows),
             fmt_qty=fmt_qty,
             fmt_usd=fmt_usd,
             fmt_clp=fmt_clp,

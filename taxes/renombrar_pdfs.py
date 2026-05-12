@@ -1,6 +1,9 @@
 import os
 import re
+import sys
 import pdfplumber
+
+sys.stdout.reconfigure(encoding="utf-8")
 
 meses = {
     "1": "Enero", "2": "Febrero", "3": "Marzo", "4": "Abril",
@@ -8,7 +11,7 @@ meses = {
     "9": "Septiembre", "10": "Octubre", "11": "Noviembre", "12": "Diciembre"
 }
 
-tipo = input("Tipo de documento (1=Racional, 2=Vector): ").strip().lower()
+tipo = input("Tipo de documento (1=Racional, 2=Vector, 3=BTG): ").strip().lower()
 
 if tipo in ("2", "vector"):
     carpeta = r"C:\Users\diego\OneDrive\Inversiones\Racional\Boletas Vector"
@@ -21,8 +24,13 @@ elif tipo in ("1", "racional"):
     etiqueta_fecha = "Confirmation Date"
     patron_fecha = r"Confirmation Date\s*:?\s*(\d{1,2})/(\d{1,2})/(\d{4})"
     orden_fecha = "mdy"
+elif tipo in ("3", "btg", "btgpactual"):
+    carpeta = r"C:\Users\diego\OneDrive\Inversiones\BTGPactual"
+    etiqueta_fecha = "Fecha Emisión"
+    patron_fecha = r"Fecha\s+Emisi[oó]n\s*:\s*(\d{1,2})-(\d{1,2})-(\d{4})"
+    orden_fecha = "dmy"
 else:
-    raise ValueError("Tipo invalido. Escribe '1', '2', 'Racional' o 'Vector'.")
+    raise ValueError("Tipo invalido. Escribe '1', '2', '3', 'Racional', 'Vector' o 'BTG'.")
 
 if not os.path.isdir(carpeta):
     raise NotADirectoryError(f"La carpeta no existe: {carpeta}")
@@ -42,6 +50,7 @@ for archivo in os.listdir(carpeta):
             texto = ""
             for pagina in pdf.pages[:3]:
                 texto += pagina.extract_text() or ""
+            btg_words = pdf.pages[0].extract_words() if tipo in ("3", "btg", "btgpactual") else None
 
         print(f"\n--- {archivo} ---")
         # busca cualquier linea con fecha para debug
@@ -73,6 +82,27 @@ for archivo in os.listdir(carpeta):
                     continue
 
                 operacion = match_operacion.group(1).capitalize()
+                nombre_base = f"{año}-{mes_num}-{mes_name}-{dia}-{operacion}_USD"
+                pendientes_vector.append((ruta, nombre_base))
+                continue
+            elif tipo in ("3", "btg", "btgpactual"):
+                words = btg_words
+                ventas_x1  = next((w["x1"] for w in words if w["text"] == "VENTAS"),  None)
+                compras_x1 = next((w["x1"] for w in words if w["text"] == "COMPRAS"), None)
+                if ventas_x1 is None or compras_x1 is None:
+                    print("  ✗ No encontré columnas VENTAS/COMPRAS")
+                    continue
+                mid = (ventas_x1 + compras_x1) / 2
+                amounts = [
+                    w for w in words
+                    if "." in w["text"] and len(w["text"]) > 4
+                    and w["text"].replace(".", "").replace(",", "").isdigit()
+                ]
+                col_amounts = [w for w in amounts if w["x1"] > 200]
+                if not col_amounts:
+                    print("  ✗ No encontré monto en tabla")
+                    continue
+                operacion = "Compra" if col_amounts[0]["x1"] < mid else "Venta"
                 nombre_base = f"{año}-{mes_num}-{mes_name}-{dia}-{operacion}_USD"
                 pendientes_vector.append((ruta, nombre_base))
                 continue

@@ -24,7 +24,10 @@
       "Bash(git rm *)",
       "Bash(git add *)",
       "Bash(python \"c:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\dashboard_server\\\\taxes\\\\tax_return.py\" \"c:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\dashboard_server\\\\taxes\\\\pdf\")",
-      "Bash(python -c \"import flask; print\\('flask ok'\\)\")"
+      "Bash(python -c \"import flask; print\\('flask ok'\\)\")",
+      "Read(//c/Users/diego/OneDrive/Inversiones/BTGPactual/**)",
+      "Bash(python3 taxes/renombrar_pdfs.py)",
+      "Bash(python3 taxes/vector_boletas_racional.py --no-serve)"
     ]
   }
 }
