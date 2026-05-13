@@ -6,8 +6,28 @@
       "Bash(git push *)",
       "Bash(git branch *)",
       "Bash(git remote *)",
+      "WebFetch(domain:fintual.cl)",
+      "WebSearch",
+      "Bash(curl -s -X POST https://fintual.cl/api/access_tokens -H 'Content-Type: application/json' -d '{\"user\":{\"email\":\"diegorostn@gmail.com\",\"password\":\".3XNiFVZeRP_Kv2\"}}')",
+      "Bash(curl -s \"https://fintual.cl/api/goals?user_token=PU_JsaodzqYy82Esj_Cz&user_email=diegorostn@gmail.com\")",
+      "Bash(pip install *)",
+      "Bash(python3 -c \"import browser_cookie3; print\\('OK'\\)\")",
+      "Bash(python3 -c ' *)",
+      "Bash(python -c ' *)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('dashboard_server.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(pip show *)",
+      "Bash(pyinstaller --onefile ticker_analysis\\\\ticker_analysis.py)",
+      "Bash(pyinstaller --onefile ticker_analysis/ticker_analysis.py)",
+      "PowerShell(Get-Item \"dist\\\\ticker_analysis.exe\" | Select-Object Name, @{Name=\"Size_MB\";Expression={[math]::Round\\($_.Length/1MB,1\\)}})",
+      "PowerShell($f = Get-Item \"dist\\\\ticker_analysis.exe\"; \"$\\($f.Name\\) — $\\([math]::Round\\($f.Length/1MB,1\\)\\) MB\")",
+      "Bash(pyinstaller --onefile pricedate/pricedate.py)",
       "Bash(git rm *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(python \"c:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\dashboard_server\\\\taxes\\\\tax_return.py\" \"c:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\dashboard_server\\\\taxes\\\\pdf\")",
+      "Bash(python -c \"import flask; print\\('flask ok'\\)\")",
+      "Read(//c/Users/diego/OneDrive/Inversiones/BTGPactual/**)",
+      "Bash(python3 taxes/renombrar_pdfs.py)",
+      "Bash(python3 taxes/vector_boletas_racional.py --no-serve)"
     ]
   }
 }
