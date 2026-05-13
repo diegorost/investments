@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['renombrar_pdfs.py'],
+    ['..\\..\\taxes\\renombrar_pdfs.py'],
     pathex=[],
     binaries=[],
     datas=[],
