@@ -1,19 +1,26 @@
 import yfinance as yf
 import re
 import sys
+import os
 from datetime import datetime
 
-def extract_silj_tickers(html_content):
-    """
-    Extract tickers from the SILJ data in the HTML.
-    """
-    pattern = r'const siljData = (\[[\s\S]*?\]);'
-    match = re.search(pattern, html_content)
-    if not match:
-        return []
-    data_str = match.group(1)
-    ticker_matches = re.findall(r"ticker:'([^']+)'", data_str)
-    return ticker_matches
+def extract_all_tickers(html_content):
+    """Extract unique tickers from all three ETF data arrays."""
+    patterns = [
+        r'const slvpData = (\[[\s\S]*?\]);',
+        r'const silData = (\[[\s\S]*?\]);',
+        r'const siljData = (\[[\s\S]*?\]);',
+    ]
+    seen = set()
+    tickers = []
+    for pattern in patterns:
+        m = re.search(pattern, html_content)
+        if m:
+            for ticker in re.findall(r"ticker:'([^']+)'", m.group(1)):
+                if ticker not in seen:
+                    seen.add(ticker)
+                    tickers.append(ticker)
+    return tickers
 
 def get_stock_data(ticker):
     """
@@ -27,7 +34,7 @@ def get_stock_data(ticker):
         current_price = info.get('currentPrice') or info.get('regularMarketPrice')
         
         # All-time high
-        hist = stock.history(period='max')
+        hist = stock.history(period='1y')
         if not hist.empty:
             ath = hist['High'].max()
         else:
@@ -84,7 +91,7 @@ def update_known_data(html_content, updates):
     return html_content
 
 def main():
-    html_file = 'silver_analysisETF.html'
+    html_file = os.path.join(os.path.dirname(__file__), 'silver_analysisETF.html')
     
     try:
         with open(html_file, 'r', encoding='utf-8') as f:
@@ -93,23 +100,89 @@ def main():
         print(f"File not found: {html_file}")
         sys.exit(1)
     
-    tickers = extract_silj_tickers(html_content)
-    
+    arg = sys.argv[1] if len(sys.argv) > 1 else None
+    only    = None
+    na_only = arg and arg.lower() == '--na'
+    if arg and not na_only:
+        only = arg.upper()
+
+    tickers = extract_all_tickers(html_content)
+
     if not tickers:
-        print("No SILJ tickers found in the HTML file.")
+        print("No tickers found in the HTML file.")
         sys.exit(1)
+
+    if only:
+        if only not in tickers:
+            print(f"Ticker '{only}' not found in HTML. Available: {', '.join(tickers)}")
+            sys.exit(1)
+        tickers = [only]
+        print(f"Updating single ticker: {only}")
+    elif na_only:
+        na_set = set(re.findall(r"'([^']+)':\s*\{[^}]*current:\s*'N/A'", html_content))
+        tickers = [t for t in tickers if t in na_set]
+        print(f"Found {len(tickers)} tickers with N/A prices. Fetching 52-week data from yfinance...")
+    else:
+        print(f"Found {len(tickers)} unique tickers across all ETFs. Fetching 52-week data from yfinance...")
     
-    print(f"Found {len(tickers)} SILJ tickers. Fetching updated data from yfinance...")
-    
+    ticker_map = {
+        'FRES':      'FRES.L',
+        'ABRA':      'ABRA.TO',
+        'PE&OLES*':  'PE&OLES.MX',
+        'PE&OLES':   'PE&OLES.MX',
+        'KGH':       'KGH.WA',
+        'BOL':       'BOL.ST',
+        'ARTG':      'ARTG.V',
+        'HOC':       'HOC.L',
+        'GGD':       'GGD.TO',
+        'KCN':       'KCN.AX',
+        'SVL':       'SVL.AX',
+        'HSTR':      'HSTR.V',
+        'GSVR':      'GSVR.V',
+        'SVRS':      'SVRS.V',
+        'TUD':       'TUD.V',
+        'AAG':       'AAG.V',
+        'AGMR':      'AGMR.TO',
+        'CKG':       'CKG.V',
+        'CUU':       'CUU.V',
+        'FPC':       'FPC.V',
+        'IPT':       'IPT.V',
+        'WAM':       'WAM.V',
+        'MFRISCOA':  'MFRISCOA-1.MX',
+        'WVM':       'WVM.V',
+        'AMM':       'AMM.V',
+        'MKR':       'MKR.AX',
+        'DSV':       'DSVSF',
+        'FVI':       'FVI.TO',
+        'SCZ':       'SCZ.V',
+        'NUAG':      'NUAG.TO',
+        'ITR':       'ITR.V',
+        'SLVR':      'SLVR.V',
+        'ASL':       'ASL.AX',
+        'BRC':       'BRC.V',
+        'USL':       'USL.AX',
+        'SOSI':      'SOSI.ST',
+        'GORO':      'GORO',
+        'AAG':       'AAG.V',
+        'K':         'KGC',
+    }
+
+    static_tickers = {'VOLCABC1', 'APX.PS'}
+
     updates = {}
     for ticker in tickers:
-        current, ath = get_stock_data(ticker)
+        if ticker in static_tickers:
+            print(f"Skipping {ticker} (static data, not fetching from yfinance)")
+            continue
+        yf_ticker = ticker_map.get(ticker, ticker)
+        current, ath = get_stock_data(yf_ticker)
         if current is not None and ath is not None:
             pct = ((ath - current) / ath) * 100
         else:
             pct = None
         updates[ticker] = (current, ath, pct)
-        print(f"Updated {ticker}: Current={current}, ATH={ath}, %={pct}")
+        label = f"{ticker} ({yf_ticker})" if yf_ticker != ticker else ticker
+        print(f"Updated {label}: Current={current}, ATH={ath}, %={pct}")
     
     # Update the HTML
     updated_html = update_known_data(html_content, updates)
