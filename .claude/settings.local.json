@@ -27,7 +27,13 @@
       "Bash(python -c \"import flask; print\\('flask ok'\\)\")",
       "Read(//c/Users/diego/OneDrive/Inversiones/BTGPactual/**)",
       "Bash(python3 taxes/renombrar_pdfs.py)",
-      "Bash(python3 taxes/vector_boletas_racional.py --no-serve)"
+      "Bash(python3 taxes/vector_boletas_racional.py --no-serve)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\diego\\\\Downloads\\\\stocks\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "PowerShell(& \"C:\\\\Users\\\\diego\\\\Downloads\\\\stocks\\\\.venv\\\\Scripts\\\\pip.exe\" install openpyxl -q)",
+      "WebFetch(domain:www.investing.com)",
+      "PowerShell(& \"C:\\\\Users\\\\diego\\\\Downloads\\\\stocks\\\\.venv\\\\Scripts\\\\python.exe\" -c \"import requests; import bs4; print\\('ok'\\)\" 2>$null)",
+      "PowerShell(& \"C:\\\\Users\\\\diego\\\\Downloads\\\\stocks\\\\.venv\\\\Scripts\\\\pip.exe\" install cloudscraper -q)"
     ]
   }
 }
