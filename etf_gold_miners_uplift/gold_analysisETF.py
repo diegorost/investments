@@ -181,8 +181,8 @@ def main():
         # Barrick / AngloGold / Kinross / IAMGOLD / Harmony / B2Gold — NYSE tickers work directly
         'DSV.V':   'DSVSF',    # Discovery Silver: TSXV ticker rarely works; use OTC
         'SCZM':    'SCZ.V',    # Santacruz Silver Mining TSXV
-        'NFGC':    'NFGC.V',   # New Found Gold TSXV
-        'AUGO':    'ORA.TO',   # Aura Minerals TSX (listed as ORA)
+        'NFGC':    'NFGC',     # New Found Gold NYSE American
+        'AUGO':    'AUGO',     # Aura Minerals NYSE American
         'ELE.V':   'ELE.V',    # Elemental Altus TSXV
         'NEWP':    'NEWP',     # New Pacific Metals NYSE American
         'ORLA':       'ORLA',        # Orla Mining NYSE (also TSX)
@@ -191,7 +191,9 @@ def main():
         'ARTG.V':     'ARTG.V',      # Artemis Gold TSXV
         # GDXJ-specific
         'PAF.L':      'PAF.L',       # Pan African Resources AIM/LSE
-        'SXGC.V':     'SXGC.V',     # Southern Cross Gold TSXV
+        'SXGC.V':     'SXGC.TO',    # Southern Cross Gold TSX
+        'KOZAA.IS':   'TRALT.IS',   # Koza Anadolu → Tralti Istanbul
+        'CNMC.SI':    '5TP.SI',     # CNMC Goldmine Singapore
         'ASM':        'ASM',         # Avino Silver & Gold NYSE American
         'ITRG':       'ITRG',        # Integra Resources NYSE American
         'CMCL':       'CMCL',        # Caledonia Mining NYSE American
@@ -210,19 +212,19 @@ def main():
         'MEK.AX':     'MEK.AX',      # Meeka Metals ASX
         'ASL.AX':     'ASL.AX',      # Andean Silver ASX
         'FFX.AX':     'FFX.AX',      # Firefinch ASX
+        'SGD.V':      'SGD.TO',
+        'GTWO.V':     'GTWO.TO',
+        'RIO.V':      'RIO.TO',
+        'CNL.V':      'CNL.TO',
+        'HSLV.V':     'HSLV.TO',
+        'ORE.V':      'ORE.TO',
+        'ODV.TO':     'ODV',
     }
 
     # Tickers yfinance cannot reliably fetch
     static_tickers = {
-        '0340.HK',   # Tongguan Gold — leading-zero HK ticker
-        'PAN.JO',    # Pan African Resources JSE
-        '1787.HK',   # Shandong Gold HK
         # PLZL handled separately via investing.com scraper
-        'EMAS.JK',   # Merdeka Gold Indonesia
-        'ARCI.JK',   # Archi Indonesia
-        'PSAB.JK',   # J Resources Indonesia
-        'CNMC.SI',   # CNMC Goldmine Singapore
-        'KOZAA.IS',  # Koza Anadolu Istanbul
+        'FFX.AX',    # Firefinch/Birimian Gold ASX — not on yfinance
     }
 
     updates = {}

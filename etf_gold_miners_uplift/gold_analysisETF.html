@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gold ETF Analysis - RING, AUAU, GDX &amp; GDXJ Holdings</title>
+<title>Gold ETF Analysis - All Holdings</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; padding: 20px; color: #333; }
@@ -340,12 +340,12 @@ const knownData = {
   'CMM.AX': { current: '$13.95', ath: '$16.41', pct: 15.0, tier: 'Mid-Tier Producer' },
   'FSM': { current: '$10.33', ath: '$13.85', pct: 25.4, tier: 'Mid-Tier Producer' },
   'SVM': { current: '$14.95', ath: '$15.77', pct: 5.2, tier: 'Mid-Tier Producer' },
-  'AUGO': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Mid-Tier Producer' },
+  'AUGO': { current: '$79.99', ath: '$110.32', pct: 27.5, tier: 'Mid-Tier Producer' },
   'TRALT.IS': { current: '$46.72', ath: '$64.00', pct: 27.0, tier: 'Mid-Tier Producer' },
   '6693.HK': { current: '$40.04', ath: '$49.90', pct: 19.8, tier: 'Mid-Tier Producer' },
-  '0340.HK':   { current: 'N/A', ath: 'N/A', pct: null, tier: 'Mid-Tier Producer' },
-  '1787.HK':   { current: 'N/A', ath: 'N/A', pct: null, tier: 'Mid-Tier Producer' },
-  'PAN.JO':    { current: 'N/A', ath: 'N/A', pct: null, tier: 'Mid-Tier Producer' },
+  '0340.HK': { current: '$2.62', ath: '$4.14', pct: 36.7, tier: 'Mid-Tier Producer' },
+  '1787.HK': { current: '$27.62', ath: '$54.45', pct: 49.3, tier: 'Mid-Tier Producer' },
+  'PAN.JO': { current: '$3307.00', ath: '$4208.86', pct: 21.4, tier: 'Mid-Tier Producer' },
   // ── Junior-Mid ────────────────────────────────────────────────────────────
   'GMIN.TO': { current: '$51.46', ath: '$58.74', pct: 12.4, tier: 'Junior-Mid Producer' },
   'WDO.TO': { current: '$30.64', ath: '$30.98', pct: 1.1, tier: 'Junior-Mid Producer' },
@@ -362,8 +362,8 @@ const knownData = {
   'AYA.TO': { current: '$29.36', ath: '$30.15', pct: 2.6, tier: 'Junior-Mid Producer' },
   'APM.TO': { current: '$7.99', ath: '$12.55', pct: 36.3, tier: 'Junior-Mid Producer' },
   'GGD.TO': { current: '$3.38', ath: '$4.12', pct: 18.0, tier: 'Junior-Mid Producer' },
-  'CNL.V': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior-Mid Dev' },
-  'ORE.V': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior-Mid Dev' },
+  'CNL.V': { current: '$24.00', ath: '$30.12', pct: 20.3, tier: 'Junior-Mid Dev' },
+  'ORE.V': { current: '$2.52', ath: '$2.98', pct: 15.4, tier: 'Junior-Mid Dev' },
   'MSA.TO': { current: '$5.45', ath: '$7.79', pct: 30.0, tier: 'Junior-Mid Producer' },
   'USAS': { current: '$7.15', ath: '$10.50', pct: 31.9, tier: 'Junior-Mid Producer' },
   '2259.HK': { current: '$160.00', ath: '$268.00', pct: 40.3, tier: 'Junior-Mid Producer' },
@@ -393,16 +393,16 @@ const knownData = {
   'SX2.AX': { current: '$10.77', ath: '$12.08', pct: 10.8, tier: 'Junior Dev' },
   'VZLA': { current: '$3.76', ath: '$7.19', pct: 47.7, tier: 'Junior Dev' },
   'IAUX': { current: '$1.57', ath: '$2.24', pct: 29.9, tier: 'Junior Dev' },
-  'RIO.V': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior Dev' },
-  'HSLV.V': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior Dev' },
+  'RIO.V': { current: '$3.25', ath: '$4.09', pct: 20.5, tier: 'Junior Dev' },
+  'HSLV.V': { current: '$8.41', ath: '$10.50', pct: 19.9, tier: 'Junior Dev' },
   'THM': { current: '$2.67', ath: '$3.65', pct: 26.8, tier: 'Junior Dev' },
   'DC': { current: '$6.25', ath: '$7.25', pct: 13.8, tier: 'Junior Dev' },
   'NEWP': { current: '$5.57', ath: '$6.31', pct: 11.7, tier: 'Junior Dev' },
-  'ODV.TO': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior Dev' },
-  'NFGC': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior Dev' },
+  'ODV.TO': { current: '$3.33', ath: '$4.80', pct: 30.6, tier: 'Junior Dev' },
+  'NFGC': { current: '$2.19', ath: '$3.59', pct: 39.0, tier: 'Junior Dev' },
   // ── Junior Explorer ───────────────────────────────────────────────────────
-  'SGD.V': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior Explorer' },
-  'GTWO.V': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior Explorer' },
+  'SGD.V': { current: '$16.34', ath: '$21.39', pct: 23.6, tier: 'Junior Explorer' },
+  'GTWO.V': { current: '$11.79', ath: '$12.74', pct: 7.5, tier: 'Junior Explorer' },
   'PDI.AX': { current: '$1.00', ath: '$1.04', pct: 3.8, tier: 'Junior Explorer' },
   'ALK.AX': { current: '$1.57', ath: '$1.89', pct: 16.7, tier: 'Junior Explorer' },
   // ── Micro ─────────────────────────────────────────────────────────────────
@@ -415,18 +415,18 @@ const knownData = {
   'AMMN.JK': { current: '$3700.00', ath: '$9225.00', pct: 59.9, tier: 'Mid-Tier Producer' },
   // ── GDXJ-specific ─────────────────────────────────────────────────────────
   'PAF.L': { current: '$149.20', ath: '$186.39', pct: 20.0, tier: 'Mid-Tier Producer' },
-  'EMAS.JK':   { current: 'N/A', ath: 'N/A', pct: null, tier: 'Mid-Tier Producer' },
-  'SXGC.V': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior Dev' },
+  'EMAS.JK': { current: '$7900.00', ath: '$10175.00', pct: 22.4, tier: 'Mid-Tier Producer' },
+  'SXGC.V': { current: '$11.04', ath: '$11.75', pct: 6.0, tier: 'Junior Dev' },
   'ASM': { current: '$7.66', ath: '$11.99', pct: 36.1, tier: 'Junior Producer' },
-  'KOZAA.IS':  { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior Producer' },
+  'KOZAA.IS': { current: '$46.72', ath: '$64.00', pct: 27.0, tier: 'Junior Producer' },
   'SBM.AX': { current: '$0.66', ath: '$0.89', pct: 26.1, tier: 'Junior Producer' },
   'ITRG': { current: '$2.78', ath: '$4.87', pct: 42.9, tier: 'Junior Dev' },
   'CMCL': { current: '$23.92', ath: '$38.52', pct: 37.9, tier: 'Junior Producer' },
   'IDR': { current: '$44.59', ath: '$54.70', pct: 18.5, tier: 'Junior Dev' },
   'CTGO': { current: '$24.71', ath: '$34.38', pct: 28.1, tier: 'Junior Dev' },
-  'ARCI.JK':   { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior Producer' },
+  'ARCI.JK': { current: '$1410.00', ath: '$2120.00', pct: 33.5, tier: 'Junior Producer' },
   'AMI.AX': { current: '$0.34', ath: '$0.35', pct: 2.8, tier: 'Junior Producer' },
-  'CNMC.SI':   { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior Producer' },
+  'CNMC.SI': { current: '$1.35', ath: '$2.07', pct: 34.8, tier: 'Junior Producer' },
   'FDR.V': { current: '$5.70', ath: '$5.90', pct: 3.4, tier: 'Junior Explorer' },
   'VOXR': { current: '$6.32', ath: '$6.70', pct: 5.7, tier: 'Junior Royalty' },
   '8299.HK': { current: '$0.54', ath: '$0.85', pct: 36.5, tier: 'Micro Explorer' },
@@ -438,8 +438,8 @@ const knownData = {
   'USAU': { current: '$16.97', ath: '$23.75', pct: 28.5, tier: 'Micro Dev' },
   'LUCA.V': { current: '$1.30', ath: '$2.16', pct: 39.8, tier: 'Junior Dev' },
   'WRLG.V': { current: '$0.71', ath: '$1.49', pct: 52.3, tier: 'Micro Dev' },
-  'PSAB.JK':   { current: 'N/A', ath: 'N/A', pct: null, tier: 'Micro Producer' },
-  'FFX.AX': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Micro Producer' },
+  'PSAB.JK': { current: '$500.00', ath: '$755.00', pct: 33.8, tier: 'Micro Producer' },
+  'FFX.AX': { current: '$0.20', ath: '$0.21', pct: 4.8, tier: 'Micro Producer' },
 };
 
 function getPctClass(pct) {
