@@ -2,6 +2,8 @@ import yfinance as yf
 import re
 import sys
 import os
+import cloudscraper
+from bs4 import BeautifulSoup
 from datetime import datetime
 
 def extract_all_tickers(html_content):
@@ -21,6 +23,45 @@ def extract_all_tickers(html_content):
                     seen.add(ticker)
                     tickers.append(ticker)
     return tickers
+
+_scraper = None
+
+def get_investing_com_data(url):
+    """Fetch current price and 52-week high from an investing.com equities page."""
+    global _scraper
+    if _scraper is None:
+        _scraper = cloudscraper.create_scraper()
+    try:
+        resp = _scraper.get(url, timeout=15)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, 'html.parser')
+
+        current_price = None
+        price_elem = soup.find(attrs={'data-test': 'instrument-price-last'})
+        if not price_elem:
+            price_elem = soup.select_one('[class*="text-5xl"]')
+        if price_elem:
+            try:
+                current_price = float(price_elem.get_text(strip=True).replace(',', ''))
+            except ValueError:
+                pass
+
+        ath = None
+        for div in soup.find_all('div', class_='text-secondary'):
+            if '52 wk Range' in div.get_text():
+                spans = div.parent.find_all('span')
+                if len(spans) >= 2:
+                    try:
+                        ath = float(spans[-1].get_text(strip=True).replace(',', ''))
+                    except ValueError:
+                        pass
+                break
+
+        return current_price, ath
+    except Exception as e:
+        print(f"Error fetching data from {url}: {e}")
+        return None, None
+
 
 def get_stock_data(ticker):
     """
@@ -167,12 +208,22 @@ def main():
         'K':         'KGC',
     }
 
-    static_tickers = {'VOLCABC1', 'APX.PS'}
+    investing_com_tickers = {
+        'VOLCABC1': 'https://www.investing.com/equities/volcan-cmp-min?cid=102134',
+        'APX.PS':   'https://www.investing.com/equities/apex-mining-a',
+    }
 
     updates = {}
     for ticker in tickers:
-        if ticker in static_tickers:
-            print(f"Skipping {ticker} (static data, not fetching from yfinance)")
+        if ticker in investing_com_tickers:
+            url = investing_com_tickers[ticker]
+            current, ath = get_investing_com_data(url)
+            if current is not None and ath is not None:
+                pct = ((ath - current) / ath) * 100
+            else:
+                pct = None
+            updates[ticker] = (current, ath, pct)
+            print(f"Updated {ticker} (investing.com): Current={current}, ATH={ath}, %={pct}")
             continue
         yf_ticker = ticker_map.get(ticker, ticker)
         current, ath = get_stock_data(yf_ticker)
