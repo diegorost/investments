@@ -33,7 +33,8 @@
       "PowerShell(& \"C:\\\\Users\\\\diego\\\\Downloads\\\\stocks\\\\.venv\\\\Scripts\\\\pip.exe\" install openpyxl -q)",
       "WebFetch(domain:www.investing.com)",
       "PowerShell(& \"C:\\\\Users\\\\diego\\\\Downloads\\\\stocks\\\\.venv\\\\Scripts\\\\python.exe\" -c \"import requests; import bs4; print\\('ok'\\)\" 2>$null)",
-      "PowerShell(& \"C:\\\\Users\\\\diego\\\\Downloads\\\\stocks\\\\.venv\\\\Scripts\\\\pip.exe\" install cloudscraper -q)"
+      "PowerShell(& \"C:\\\\Users\\\\diego\\\\Downloads\\\\stocks\\\\.venv\\\\Scripts\\\\pip.exe\" install cloudscraper -q)",
+      "Bash(Move-Item -Path \"ticker_analysis.spec\" -Destination \"build\\\\ticker_analysis.spec\")"
     ]
   }
 }
