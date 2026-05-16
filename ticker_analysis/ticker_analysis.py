@@ -69,7 +69,7 @@ def build_html(ticker, long_name, rows, data_js, server_mode=False):
     n = len(rows)
 
     period_options = ""
-    for val, label in [("1y","1Y"), ("2y","2Y"), ("5y","5Y"), ("10y","10Y"), ("max","Max")]:
+    for val, label in [("1mo","1M"), ("3mo","3M"), ("6mo","6M"), ("1y","1Y"), ("2y","2Y"), ("5y","5Y"), ("10y","10Y"), ("max","Max")]:
         period_options += f'<option value="{val}">{label}</option>'
 
     search_bar = ""
@@ -700,11 +700,11 @@ if SERVER_MODE:
 
     @app.route("/")
     def index():
-        return redirect("/dashboard?ticker=SOXL&period=max")
+        return redirect("/dashboard?ticker=GC%3DF&period=max")
 
     @app.route("/dashboard")
     def dashboard():
-        ticker = request.args.get("ticker", "SOXL").upper().strip()
+        ticker = request.args.get("ticker", "GC=F").upper().strip()
         period = request.args.get("period", "max")
 
         long_name, rows, data_js = fetch_data(ticker, period)
