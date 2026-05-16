@@ -40,7 +40,10 @@
       "Read(//c/Users/diego/OneDrive/Liquidaciones/**)",
       "PowerShell(python \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\investments\\\\liquidaciones\\\\salary_scan.py\")",
       "PowerShell(python -c \"import matplotlib\" 2>&1)",
-      "PowerShell(pip install matplotlib -q)"
+      "PowerShell(pip install matplotlib -q)",
+      "Read(//c/Users/diego/OneDrive/Gastos Comunes/**)",
+      "PowerShell(pip install openpyxl xlrd -q)",
+      "PowerShell(python \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\investments\\\\ggcc\\\\ggcc.py\")"
     ]
   }
 }
