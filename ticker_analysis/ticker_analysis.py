@@ -86,7 +86,7 @@ def build_html(ticker, long_name, rows, data_js, period="1y", server_mode=False)
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{ticker} — Price Dashboard</title>
+<title>{ticker} · {long_name}</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
@@ -94,11 +94,26 @@ def build_html(ticker, long_name, rows, data_js, period="1y", server_mode=False)
   :root {{
     --bg: #09090f; --panel: #111118; --border: #1e1e2e;
     --accent: #f0c040; --accent2: #e05a5a; --accent3: #5ab4e0;
-    --text: #e8e8f0; --muted: #6b6b88; --green: #4ade80; --red: #f87171;
+    --text: #e8e8f0; --muted: #a8a8c8; --green: #4ade80; --red: #f87171;
   }}
+  [data-theme="white"] {{
+    --bg: #f4f4f8; --panel: #ffffff; --border: #dcdce8;
+    --accent: #7c3aed; --accent2: #e05a5a; --accent3: #0284c7;
+    --text: #1a1a2e; --muted: #8080a0; --green: #16a34a; --red: #dc2626;
+  }}
+  [data-theme="classic"] {{
+    --bg: #0a0e1a; --panel: #0f1629; --border: #1e2d4a;
+    --accent: #00d4ff; --accent2: #ff6b6b; --accent3: #7dd3fc;
+    --text: #c8d8f0; --muted: #4a6080; --green: #00e676; --red: #ff5252;
+  }}
+  .theme-wrap {{ display: flex; align-items: center; gap: 6px; margin-left: auto; }}
+  .theme-label {{ font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--text); text-transform: uppercase; letter-spacing: 1px; }}
+  .theme-btn {{ font-family: 'Space Mono', monospace; font-size: 0.65rem; font-weight: 700; letter-spacing: 1px; padding: 6px 11px; border: 1px solid var(--border); background: var(--panel); color: var(--muted); cursor: pointer; border-radius: 4px; transition: all 0.15s; text-transform: uppercase; white-space: nowrap; }}
+  .theme-btn:hover {{ border-color: var(--accent); color: var(--accent); }}
+  .theme-btn.active {{ border-color: var(--accent); background: rgba(255,255,255,0.06); color: var(--accent); }}
   * {{ box-sizing: border-box; margin: 0; padding: 0; }}
   body {{ background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; padding: 32px 24px; }}
-  .header {{ display: flex; align-items: baseline; gap: 16px; margin-bottom: 20px; }}
+  .header {{ display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }}
   .header h1 {{ font-size: 2.8rem; font-weight: 800; letter-spacing: -1px; color: var(--accent); line-height: 1; }}
   .header .sub {{ font-family: 'Space Mono', monospace; font-size: 0.75rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }}
   .ticker-search {{ display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; }}
@@ -131,16 +146,16 @@ def build_html(ticker, long_name, rows, data_js, period="1y", server_mode=False)
   .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }}
   .stat-card {{ background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; transition: border-color 0.15s; }}
   .stat-card:hover {{ border-color: var(--accent); }}
-  .stat-label {{ font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }}
+  .stat-label {{ font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--text); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }}
   .stat-value {{ font-size: 1.6rem; font-weight: 800; line-height: 1; }}
-  .stat-sub {{ font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--muted); margin-top: 4px; }}
+  .stat-sub {{ font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--text); margin-top: 4px; }}
   .stat-card.high .stat-value {{ color: var(--green); }}
   .stat-card.low .stat-value {{ color: var(--red); }}
   .stat-card.range .stat-value {{ color: var(--accent3); }}
   .stat-card.count .stat-value {{ color: var(--accent); }}
   .stat-card.change-pos .stat-value {{ color: var(--green); }}
   .stat-card.change-neg .stat-value {{ color: var(--red); }}
-  .table-section h2 {{ font-size: 0.8rem; font-family: 'Space Mono', monospace; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }}
+  .table-section h2 {{ font-size: 0.8rem; font-family: 'Space Mono', monospace; letter-spacing: 3px; text-transform: uppercase; color: var(--text); margin-bottom: 16px; }}
   .top-tables {{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }}
   @media (max-width: 768px) {{
     body {{ padding: 16px 12px; }}
@@ -172,7 +187,7 @@ def build_html(ticker, long_name, rows, data_js, period="1y", server_mode=False)
     .generated {{ font-size: 0.55rem; margin-top: 20px; }}
   }}
   table {{ width: 100%; border-collapse: collapse; font-family: 'Space Mono', monospace; font-size: 0.72rem; }}
-  thead th {{ text-align: left; padding: 10px 12px; font-size: 0.62rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); }}
+  thead th {{ text-align: left; padding: 10px 12px; font-size: 0.62rem; letter-spacing: 2px; text-transform: uppercase; color: var(--text); border-bottom: 1px solid var(--border); }}
   tbody tr {{ transition: background 0.1s; }}
   tbody tr:hover {{ background: rgba(240,192,64,0.04); }}
   tbody td {{ padding: 9px 12px; border-bottom: 1px solid rgba(30,30,46,0.6); color: var(--text); }}
@@ -195,6 +210,12 @@ def build_html(ticker, long_name, rows, data_js, period="1y", server_mode=False)
   <div>
     <div class="sub">{long_name}</div>
     <div class="sub">Price History Dashboard</div>
+  </div>
+  <div class="theme-wrap">
+    <span class="theme-label">Theme</span>
+    <button class="theme-btn" id="theme-modern" onclick="applyTheme('modern')">Modern</button>
+    <button class="theme-btn" id="theme-white" onclick="applyTheme('white')">White</button>
+    <button class="theme-btn" id="theme-classic" onclick="applyTheme('classic')">Classic</button>
   </div>
 </div>
 
@@ -240,17 +261,25 @@ def build_html(ticker, long_name, rows, data_js, period="1y", server_mode=False)
 <div class="divider"></div>
 
 <div class="table-section">
-  <h2>Top Highs &amp; Lows in Selected Period</h2>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+    <h2 style="margin-bottom:0">Top Highs &amp; Lows in Selected Period</h2>
+    <div style="display:flex;gap:4px;margin-left:auto;">
+      <button class="btn active" id="topN-10" onclick="setTopN(10)">10</button>
+      <button class="btn" id="topN-15" onclick="setTopN(15)">15</button>
+      <button class="btn" id="topN-20" onclick="setTopN(20)">20</button>
+      <button class="btn" id="topN-30" onclick="setTopN(30)">30</button>
+    </div>
+  </div>
   <div class="top-tables">
     <div class="table-panel highs">
-      <h3>▲ Top 10 Highest Intraday Highs</h3>
+      <h3 id="highsTitle">▲ Top 10 Highest Intraday Highs</h3>
       <table>
         <thead><tr><th>#</th><th>Date</th><th>High</th><th>Close</th><th>Open</th></tr></thead>
         <tbody id="highsTable"></tbody>
       </table>
     </div>
     <div class="table-panel lows">
-      <h3>▼ Top 10 Lowest Intraday Lows</h3>
+      <h3 id="lowsTitle">▼ Top 10 Lowest Intraday Lows</h3>
       <table>
         <thead><tr><th>#</th><th>Date</th><th>Low</th><th>Close</th><th>Open</th></tr></thead>
         <tbody id="lowsTable"></tbody>
@@ -589,7 +618,7 @@ function render(from, to) {{
       plugins: {{
         legend: {{
           display: true, position: 'top', align: 'end',
-          labels: {{ color: '#6b6b88', font: {{ family: 'Space Mono', size: 10 }}, boxWidth: 24, boxHeight: 2, padding: 16 }}
+          labels: {{ color: '#a8a8c8', font: {{ family: 'Space Mono', size: 10 }}, boxWidth: 24, boxHeight: 2, padding: 16 }}
         }},
         tooltip: {{
           backgroundColor: '#111118', borderColor: '#1e1e2e', borderWidth: 1,
@@ -610,12 +639,12 @@ function render(from, to) {{
           type: 'time',
           time: {{ unit: data.length > 500 ? 'year' : data.length > 120 ? 'month' : 'week' }},
           grid: {{ color: '#1e1e2e' }},
-          ticks: {{ color: '#6b6b88', font: {{ family: 'Space Mono', size: 10 }} }}
+          ticks: {{ color: '#a8a8c8', font: {{ family: 'Space Mono', size: 10 }} }}
         }},
         y: {{
           grid: {{ color: '#1e1e2e' }},
           ticks: {{
-            color: '#6b6b88',
+            color: '#a8a8c8',
             font: {{ family: 'Space Mono', size: 10 }},
             callback: v => isPct ? (v >= 0 ? '+' : '') + v.toFixed(1) + '%' : '$' + v.toFixed(0)
           }}
@@ -677,13 +706,13 @@ function render(from, to) {{
           type: 'time',
           time: {{ unit: data.length > 500 ? 'year' : data.length > 120 ? 'month' : 'week' }},
           grid: {{ color: '#1e1e2e' }},
-          ticks: {{ color: '#6b6b88', font: {{ family: 'Space Mono', size: 10 }} }}
+          ticks: {{ color: '#a8a8c8', font: {{ family: 'Space Mono', size: 10 }} }}
         }},
         y: {{
           max: 0,
           grid: {{ color: '#1e1e2e' }},
           ticks: {{
-            color: '#6b6b88',
+            color: '#a8a8c8',
             font: {{ family: 'Space Mono', size: 10 }},
             callback: v => v.toFixed(0) + '%'
           }}
@@ -704,8 +733,8 @@ function render(from, to) {{
   const vsS20  = iS20  != null ? (curP - iS20)  / iS20  * 100 : null;
   const vsS50  = iS50  != null ? (curP - iS50)  / iS50  * 100 : null;
   const vsS200 = iS200 != null ? (curP - iS200) / iS200 * 100 : null;
-  const rsiClr = iRsi == null ? '#6b6b88' : iRsi >= 70 ? '#f87171' : iRsi <= 30 ? '#4ade80' : '#f0c040';
-  const signClr = (v) => v == null ? '#6b6b88' : v >= 0 ? '#4ade80' : '#f87171';
+  const rsiClr = iRsi == null ? '#a8a8c8' : iRsi >= 70 ? '#f87171' : iRsi <= 30 ? '#4ade80' : '#f0c040';
+  const signClr = (v) => v == null ? '#a8a8c8' : v >= 0 ? '#4ade80' : '#f87171';
   const fmtPct  = (v) => v != null ? (v >= 0 ? '+' : '') + v.toFixed(2) + '%' : '—';
 
   document.getElementById('indicatorsGrid').innerHTML = `
@@ -871,10 +900,26 @@ function render(from, to) {{
     chart.draw();
   }};
 
-  const top10highs = [...data].sort((a,b) => b.high - a.high).slice(0,10);
-  const top10lows  = [...data].sort((a,b) => a.low  - b.low ).slice(0,10);
+  renderTables(data);
+}}
 
-  document.getElementById('highsTable').innerHTML = top10highs.map((r,i) => `
+let topN = 10;
+let lastTableData = null;
+
+function setTopN(n) {{
+  topN = n;
+  [10,15,20,30].forEach(v => document.getElementById('topN-' + v).classList.toggle('active', v === n));
+  document.getElementById('highsTitle').textContent = '▲ Top ' + n + ' Highest Intraday Highs';
+  document.getElementById('lowsTitle').textContent  = '▼ Top ' + n + ' Lowest Intraday Lows';
+  if (lastTableData) renderTables(lastTableData);
+}}
+
+function renderTables(data) {{
+  lastTableData = data;
+  const topHighs = [...data].sort((a,b) => b.high - a.high).slice(0, topN);
+  const topLows  = [...data].sort((a,b) => a.low  - b.low ).slice(0, topN);
+
+  document.getElementById('highsTable').innerHTML = topHighs.map((r,i) => `
     <tr>
       <td class="rank">#${{i+1}}</td>
       <td>${{fmtDate(r.date)}}</td>
@@ -883,7 +928,7 @@ function render(from, to) {{
       <td style="color:var(--accent3)">$${{r.open.toFixed(2)}}</td>
     </tr>`).join('');
 
-  document.getElementById('lowsTable').innerHTML = top10lows.map((r,i) => `
+  document.getElementById('lowsTable').innerHTML = topLows.map((r,i) => `
     <tr>
       <td class="rank">#${{i+1}}</td>
       <td>${{fmtDate(r.date)}}</td>
@@ -892,6 +937,19 @@ function render(from, to) {{
       <td style="color:var(--accent3)">$${{r.open.toFixed(2)}}</td>
     </tr>`).join('');
 }}
+
+let currentTheme = localStorage.getItem('dashTheme') || 'modern';
+
+function applyTheme(t) {{
+  document.documentElement.setAttribute('data-theme', t === 'modern' ? '' : t);
+  localStorage.setItem('dashTheme', t);
+  currentTheme = t;
+  ['modern','white','classic'].forEach(name => {{
+    document.getElementById('theme-' + name).classList.toggle('active', name === t);
+  }});
+}}
+
+applyTheme(currentTheme);
 
 const initFrom = new Date(maxDate);
 initFrom.setFullYear(initFrom.getFullYear() - 1);
