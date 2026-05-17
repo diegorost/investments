@@ -78,7 +78,6 @@ def build_html(ticker, long_name, rows, data_js, period="1y", server_mode=False)
         search_bar = f"""
 <form class="ticker-search" method="GET" action="/dashboard">
   <input type="text" name="ticker" value="{ticker}" placeholder="Ticker symbol…" autocomplete="off" autocapitalize="characters" spellcheck="false">
-  <select name="period">{period_options}</select>
   <button type="submit" class="apply-btn">Search</button>
 </form>"""
 
@@ -102,7 +101,7 @@ def build_html(ticker, long_name, rows, data_js, period="1y", server_mode=False)
   .header {{ display: flex; align-items: baseline; gap: 16px; margin-bottom: 20px; }}
   .header h1 {{ font-size: 2.8rem; font-weight: 800; letter-spacing: -1px; color: var(--accent); line-height: 1; }}
   .header .sub {{ font-family: 'Space Mono', monospace; font-size: 0.75rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }}
-  .ticker-search {{ display: flex; gap: 8px; align-items: center; margin-bottom: 28px; flex-wrap: wrap; }}
+  .ticker-search {{ display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; }}
   .ticker-search input[type="text"] {{
     font-family: 'Space Mono', monospace; font-size: 0.85rem; font-weight: 700; letter-spacing: 2px;
     text-transform: uppercase; padding: 9px 14px; background: var(--panel);
@@ -116,7 +115,7 @@ def build_html(ticker, long_name, rows, data_js, period="1y", server_mode=False)
     border-radius: 4px; outline: none; cursor: pointer; transition: border-color 0.15s;
   }}
   .ticker-search select:focus {{ border-color: var(--accent); }}
-  .controls {{ display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 24px; }}
+  .topbar {{ display: flex; flex-wrap: nowrap; gap: 10px; align-items: center; margin-bottom: 24px; overflow-x: auto; }}
   .preset-btns {{ display: flex; gap: 6px; }}
   .btn {{ font-family: 'Space Mono', monospace; font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; padding: 7px 14px; border: 1px solid var(--border); background: var(--panel); color: var(--muted); cursor: pointer; border-radius: 4px; transition: all 0.15s; text-transform: uppercase; }}
   .btn:hover {{ border-color: var(--accent); color: var(--accent); }}
@@ -177,16 +176,17 @@ def build_html(ticker, long_name, rows, data_js, period="1y", server_mode=False)
   </div>
 </div>
 
+<div class="topbar">
 {search_bar}
-
-<div class="controls">
   <div class="preset-btns">
-    <button class="btn" onclick="setPreset('1M')">1M</button>
-    <button class="btn" onclick="setPreset('3M')">3M</button>
-    <button class="btn" onclick="setPreset('6M')">6M</button>
+    <button class="btn" onclick="setPreset('1W')">1W</button>
+    <button class="btn" onclick="setPreset('2W')">2W</button>
+    <button class="btn" onclick="setPreset('3W')">3W</button>
     <button class="btn" onclick="setPreset('1Y')">1Y</button>
     <button class="btn" onclick="setPreset('3Y')">3Y</button>
-    <button class="btn active" onclick="setPreset('ALL')">ALL</button>
+    <button class="btn" onclick="setPreset('5Y')">5Y</button>
+    <button class="btn" onclick="setPreset('10Y')">10Y</button>
+    <button class="btn" onclick="setPreset('MAX')">MAX</button>
   </div>
   <div class="mode-toggle" style="display:flex;gap:6px;">
     <button class="btn active" id="btnPrice" onclick="setMode('price')">$ Price</button>
@@ -294,11 +294,11 @@ function computeRSI(arr, period) {{
 
 (function() {{
   const cls = allData.map(d => d.price);
-  const s20 = computeSMA(cls, 20), s50 = computeSMA(cls, 50);
+  const s20 = computeSMA(cls, 20), s50 = computeSMA(cls, 50), s200 = computeSMA(cls, 200);
   const e12 = computeEMA(cls, 12), e26 = computeEMA(cls, 26);
   const r14 = computeRSI(cls, 14);
   allData.forEach((d, i) => {{
-    d.sma20 = s20[i]; d.sma50 = s50[i];
+    d.sma20 = s20[i]; d.sma50 = s50[i]; d.sma200 = s200[i];
     d.ema12 = e12[i]; d.ema26 = e26[i];
     d.rsi14 = r14[i];
   }});
@@ -337,12 +337,14 @@ function setPreset(p) {{
   event.target.classList.add('active');
   const to = maxDate;
   let from = new Date(maxDate);
-  if      (p === '1M') from.setMonth(from.getMonth()-1);
-  else if (p === '3M') from.setMonth(from.getMonth()-3);
-  else if (p === '6M') from.setMonth(from.getMonth()-6);
-  else if (p === '1Y') from.setFullYear(from.getFullYear()-1);
-  else if (p === '3Y') from.setFullYear(from.getFullYear()-3);
-  else                 {{ from = minDate; }}
+  if      (p === '1W')  from.setDate(from.getDate()-7);
+  else if (p === '2W')  from.setDate(from.getDate()-14);
+  else if (p === '3W')  from.setDate(from.getDate()-21);
+  else if (p === '1Y')  from.setFullYear(from.getFullYear()-1);
+  else if (p === '3Y')  from.setFullYear(from.getFullYear()-3);
+  else if (p === '5Y')  from.setFullYear(from.getFullYear()-5);
+  else if (p === '10Y') from.setFullYear(from.getFullYear()-10);
+  else                  {{ from = minDate; }}
   document.getElementById('dateFrom').value = toInputDate(from);
   document.getElementById('dateTo').value   = toInputDate(to);
   render(from, to);
@@ -537,6 +539,20 @@ function render(from, to) {{
           tension: 0.2,
           spanGaps: false,
           order: 8
+        }},
+        {{
+          label: 'SMA 200',
+          data: data.map(d => d.sma200 != null ? toVal(d.sma200) : null),
+          borderColor: '#f59e0b',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: '#f59e0b',
+          fill: false,
+          tension: 0.2,
+          spanGaps: false,
+          order: 9
         }}
       ]
     }},
@@ -655,10 +671,12 @@ function render(from, to) {{
   const iRsi  = lastD ? lastD.rsi14  : null;
   const iS20  = lastD ? lastD.sma20  : null;
   const iS50  = lastD ? lastD.sma50  : null;
+  const iS200 = lastD ? lastD.sma200 : null;
   const iE12  = lastD ? lastD.ema12  : null;
   const iE26  = lastD ? lastD.ema26  : null;
-  const vsS20 = iS20 != null ? (curP - iS20) / iS20 * 100 : null;
-  const vsS50 = iS50 != null ? (curP - iS50) / iS50 * 100 : null;
+  const vsS20  = iS20  != null ? (curP - iS20)  / iS20  * 100 : null;
+  const vsS50  = iS50  != null ? (curP - iS50)  / iS50  * 100 : null;
+  const vsS200 = iS200 != null ? (curP - iS200) / iS200 * 100 : null;
   const rsiClr = iRsi == null ? '#6b6b88' : iRsi >= 70 ? '#f87171' : iRsi <= 30 ? '#4ade80' : '#f0c040';
   const signClr = (v) => v == null ? '#6b6b88' : v >= 0 ? '#4ade80' : '#f87171';
   const fmtPct  = (v) => v != null ? (v >= 0 ? '+' : '') + v.toFixed(2) + '%' : '—';
@@ -680,6 +698,11 @@ function render(from, to) {{
       <div class="stat-sub" style="color:${{signClr(vsS50)}}">${{vsS50 != null ? fmtPct(vsS50) + ' vs price' : ''}}</div>
     </div>
     <div class="stat-card">
+      <div class="stat-label">SMA 200</div>
+      <div class="stat-value" style="color:#f59e0b;font-size:1.25rem">${{iS200 != null ? '$' + iS200.toFixed(2) : '—'}}</div>
+      <div class="stat-sub" style="color:${{signClr(vsS200)}}">${{vsS200 != null ? fmtPct(vsS200) + ' vs price' : ''}}</div>
+    </div>
+    <div class="stat-card">
       <div class="stat-label">EMA 12</div>
       <div class="stat-value" style="color:#fb923c;font-size:1.25rem">${{iE12 != null ? '$' + iE12.toFixed(2) : '—'}}</div>
     </div>
@@ -696,6 +719,11 @@ function render(from, to) {{
       <div class="stat-label">vs SMA 50</div>
       <div class="stat-value" style="font-size:1.35rem;color:${{signClr(vsS50)}}">${{fmtPct(vsS50)}}</div>
       <div class="stat-sub">price vs SMA 50</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">vs SMA 200</div>
+      <div class="stat-value" style="font-size:1.35rem;color:${{signClr(vsS200)}}">${{fmtPct(vsS200)}}</div>
+      <div class="stat-sub">price vs SMA 200</div>
     </div>
   `;
 
@@ -838,7 +866,10 @@ function render(from, to) {{
     </tr>`).join('');
 }}
 
-render(minDate, maxDate);
+const initFrom = new Date(maxDate);
+initFrom.setFullYear(initFrom.getFullYear() - 1);
+document.getElementById('dateFrom').value = toInputDate(initFrom);
+render(initFrom, maxDate);
 </script>
 </body>
 </html>"""
@@ -863,7 +894,7 @@ if SERVER_MODE:
     @app.route("/dashboard")
     def dashboard():
         ticker = request.args.get("ticker", "GC=F").upper().strip()
-        period = request.args.get("period", "1y")
+        period = "max"
 
         long_name, rows, data_js = fetch_data(ticker, period)
 
