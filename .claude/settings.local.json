@@ -46,7 +46,10 @@
       "PowerShell(python \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\investments\\\\ggcc\\\\ggcc.py\")",
       "Bash(python -c \"import ast; ast.parse\\(open\\('ticker_analysis.py'\\).read\\(\\)\\); print\\('Syntax OK'\\)\")",
       "Bash(python -c \"import ast; ast.parse\\(open\\('ticker_analysis.py', encoding='utf-8'\\).read\\(\\)\\); print\\('Syntax OK'\\)\")",
-      "Bash(python -c \"import ast; ast.parse\\(open\\('ticker_analysis_cloud.py', encoding='utf-8'\\).read\\(\\)\\); print\\('Syntax OK'\\)\")"
+      "Bash(python -c \"import ast; ast.parse\\(open\\('ticker_analysis_cloud.py', encoding='utf-8'\\).read\\(\\)\\); print\\('Syntax OK'\\)\")",
+      "Bash(Copy-Item \"c:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\investments\\\\ticker_analysis\\\\ticker_analysis_cloud.py\" \"c:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\investments\\\\ticker_analysis\\\\app.py\")",
+      "PowerShell(Copy-Item \"c:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\investments\\\\ticker_analysis\\\\ticker_analysis_cloud.py\" \"c:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\investments\\\\ticker_analysis\\\\app.py\")",
+      "PowerShell(Copy-Item \"c:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\investments\\\\ticker_analysis.cloud\\\\ticker_analysis_cloud.py\" \"c:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\investments\\\\ticker_analysis.cloud\\\\app.py\")"
     ]
   }
 }
