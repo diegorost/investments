@@ -142,12 +142,34 @@ def build_html(ticker, long_name, rows, data_js, period="1y", server_mode=False)
   .stat-card.change-neg .stat-value {{ color: var(--red); }}
   .table-section h2 {{ font-size: 0.8rem; font-family: 'Space Mono', monospace; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }}
   .top-tables {{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }}
-  @media (max-width: 640px) {{
-    .top-tables {{ grid-template-columns: 1fr; }}
-    .header h1 {{ font-size: 2rem; }}
-    .date-inputs {{ margin-left: 0; }}
-    .controls {{ flex-direction: column; align-items: flex-start; }}
-    .ticker-search {{ gap: 6px; }}
+  @media (max-width: 768px) {{
+    body {{ padding: 16px 12px; }}
+    .header {{ margin-bottom: 14px; }}
+    .header h1 {{ font-size: 1.8rem; }}
+    .header .sub {{ font-size: 0.6rem; letter-spacing: 1px; }}
+    .topbar {{ flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }}
+    .ticker-search input[type="text"] {{ width: 100px; font-size: 0.75rem; padding: 7px 10px; }}
+    .apply-btn {{ padding: 7px 12px; font-size: 0.65rem; }}
+    .preset-btns {{ flex-wrap: wrap; gap: 4px; }}
+    .btn {{ font-size: 0.62rem; padding: 5px 9px; letter-spacing: 0; }}
+    .mode-toggle {{ gap: 4px; }}
+    .date-inputs {{ display: none; }}
+    #btnReset {{ display: none !important; }}
+    .stats-grid {{ grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }}
+    #indicatorsGrid {{ grid-template-columns: repeat(2, 1fr) !important; gap: 8px; margin-bottom: 16px; }}
+    .stat-card {{ padding: 12px 14px; }}
+    .stat-value {{ font-size: 1.2rem; }}
+    .stat-sub {{ font-size: 0.6rem; }}
+    .chart-panel {{ padding: 12px; margin-bottom: 12px; }}
+    .chart-panel canvas {{ max-height: 260px; }}
+    #drawdownChart {{ max-height: 120px !important; }}
+    .divider {{ margin: 16px 0; }}
+    .top-tables {{ grid-template-columns: 1fr; gap: 12px; }}
+    .table-panel {{ overflow-x: auto; padding: 14px; }}
+    table {{ font-size: 0.65rem; min-width: 320px; }}
+    thead th {{ padding: 8px; font-size: 0.55rem; }}
+    tbody td {{ padding: 6px 8px; }}
+    .generated {{ font-size: 0.55rem; margin-top: 20px; }}
   }}
   table {{ width: 100%; border-collapse: collapse; font-family: 'Space Mono', monospace; font-size: 0.72rem; }}
   thead th {{ text-align: left; padding: 10px 12px; font-size: 0.62rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); }}
