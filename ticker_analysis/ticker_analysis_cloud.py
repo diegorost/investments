@@ -1,31 +1,30 @@
 """
-Ticker Price Dashboard
-======================
-Fetches live data from yfinance and generates a price dashboard.
+Ticker Price Dashboard — Cloud (Railway)
+=========================================
+Flask server adapted for Railway hosting.
 
-Install dependencies:
-    pip install yfinance flask
+Environment variables:
+    PORT  — injected automatically by Railway
 
-Run (local server — recommended):
-    python ticker_analysis.py              # opens http://localhost:5000, search any ticker
-    python ticker_analysis.py --serve      # same
-
-Run (generate static file):
-    python ticker_analysis.py NVDA         # any ticker
-    python ticker_analysis.py SOXL 5y      # ticker + period (1y, 2y, 5y, 10y, max)
+Deploy:
+    1. Push this file + requirements.txt to a GitHub repo
+    2. Connect repo to Railway, set start command:
+       python ticker_analysis_cloud.py
 """
 
-import sys
+import os
 import json
-import webbrowser
-from pathlib import Path
 from datetime import datetime
 
 try:
     import yfinance as yf
 except ImportError:
-    print("yfinance not installed. Run: pip install yfinance")
-    sys.exit(1)
+    raise SystemExit("yfinance not installed. Run: pip install yfinance")
+
+try:
+    from flask import Flask, request, redirect, Response
+except ImportError:
+    raise SystemExit("Flask not installed. Run: pip install flask")
 
 # ── Data fetching ─────────────────────────────────────────────────────────────
 
@@ -44,8 +43,7 @@ def fetch_data(ticker, period):
     except Exception:
         long_name = ticker
 
-    print(f"  {long_name}")
-    print(f"  {len(hist)} trading days loaded")
+    print(f"  {long_name} — {len(hist)} trading days loaded")
 
     rows = []
     for date, row in hist.iterrows():
@@ -64,7 +62,7 @@ def fetch_data(ticker, period):
 
 # ── HTML builder ──────────────────────────────────────────────────────────────
 
-def build_html(ticker, long_name, rows, data_js, period="1y", server_mode=False):
+def build_html(ticker, long_name, rows, data_js, period="1y"):
     now = datetime.now().strftime('%Y-%m-%d %H:%M')
     n = len(rows)
 
@@ -73,9 +71,7 @@ def build_html(ticker, long_name, rows, data_js, period="1y", server_mode=False)
         selected = ' selected' if val == period else ''
         period_options += f'<option value="{val}"{selected}>{label}</option>'
 
-    search_bar = ""
-    if server_mode:
-        search_bar = f"""
+    search_bar = f"""
 <form class="ticker-search" method="GET" action="/dashboard">
   <input type="text" name="ticker" value="{ticker}" placeholder="Ticker symbol…" autocomplete="off" autocapitalize="characters" spellcheck="false">
   <select name="period">{period_options}</select>
@@ -587,7 +583,6 @@ function render(from, to) {{
     if (d.price > peak) peak = d.price;
     return +((( d.price - peak) / peak) * 100).toFixed(4);
   }});
-  const maxDD = Math.min(...ddValues);
 
   if (drawdownChart) drawdownChart.destroy();
   const ddCtx = document.getElementById('drawdownChart').getContext('2d');
@@ -843,32 +838,23 @@ render(minDate, maxDate);
 </body>
 </html>"""
 
-# ── Entry point ───────────────────────────────────────────────────────────────
+# ── Flask app ─────────────────────────────────────────────────────────────────
 
-SERVER_MODE = len(sys.argv) == 1 or sys.argv[1] == "--serve"
+app = Flask(__name__)
 
-if SERVER_MODE:
-    try:
-        from flask import Flask, request, redirect, Response
-    except ImportError:
-        print("Flask not installed. Run: pip install flask")
-        sys.exit(1)
+@app.route("/")
+def index():
+    return redirect("/dashboard?ticker=GC%3DF&period=1y")
 
-    app = Flask(__name__)
+@app.route("/dashboard")
+def dashboard():
+    ticker = request.args.get("ticker", "GC=F").upper().strip()
+    period = request.args.get("period", "1y")
 
-    @app.route("/")
-    def index():
-        return redirect("/dashboard?ticker=GC%3DF&period=1y")
+    long_name, rows, data_js = fetch_data(ticker, period)
 
-    @app.route("/dashboard")
-    def dashboard():
-        ticker = request.args.get("ticker", "GC=F").upper().strip()
-        period = request.args.get("period", "1y")
-
-        long_name, rows, data_js = fetch_data(ticker, period)
-
-        if rows is None:
-            error_html = f"""<!DOCTYPE html><html><head><meta charset="UTF-8">
+    if rows is None:
+        error_html = f"""<!DOCTYPE html><html><head><meta charset="UTF-8">
 <title>Error</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;800&display=swap" rel="stylesheet">
 <style>
@@ -881,36 +867,12 @@ if SERVER_MODE:
 Check the symbol and try again.</div>
 <a href="javascript:history.back()">← Go back</a>
 </body></html>"""
-            return Response(error_html, status=404, mimetype="text/html")
+        return Response(error_html, status=404, mimetype="text/html")
 
-        html = build_html(ticker, long_name, rows, data_js, period=period, server_mode=True)
-        return Response(html, mimetype="text/html")
+    html = build_html(ticker, long_name, rows, data_js, period=period)
+    return Response(html, mimetype="text/html")
 
-    port = 5000
-    url  = f"http://127.0.0.1:{port}"
-    print(f"\nTicker Dashboard running at {url}")
-    print("Search any ticker using the search bar. Press Ctrl+C to stop.\n")
-    webbrowser.open(url)
-    app.run(port=port, debug=False)
-
-else:
-    # CLI mode — generates a static HTML file
-    TICKER = sys.argv[1].upper()
-    PERIOD = sys.argv[2] if len(sys.argv) > 2 else "max"
-    OUTPUT = Path("etf_dashboard.html")
-
-    long_name, rows, data_js = fetch_data(TICKER, PERIOD)
-
-    if rows is None:
-        print(f"No data found for {TICKER}")
-        sys.exit(1)
-
-    html = build_html(TICKER, long_name, rows, data_js, period=PERIOD, server_mode=False)
-    OUTPUT.write_text(html, encoding="utf-8")
-
-    print(f"\n✓ Generated: {OUTPUT.resolve()}")
-    print(f"  Ticker:  {TICKER}")
-    print(f"  Records: {len(rows)}")
-    print(f"  Range:   {rows[0]['date']} → {rows[-1]['date']}")
-    print(f"\nOpening in browser...")
-    webbrowser.open(OUTPUT.resolve().as_uri())
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    print(f"\nTicker Dashboard running on port {port}")
+    app.run(host="0.0.0.0", port=port, debug=False)
