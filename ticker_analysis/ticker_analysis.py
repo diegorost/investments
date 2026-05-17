@@ -405,6 +405,11 @@ function render(from, to) {{
   const isPos = pctChange >= 0;
 
   document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Current Price</div>
+      <div class="stat-value" style="color:var(--accent)">$${{last.toFixed(2)}}</div>
+      <div class="stat-sub">${{fmtDate(data[data.length-1].date)}}</div>
+    </div>
     <div class="stat-card high">
       <div class="stat-label">Period High</div>
       <div class="stat-value">$${{topHighRow.high.toFixed(2)}}</div>
