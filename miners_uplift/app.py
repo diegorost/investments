@@ -66,6 +66,20 @@ def _do_update(mode='all'):
             r'const siljData = (\[[\s\S]*?\]);',
         ]
 
+        if mode == 'etf':
+            # Fast update: only the 7 ETF hero sections, skip all holdings
+            _update_status['progress'] = 'Updating ETF prices only...'
+            for etf_cls, etf_ticker in {**GOLD_ETF_CLASSES, **SILVER_ETF_CLASSES}.items():
+                from main import get_stock_data, update_etf_hero
+                cur, ath = get_stock_data(etf_ticker)
+                if cur and ath:
+                    pct = (ath - cur) / ath * 100
+                    gold_html   = update_etf_hero(gold_html,   etf_cls, cur, ath, pct)
+                    silver_html = update_etf_hero(silver_html, etf_cls, cur, ath, pct)
+                    print(f'  {etf_ticker}: ${cur:.2f}')
+            GOLD_HTML.write_text(gold_html, encoding='utf-8')
+            SILVER_HTML.write_text(silver_html, encoding='utf-8')
+
         if mode in ('all', 'gold'):
             _update_status['progress'] = 'Updating GOLD prices...'
             gold_html = update_html_file(
@@ -144,6 +158,10 @@ def dashboard():
     style="padding:6px 14px;background:#d97706;color:#000;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:0.85em;">
     Refresh All
   </button>
+  <button onclick="refreshPrices('etf')"
+    style="padding:6px 14px;background:#059669;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:0.85em;">
+    ETF Only
+  </button>
   <button onclick="refreshPrices('gold')"
     style="padding:6px 14px;background:#92400e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:0.85em;">
     Gold Only
@@ -191,7 +209,7 @@ def api_refresh():
         return jsonify({'ok': False, 'error': 'Update already in progress'})
     data = request.get_json(silent=True) or {}
     mode = data.get('mode', 'all')
-    if mode not in ('all', 'gold', 'silver'):
+    if mode not in ('all', 'gold', 'silver', 'etf'):
         mode = 'all'
     t = threading.Thread(target=_do_update, args=(mode,), daemon=True)
     t.start()
