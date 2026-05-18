@@ -55,7 +55,8 @@ def fetch_data(ticker, period):
             "high":  round(float(row["High"]),  4),
             "low":   round(float(row["Low"]),   4),
             "open":  round(float(row["Open"]),  4),
-            "vol":   f"{row['Volume']:,.0f}",
+            "vol":    f"{row['Volume']:,.0f}",
+            "volRaw": int(row['Volume']),
             "change": ""
         })
 
@@ -148,6 +149,7 @@ def build_html(ticker, long_name, rows, data_js, period="1y", server_mode=False)
   .stat-card:hover {{ border-color: var(--accent); }}
   .stat-label {{ font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--text); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }}
   .stat-value {{ font-size: 1.6rem; font-weight: 800; line-height: 1; }}
+  #indicatorsGrid .stat-value {{ white-space: nowrap; }}
   .stat-sub {{ font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--text); margin-top: 4px; }}
   .stat-card.high .stat-value {{ color: var(--green); }}
   .stat-card.low .stat-value {{ color: var(--red); }}
@@ -200,6 +202,10 @@ def build_html(ticker, long_name, rows, data_js, period="1y", server_mode=False)
   .table-panel.lows h3 {{ color: var(--red); }}
   .divider {{ height: 1px; background: var(--border); margin: 28px 0; }}
   .generated {{ font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--muted); text-align: right; margin-top: 32px; }}
+  .ind-toggles {{ display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }}
+  .ind-toggle {{ font-family: 'Space Mono', monospace; font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; padding: 5px 14px; border: 1.5px solid var(--tc, #888); background: transparent; color: var(--tc, #888); cursor: pointer; border-radius: 20px; transition: all 0.15s; text-transform: uppercase; }}
+  .ind-toggle.active {{ background: var(--tc, #888); color: #09090f; }}
+  .ind-toggle:hover {{ opacity: 0.75; }}
   .error-msg {{ font-family: 'Space Mono', monospace; font-size: 0.9rem; color: var(--red); background: var(--panel); border: 1px solid var(--red); border-radius: 8px; padding: 20px 24px; margin-bottom: 24px; }}
 </style>
 </head>
@@ -225,6 +231,9 @@ def build_html(ticker, long_name, rows, data_js, period="1y", server_mode=False)
     <button class="btn" onclick="setPreset('1W')">1W</button>
     <button class="btn" onclick="setPreset('2W')">2W</button>
     <button class="btn" onclick="setPreset('3W')">3W</button>
+    <button class="btn" onclick="setPreset('1M')">1M</button>
+    <button class="btn" onclick="setPreset('3M')">3M</button>
+    <button class="btn" onclick="setPreset('6M')">6M</button>
     <button class="btn" onclick="setPreset('1Y')">1Y</button>
     <button class="btn" onclick="setPreset('3Y')">3Y</button>
     <button class="btn" onclick="setPreset('5Y')">5Y</button>
@@ -247,7 +256,13 @@ def build_html(ticker, long_name, rows, data_js, period="1y", server_mode=False)
 
 <div class="stats-grid" id="statsGrid"></div>
 
-<div id="indicatorsGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px;"></div>
+<div class="ind-toggles">
+  <button class="ind-toggle active" id="tog-rsi"  onclick="toggleGroup('rsi')"  style="--tc:#f0c040">RSI</button>
+  <button class="ind-toggle active" id="tog-vwap" onclick="toggleGroup('vwap')" style="--tc:#34d399">VWAP</button>
+  <button class="ind-toggle active" id="tog-sma"  onclick="toggleGroup('sma')"  style="--tc:#5ab4e0">SMA</button>
+  <button class="ind-toggle active" id="tog-ema"  onclick="toggleGroup('ema')"  style="--tc:#fb923c">EMA</button>
+</div>
+<div id="indicatorsGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(50px,1fr));gap:12px;margin-bottom:24px;"></div>
 
 <div class="chart-panel">
   <canvas id="priceChart"></canvas>
@@ -304,8 +319,9 @@ const allData = RAW.map(r => ({{
   price: parseFloat(r.price),
   high:  parseFloat(r.high),
   low:   parseFloat(r.low),
-  open:  parseFloat(r.open),
-  vol:   r.vol
+  open:   parseFloat(r.open),
+  vol:    r.vol,
+  volRaw: r.volRaw
 }})).sort((a,b) => a.date - b.date);
 
 function computeSMA(arr, period) {{
@@ -322,6 +338,16 @@ function computeEMA(arr, period) {{
   for (let i = period; i < arr.length; i++)
     out[i] = arr[i] * k + out[i - 1] * (1 - k);
   return out;
+}}
+
+function computeVWAP(data, period) {{
+  return data.map((_, i) => {{
+    if (i < period - 1) return null;
+    const slice = data.slice(i - period + 1, i + 1);
+    const sumTPV = slice.reduce((s, d) => s + ((d.high + d.low + d.price) / 3) * d.volRaw, 0);
+    const sumV   = slice.reduce((s, d) => s + d.volRaw, 0);
+    return sumV === 0 ? null : sumTPV / sumV;
+  }});
 }}
 
 function computeRSI(arr, period) {{
@@ -346,12 +372,13 @@ function computeRSI(arr, period) {{
 (function() {{
   const cls = allData.map(d => d.price);
   const s20 = computeSMA(cls, 20), s50 = computeSMA(cls, 50), s200 = computeSMA(cls, 200);
-  const e12 = computeEMA(cls, 12), e26 = computeEMA(cls, 26);
-  const r14 = computeRSI(cls, 14);
+  const e20  = computeEMA(cls, 20), e50 = computeEMA(cls, 50), e200 = computeEMA(cls, 200);
+  const r14  = computeRSI(cls, 14);
+  const vwap = computeVWAP(allData, 20);
   allData.forEach((d, i) => {{
     d.sma20 = s20[i]; d.sma50 = s50[i]; d.sma200 = s200[i];
-    d.ema12 = e12[i]; d.ema26 = e26[i];
-    d.rsi14 = r14[i];
+    d.ema20 = e20[i]; d.ema50 = e50[i]; d.ema200 = e200[i];
+    d.rsi14 = r14[i]; d.vwap  = vwap[i];
   }});
 }})();
 
@@ -391,6 +418,9 @@ function setPreset(p) {{
   if      (p === '1W')  from.setDate(from.getDate()-7);
   else if (p === '2W')  from.setDate(from.getDate()-14);
   else if (p === '3W')  from.setDate(from.getDate()-21);
+  else if (p === '1M')  from.setMonth(from.getMonth()-1);
+  else if (p === '3M')  from.setMonth(from.getMonth()-3);
+  else if (p === '6M')  from.setMonth(from.getMonth()-6);
   else if (p === '1Y')  from.setFullYear(from.getFullYear()-1);
   else if (p === '3Y')  from.setFullYear(from.getFullYear()-3);
   else if (p === '5Y')  from.setFullYear(from.getFullYear()-5);
@@ -567,36 +597,6 @@ function render(from, to) {{
           order: 6
         }},
         {{
-          label: 'EMA 12',
-          data: data.map(d => d.ema12 != null ? toVal(d.ema12) : null),
-          borderColor: '#fb923c',
-          backgroundColor: 'transparent',
-          borderWidth: 1,
-          borderDash: [5, 2],
-          pointRadius: 0,
-          pointHoverRadius: 4,
-          pointHoverBackgroundColor: '#fb923c',
-          fill: false,
-          tension: 0.2,
-          spanGaps: false,
-          order: 7
-        }},
-        {{
-          label: 'EMA 26',
-          data: data.map(d => d.ema26 != null ? toVal(d.ema26) : null),
-          borderColor: '#e879f9',
-          backgroundColor: 'transparent',
-          borderWidth: 1,
-          borderDash: [5, 2],
-          pointRadius: 0,
-          pointHoverRadius: 4,
-          pointHoverBackgroundColor: '#e879f9',
-          fill: false,
-          tension: 0.2,
-          spanGaps: false,
-          order: 8
-        }},
-        {{
           label: 'SMA 200',
           data: data.map(d => d.sma200 != null ? toVal(d.sma200) : null),
           borderColor: '#f59e0b',
@@ -608,7 +608,67 @@ function render(from, to) {{
           fill: false,
           tension: 0.2,
           spanGaps: false,
+          order: 7
+        }},
+        {{
+          label: 'EMA 20',
+          data: data.map(d => d.ema20 != null ? toVal(d.ema20) : null),
+          borderColor: '#fb923c',
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          borderDash: [5, 2],
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: '#fb923c',
+          fill: false,
+          tension: 0.2,
+          spanGaps: false,
+          order: 8
+        }},
+        {{
+          label: 'EMA 50',
+          data: data.map(d => d.ema50 != null ? toVal(d.ema50) : null),
+          borderColor: '#e879f9',
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          borderDash: [5, 2],
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: '#e879f9',
+          fill: false,
+          tension: 0.2,
+          spanGaps: false,
           order: 9
+        }},
+        {{
+          label: 'EMA 200',
+          data: data.map(d => d.ema200 != null ? toVal(d.ema200) : null),
+          borderColor: '#a78bfa',
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          borderDash: [5, 2],
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: '#a78bfa',
+          fill: false,
+          tension: 0.2,
+          spanGaps: false,
+          order: 10
+        }},
+        {{
+          label: 'VWAP 20',
+          data: data.map(d => d.vwap != null ? toVal(d.vwap) : null),
+          borderColor: '#34d399',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          borderDash: [3, 2],
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: '#34d399',
+          fill: false,
+          tension: 0.2,
+          spanGaps: false,
+          order: 11
         }}
       ]
     }},
@@ -728,8 +788,11 @@ function render(from, to) {{
   const iS20  = lastD ? lastD.sma20  : null;
   const iS50  = lastD ? lastD.sma50  : null;
   const iS200 = lastD ? lastD.sma200 : null;
-  const iE12  = lastD ? lastD.ema12  : null;
-  const iE26  = lastD ? lastD.ema26  : null;
+  const iE20  = lastD ? lastD.ema20  : null;
+  const iE50  = lastD ? lastD.ema50  : null;
+  const iE200 = lastD ? lastD.ema200 : null;
+  const iVwap = lastD ? lastD.vwap   : null;
+  const vsVwap = iVwap != null ? (curP - iVwap) / iVwap * 100 : null;
   const vsS20  = iS20  != null ? (curP - iS20)  / iS20  * 100 : null;
   const vsS50  = iS50  != null ? (curP - iS50)  / iS50  * 100 : null;
   const vsS200 = iS200 != null ? (curP - iS200) / iS200 * 100 : null;
@@ -738,50 +801,77 @@ function render(from, to) {{
   const fmtPct  = (v) => v != null ? (v >= 0 ? '+' : '') + v.toFixed(2) + '%' : '—';
 
   document.getElementById('indicatorsGrid').innerHTML = `
-    <div class="stat-card">
+    <div class="stat-card" data-group="rsi">
       <div class="stat-label">RSI (14)</div>
       <div class="stat-value" style="color:${{rsiClr}};font-size:1.35rem">${{iRsi != null ? iRsi.toFixed(1) : '—'}}</div>
       <div class="stat-sub">${{iRsi != null ? (iRsi >= 70 ? 'Overbought' : iRsi <= 30 ? 'Oversold' : 'Neutral') : 'N/A'}}</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" data-group="vwap">
+      <div class="stat-label">VWAP 20</div>
+      <div class="stat-value" style="color:#34d399;font-size:1.25rem">${{iVwap != null ? '$' + iVwap.toFixed(2) : '—'}}</div>
+      <div class="stat-sub" style="color:${{signClr(vsVwap)}}">${{vsVwap != null ? fmtPct(vsVwap) + ' vs price' : ''}}</div>
+    </div>
+    <div class="stat-card" data-group="sma">
       <div class="stat-label">SMA 20</div>
       <div class="stat-value" style="color:#5ab4e0;font-size:1.25rem">${{iS20 != null ? '$' + iS20.toFixed(2) : '—'}}</div>
       <div class="stat-sub" style="color:${{signClr(vsS20)}}">${{vsS20 != null ? fmtPct(vsS20) + ' vs price' : ''}}</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" data-group="sma">
       <div class="stat-label">SMA 50</div>
       <div class="stat-value" style="color:#c084fc;font-size:1.25rem">${{iS50 != null ? '$' + iS50.toFixed(2) : '—'}}</div>
       <div class="stat-sub" style="color:${{signClr(vsS50)}}">${{vsS50 != null ? fmtPct(vsS50) + ' vs price' : ''}}</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" data-group="sma">
       <div class="stat-label">SMA 200</div>
       <div class="stat-value" style="color:#f59e0b;font-size:1.25rem">${{iS200 != null ? '$' + iS200.toFixed(2) : '—'}}</div>
       <div class="stat-sub" style="color:${{signClr(vsS200)}}">${{vsS200 != null ? fmtPct(vsS200) + ' vs price' : ''}}</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">EMA 12</div>
-      <div class="stat-value" style="color:#fb923c;font-size:1.25rem">${{iE12 != null ? '$' + iE12.toFixed(2) : '—'}}</div>
+    <div class="stat-card" data-group="ema">
+      <div class="stat-label">EMA 20</div>
+      <div class="stat-value" style="color:#fb923c;font-size:1.25rem">${{iE20 != null ? '$' + iE20.toFixed(2) : '—'}}</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">EMA 26</div>
-      <div class="stat-value" style="color:#e879f9;font-size:1.25rem">${{iE26 != null ? '$' + iE26.toFixed(2) : '—'}}</div>
+    <div class="stat-card" data-group="ema">
+      <div class="stat-label">EMA 50</div>
+      <div class="stat-value" style="color:#e879f9;font-size:1.25rem">${{iE50 != null ? '$' + iE50.toFixed(2) : '—'}}</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" data-group="ema">
+      <div class="stat-label">EMA 200</div>
+      <div class="stat-value" style="color:#a78bfa;font-size:1.25rem">${{iE200 != null ? '$' + iE200.toFixed(2) : '—'}}</div>
+    </div>
+    <div class="stat-card" data-group="sma">
       <div class="stat-label">vs SMA 20</div>
       <div class="stat-value" style="font-size:1.35rem;color:${{signClr(vsS20)}}">${{fmtPct(vsS20)}}</div>
       <div class="stat-sub">price vs SMA 20</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" data-group="sma">
       <div class="stat-label">vs SMA 50</div>
       <div class="stat-value" style="font-size:1.35rem;color:${{signClr(vsS50)}}">${{fmtPct(vsS50)}}</div>
       <div class="stat-sub">price vs SMA 50</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" data-group="sma">
       <div class="stat-label">vs SMA 200</div>
       <div class="stat-value" style="font-size:1.35rem;color:${{signClr(vsS200)}}">${{fmtPct(vsS200)}}</div>
       <div class="stat-sub">price vs SMA 200</div>
     </div>
   `;
+  requestAnimationFrame(fitIndicatorText);
+
+  // re-apply hidden state after chart rebuild
+  if (chart) {{
+    chart.data.datasets.forEach(ds => {{
+      Object.entries(groupDatasets).forEach(([g, labels]) => {{
+        if (labels.includes(ds.label)) ds.hidden = !activeGroups[g];
+      }});
+    }});
+    chart.update();
+  }}
+
+  // re-apply card visibility
+  Object.entries(activeGroups).forEach(([g, on]) => {{
+    document.querySelectorAll('#indicatorsGrid .stat-card[data-group="' + g + '"]').forEach(el => {{
+      el.style.display = on ? '' : 'none';
+    }});
+  }});
 
   const crosshairPlugin = {{
     id: 'crosshair',
@@ -903,6 +993,47 @@ function render(from, to) {{
   renderTables(data);
 }}
 
+const activeGroups = {{ rsi: true, vwap: true, sma: true, ema: true }};
+const groupDatasets = {{
+  vwap: ['VWAP 20'],
+  sma:  ['SMA 20', 'SMA 50', 'SMA 200'],
+  ema:  ['EMA 20', 'EMA 50', 'EMA 200']
+}};
+
+function toggleGroup(group) {{
+  activeGroups[group] = !activeGroups[group];
+  document.getElementById('tog-' + group).classList.toggle('active', activeGroups[group]);
+
+  document.querySelectorAll('#indicatorsGrid .stat-card[data-group="' + group + '"]').forEach(el => {{
+    el.style.display = activeGroups[group] ? '' : 'none';
+  }});
+
+  if (chart && groupDatasets[group]) {{
+    chart.data.datasets.forEach(ds => {{
+      if (groupDatasets[group].includes(ds.label)) ds.hidden = !activeGroups[group];
+    }});
+    chart.update();
+  }}
+  requestAnimationFrame(fitIndicatorText);
+}}
+
+function fitIndicatorText() {{
+  document.querySelectorAll('#indicatorsGrid .stat-value').forEach(el => {{
+    el.style.fontSize = '';
+    const card = el.closest('.stat-card');
+    if (!card || card.style.display === 'none') return;
+    const cs   = getComputedStyle(card);
+    const maxW = card.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    el.style.display = 'inline-block';
+    let size = parseFloat(getComputedStyle(el).fontSize);
+    while (el.getBoundingClientRect().width > maxW && size > 7) {{
+      size -= 0.5;
+      el.style.fontSize = size + 'px';
+    }}
+    el.style.display = '';
+  }});
+}}
+
 let topN = 10;
 let lastTableData = null;
 
@@ -974,11 +1105,11 @@ if SERVER_MODE:
 
     @app.route("/")
     def index():
-        return redirect("/dashboard?ticker=GC%3DF&period=1y")
+        return redirect("/dashboard?ticker=SPY&period=1y")
 
     @app.route("/dashboard")
     def dashboard():
-        ticker = request.args.get("ticker", "GC=F").upper().strip()
+        ticker = request.args.get("ticker", "SPY").upper().strip()
         period = "max"
 
         long_name, rows, data_js = fetch_data(ticker, period)
