@@ -52,7 +52,12 @@
       "PowerShell(Copy-Item \"c:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\investments\\\\ticker_analysis.cloud\\\\ticker_analysis_cloud.py\" \"c:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\investments\\\\ticker_analysis.cloud\\\\app.py\")",
       "PowerShell(Copy-Item \"c:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\investments\\\\ticker_analysis_cloud\\\\ticker.analysis.cloud.py\" \"c:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\investments\\\\ticker_analysis_cloud\\\\app.py\")",
       "Bash(python -c \"import ast; ast.parse\\(open\\('app.py', encoding='utf-8'\\).read\\(\\)\\); print\\('Syntax OK'\\)\")",
-      "Read(//c/Users/diego/OneDrive/Investments/ticker_analysis_cloud/**)"
+      "Read(//c/Users/diego/OneDrive/Investments/ticker_analysis_cloud/**)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\investments\\\\miners_uplift\" -Recurse -Force)",
+      "Bash(Select-Object FullName, PSIsContainer)",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('main.py', encoding='utf-8'\\).read\\(\\)\\); print\\('Syntax OK'\\)\")",
+      "Bash(python main.py --merge-only)"
     ]
   }
 }

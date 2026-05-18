@@ -492,8 +492,8 @@ loadSilverETFData();
   </div>
 
   <div class="footer">
-    <p><strong>Tier Classification:</strong> Mega Cap (&gt;$20B)  Senior ($520B)  Mid-Tier ($15B)  Junior-Mid ($500M$1B)  Junior ($100500M)  Micro (&lt;$100M)</p>
-    <p style="margin-top:6px;"><strong>Data:</strong> Yahoo Finance  investing.com (PLZL, VOLCABC1, APX.PS)  Updated {now}</p>
+    <p><strong>Tier Classification:</strong> Mega Cap (&gt;$20B) &middot; Senior ($5B-$20B) &middot; Mid-Tier ($1B-$5B) &middot; Junior-Mid ($500M-$1B) &middot; Junior ($100M-$500M) &middot; Micro (&lt;$100M)</p>
+    <p style="margin-top:6px;"><strong>Data:</strong> Yahoo Finance &middot; investing.com &middot; Updated {now}</p>
   </div>
 
 </div>
