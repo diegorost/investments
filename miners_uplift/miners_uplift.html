@@ -132,7 +132,7 @@ h1 { color: #1a1a1a; font-size: 2.6em; margin: 0; text-align: center; flex: 1; }
 
   <div class="page-header">
     <h1> Miners ETF Dashboard</h1>
-    <span class="page-date">Updated 2026-05-17 22:01</span>
+    <span class="page-date">Updated 2026-05-17 22:31</span>
   </div>
 
   <div class="metal-tab-bar">
@@ -503,7 +503,7 @@ h1 { color: #1a1a1a; font-size: 2.6em; margin: 0; text-align: center; flex: 1; }
 
   <div class="footer">
     <p><strong>Tier Classification:</strong> Mega Cap (&gt;$20B)  Senior ($520B)  Mid-Tier ($15B)  Junior-Mid ($500M$1B)  Junior ($100500M)  Micro (&lt;$100M)</p>
-    <p style="margin-top:6px;"><strong>Data:</strong> Yahoo Finance  investing.com (PLZL, VOLCABC1, APX.PS)  Updated 2026-05-17 22:01</p>
+    <p style="margin-top:6px;"><strong>Data:</strong> Yahoo Finance  investing.com (PLZL, VOLCABC1, APX.PS)  Updated 2026-05-17 22:31</p>
   </div>
 
 </div>
@@ -771,7 +771,19 @@ function renderTable(etf, data) {
         case 3: return r.tier.toLowerCase().includes(v);
         case 4: return r.current.toLowerCase().includes(v);
         case 5: return r.ath.toLowerCase().includes(v);
-        case 6: return (r.pct !== null ? r.pct.toFixed(1) + '%' : 'TBD').toLowerCase().includes(v);
+        case 6: {
+          if (!val) return true;
+          const expr = val.match(/^([<>]=?)\s*(\d+\.?\d*)$/);
+          if (expr) {
+            if (r.pct === null) return false;
+            const op = expr[1], num = parseFloat(expr[2]), abs = Math.abs(r.pct);
+            if (op === '<')  return abs < num;
+            if (op === '>')  return abs > num;
+            if (op === '<=') return abs <= num;
+            if (op === '>=') return abs >= num;
+          }
+          return (r.pct !== null ? r.pct.toFixed(1) + '%' : 'TBD').toLowerCase().includes(v);
+        }
         case 7: return r.item.weight.toLowerCase().includes(v);
         default: return true;
       }
@@ -1162,7 +1174,7 @@ function loadETFData() {
       if (i > 0) {
         const inp = document.createElement('input');
         inp.type = 'text';
-        inp.placeholder = 'Filter…';
+        inp.placeholder = i === 6 ? '<10, >30, <=5…' : 'Filter…';
         inp.className = 'col-filter';
         inp.addEventListener('input', e => handleFilter(etf, i, e.target.value));
         td.appendChild(inp);
@@ -1472,7 +1484,7 @@ function loadSilverETFData() {
       if (i > 0) {
         const inp = document.createElement('input');
         inp.type = 'text';
-        inp.placeholder = 'Filter…';
+        inp.placeholder = i === 6 ? '<10, >30, <=5…' : 'Filter…';
         inp.className = 'col-filter';
         inp.addEventListener('input', e => handleFilter(etf, i, e.target.value));
         td.appendChild(inp);
