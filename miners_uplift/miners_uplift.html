@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gold ETF Analysis - All Holdings</title>
+<title>Precious Metals Miners ETF Dashboard</title>
 <style>
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; padding: 20px; color: #333; }
 .container { max-width: 1600px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
@@ -87,20 +88,65 @@ h1 { color: #1a1a1a; font-size: 2.6em; margin: 0; text-align: center; flex: 1; }
   .stock-table { font-size: 0.85em; }
   .stock-table th, .stock-table td { padding: 10px 8px; }
 }
+
+
+/* Silver ETF hero gradients */
+.etf-hero.slvp { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); }
+.etf-hero.sil  { background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); }
+.etf-hero.silj { background: linear-gradient(135deg, #059669 0%, #10b981 100%); }
+
+/* Silver tab active colors */
+.tab-btn.slvp.active { border-top: 3px solid #2563eb; }
+.tab-btn.sil.active  { border-top: 3px solid #7c3aed; }
+.tab-btn.silj.active { border-top: 3px solid #059669; }
+
+/* Silver theme overrides (scoped to .metal-silver) */
+.metal-silver .page-header { border-bottom-color: #2563eb; }
+.metal-silver .stat-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.metal-silver .tab-btn.active { color: #1e40af; border-bottom: 3px solid white; margin-bottom: -3px; box-shadow: 0 -2px 8px rgba(0,0,0,0.06); }
+.metal-silver .ticker { color: #1e40af; }
+.metal-silver .ath-val { color: #7c3aed; }
+.metal-silver tbody tr:hover { background: #f9fafb; }
+.metal-silver .legend { background: #f9fafb; }
+
+
+/* Metal top-level tabs */
+.metal-tab-bar { display: flex; gap: 8px; margin-bottom: 28px; border-bottom: 3px solid #e5e7eb; }
+.metal-tab { padding: 14px 32px; font-size: 1.05em; font-weight: 700; cursor: pointer;
+             border: none; background: #f3f4f6; color: #6b7280; border-radius: 10px 10px 0 0;
+             transition: all 0.2s; letter-spacing: 0.5px; }
+.metal-tab:hover { background: #e5e7eb; color: #374151; }
+.metal-tab.gold-tab.active   { background: white; color: #92400e; border-bottom: 3px solid white;
+                                margin-bottom: -3px; border-top: 4px solid #d97706;
+                                box-shadow: 0 -2px 10px rgba(0,0,0,0.08); }
+.metal-tab.silver-tab.active { background: white; color: #1e40af; border-bottom: 3px solid white;
+                                margin-bottom: -3px; border-top: 4px solid #2563eb;
+                                box-shadow: 0 -2px 10px rgba(0,0,0,0.08); }
+.metal-section { display: none; }
+.metal-section.active { display: block; }
+
 </style>
 </head>
 <body>
 <div class="container">
+
   <div class="page-header">
-    <h1>Gold Miners ETF</h1>
-    <span class="page-date">May 14, 2026</span>
+    <h1> Miners ETF Dashboard</h1>
+    <span class="page-date">Updated 2026-05-17 22:01</span>
   </div>
 
-  <div class="tab-nav">
-    <button class="tab-btn ring active" onclick="showTab('ring')">📊 RING (43)</button>
-    <button class="tab-btn auau"         onclick="showTab('auau')">📊 AUAU (106)</button>
-    <button class="tab-btn gdx"          onclick="showTab('gdx')">📊 GDX (51)</button>
-    <button class="tab-btn gdxj"         onclick="showTab('gdxj')">📊 GDXJ (110)</button>
+  <div class="metal-tab-bar">
+    <button class="metal-tab gold-tab active"   onclick="setMetal('gold')"> GOLD MINERS</button>
+    <button class="metal-tab silver-tab"         onclick="setMetal('silver')"> SILVER MINERS</button>
+  </div>
+
+  <!-- GOLD SECTION -->
+  <div id="gold-section" class="metal-section active">
+    <div class="tab-nav">
+    <button class="tab-btn ring active" onclick="showGoldTab('ring')">📊 RING (43)</button>
+    <button class="tab-btn auau"         onclick="showGoldTab('auau')">📊 AUAU (106)</button>
+    <button class="tab-btn gdx"          onclick="showGoldTab('gdx')">📊 GDX (51)</button>
+    <button class="tab-btn gdxj"         onclick="showGoldTab('gdxj')">📊 GDXJ (110)</button>
   </div>
 
   <!-- RING TAB -->
@@ -246,19 +292,228 @@ h1 { color: #1a1a1a; font-size: 2.6em; margin: 0; text-align: center; flex: 1; }
       <tbody id="tbody-gdxj"></tbody>
     </table>
   </div>
+  </div>
+
+  <!-- SILVER SECTION -->
+  <div id="silver-section" class="metal-section metal-silver">
+    <div class="tab-nav">
+    <button class="tab-btn silj active" onclick="showSilverTab('silj')">📊 SILJ (60)</button>
+    <button class="tab-btn sil" onclick="showSilverTab('sil')">📊 SIL (40)</button>
+    <button class="tab-btn slvp" onclick="showSilverTab('slvp')">📊 SLVP (37)</button>
+  </div>
+
+  <!-- SLVP TAB -->
+  <div id="tab-slvp" class="tab-panel">
+    <div class="etf-hero slvp">
+      <div>
+        <h2>SLVP — iShares MSCI Global Silver &amp; Metals Miners</h2>
+        <p>37 holdings · 0.39% expense ratio · Pure silver &amp; metals miners</p>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="label">Current</div><div class="val">$36.48</div></div>
+        <div class="hero-stat"><div class="label">52-Wk High</div><div class="val">$50.15</div></div>
+        <div class="hero-stat"><div class="label">% Below</div><div class="val down">-27.3%</div></div>
+      </div>
+    </div>
+
+    <div class="summary-stats">
+      <div class="stat-card">
+        <h3>Total Holdings</h3>
+        <div class="value">37</div>
+        <p style="font-size: 0.85em; margin-top: 5px; opacity: 0.9;">As of May 12, 2026</p>
+      </div>
+      <div class="stat-card">
+        <h3>ETF Price</h3>
+        <div class="value">$40.40</div>
+        <p style="font-size: 0.85em; margin-top: 5px; opacity: 0.9;">Current</p>
+      </div>
+      <div class="stat-card">
+        <h3>52-Wk High</h3>
+        <div class="value">$50.15</div>
+        <p style="font-size: 0.85em; margin-top: 5px; opacity: 0.9;">% Below: -27.3%</p>
+      </div>
+      <div class="stat-card">
+        <h3>Expense Ratio</h3>
+        <div class="value">0.39%</div>
+        <p style="font-size: 0.85em; margin-top: 5px; opacity: 0.9;">Annual fee</p>
+      </div>
+    </div>
+
+    <div class="legend">
+      <strong>% Below 52-Wk High:</strong>
+      <span class="leg"><span class="leg-box down-at-ath">At High</span></span>
+      <span class="leg"><span class="leg-box down-0-10">0–10%</span></span>
+      <span class="leg"><span class="leg-box down-10-20">10–20%</span></span>
+      <span class="leg"><span class="leg-box down-20-30">20–30%</span></span>
+      <span class="leg"><span class="leg-box down-30-50">30–50%</span></span>
+      <span class="leg"><span class="leg-box down-50-plus">50%+</span></span>
+      <span class="leg"><span class="leg-box down-unknown">TBD</span></span>
+    </div>
+
+    <div class="loading" id="loading-slvp">Loading SLVP holdings...</div>
+    <table class="stock-table" id="table-slvp" style="display:none;">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Ticker</th>
+          <th>Company</th>
+          <th>Tier</th>
+          <th>Current</th>
+          <th>52-Wk ATH</th>
+          <th>% Below ATH</th>
+          <th>Weight</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-slvp"></tbody>
+    </table>
+  </div>
+
+  <!-- SIL TAB -->
+  <div id="tab-sil" class="tab-panel">
+    <div class="etf-hero sil">
+      <div>
+        <h2>SIL — Global X Silver Miners ETF</h2>
+        <p>40 holdings · 0.65% expense ratio · Dominated by Wheaton (20.96%)</p>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="label">Current</div><div class="val">$91.60</div></div>
+        <div class="hero-stat"><div class="label">52-Wk High</div><div class="val">$119.24</div></div>
+        <div class="hero-stat"><div class="label">% Below</div><div class="val down">-23.2%</div></div>
+      </div>
+    </div>
+
+    <div class="summary-stats">
+      <div class="stat-card">
+        <h3>Total Holdings</h3>
+        <div class="value">40</div>
+        <p style="font-size: 0.85em; margin-top: 5px; opacity: 0.9;">As of May 13, 2026</p>
+      </div>
+      <div class="stat-card">
+        <h3>ETF Price</h3>
+        <div class="value">$99.08</div>
+        <p style="font-size: 0.85em; margin-top: 5px; opacity: 0.9;">Current</p>
+      </div>
+      <div class="stat-card">
+        <h3>52-Wk High</h3>
+        <div class="value">$119.24</div>
+        <p style="font-size: 0.85em; margin-top: 5px; opacity: 0.9;">% Below: -23.2%</p>
+      </div>
+      <div class="stat-card">
+        <h3>Expense Ratio</h3>
+        <div class="value">0.65%</div>
+        <p style="font-size: 0.85em; margin-top: 5px; opacity: 0.9;">Annual fee</p>
+      </div>
+    </div>
+
+    <div class="legend">
+      <strong>% Below 52-Wk High:</strong>
+      <span class="leg"><span class="leg-box down-at-ath">At High</span></span>
+      <span class="leg"><span class="leg-box down-0-10">0–10%</span></span>
+      <span class="leg"><span class="leg-box down-10-20">10–20%</span></span>
+      <span class="leg"><span class="leg-box down-20-30">20–30%</span></span>
+      <span class="leg"><span class="leg-box down-30-50">30–50%</span></span>
+      <span class="leg"><span class="leg-box down-50-plus">50%+</span></span>
+      <span class="leg"><span class="leg-box down-unknown">TBD</span></span>
+    </div>
+
+    <div class="loading" id="loading-sil">Loading SIL holdings...</div>
+    <table class="stock-table" id="table-sil" style="display:none;">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Ticker</th>
+          <th>Company</th>
+          <th>Tier</th>
+          <th>Current</th>
+          <th>52-Wk ATH</th>
+          <th>% Below ATH</th>
+          <th>Weight</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-sil"></tbody>
+    </table>
+  </div>
+
+  <!-- SILJ TAB -->
+  <div id="tab-silj" class="tab-panel active">
+    <div class="etf-hero silj">
+      <div>
+        <h2>SILJ — Amplify Junior Silver Miners ETF</h2>
+        <p>60 holdings · 0.69% expense ratio · Returned +200.8% in 2025 🔥</p>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="label">Current</div><div class="val">$30.19</div></div>
+        <div class="hero-stat"><div class="label">52-Wk High</div><div class="val">$41.10</div></div>
+        <div class="hero-stat"><div class="label">% Below</div><div class="val down">-26.5%</div></div>
+      </div>
+    </div>
+
+    <div class="summary-stats">
+      <div class="stat-card">
+        <h3>Total Holdings</h3>
+        <div class="value">60</div>
+        <p style="font-size: 0.85em; margin-top: 5px; opacity: 0.9;">As of May 14, 2026</p>
+      </div>
+      <div class="stat-card">
+        <h3>ETF Price</h3>
+        <div class="value">$34.23</div>
+        <p style="font-size: 0.85em; margin-top: 5px; opacity: 0.9;">Current</p>
+      </div>
+      <div class="stat-card">
+        <h3>52-Wk High</h3>
+        <div class="value">$41.10</div>
+        <p style="font-size: 0.85em; margin-top: 5px; opacity: 0.9;">% Below: -26.5%</p>
+      </div>
+      <div class="stat-card">
+        <h3>Expense Ratio</h3>
+        <div class="value">0.69%</div>
+        <p style="font-size: 0.85em; margin-top: 5px; opacity: 0.9;">Annual fee</p>
+      </div>
+    </div>
+
+    <div class="legend">
+      <strong>% Below 52-Wk High:</strong>
+      <span class="leg"><span class="leg-box down-at-ath">At High</span></span>
+      <span class="leg"><span class="leg-box down-0-10">0–10%</span></span>
+      <span class="leg"><span class="leg-box down-10-20">10–20%</span></span>
+      <span class="leg"><span class="leg-box down-20-30">20–30%</span></span>
+      <span class="leg"><span class="leg-box down-30-50">30–50%</span></span>
+      <span class="leg"><span class="leg-box down-50-plus">50%+</span></span>
+      <span class="leg"><span class="leg-box down-unknown">TBD</span></span>
+    </div>
+
+    <div class="loading" id="loading-silj">Loading SILJ holdings...</div>
+    <table class="stock-table" id="table-silj" style="display:none;">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Ticker</th>
+          <th>Company</th>
+          <th>Tier</th>
+          <th>Current</th>
+          <th>52-Wk ATH</th>
+          <th>% Below ATH</th>
+          <th>Weight</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-silj"></tbody>
+    </table>
+  </div>
+  </div>
 
   <div class="footer">
-    <p><strong>Tier Classification:</strong> Mega Cap (&gt;$20B) · Senior ($5–20B) · Mid-Tier ($1–5B) · Junior-Mid ($500M–$1B) · Junior ($100–500M) · Micro (&lt;$100M)</p>
-    <p style="margin-top:6px;"><strong>Data Sources:</strong> Yahoo Finance, iShares RING CSV, Global X AUAU CSV · May 8, 2026</p>
+    <p><strong>Tier Classification:</strong> Mega Cap (&gt;$20B)  Senior ($520B)  Mid-Tier ($15B)  Junior-Mid ($500M$1B)  Junior ($100500M)  Micro (&lt;$100M)</p>
+    <p style="margin-top:6px;"><strong>Data:</strong> Yahoo Finance  investing.com (PLZL, VOLCABC1, APX.PS)  Updated 2026-05-17 22:01</p>
   </div>
-</div>
 
+</div>
 <script>
+
 const tableData  = {};
 const sortState  = {};
 const filterState = {};
 
-function showTab(name) {
+function showGoldTab(name) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
@@ -285,7 +540,7 @@ function parsePrice(str) {
   return m ? parseFloat(m[0]) : null;
 }
 
-const knownData = {
+const goldKnownData = {
   // ── Mega Cap ──────────────────────────────────────────────────────────────
   'NEM': { current: '$109.06', ath: '$134.61', pct: 19.0, tier: 'Mega Cap Producer' },
   'AEM': { current: '$180.33', ath: '$255.24', pct: 29.3, tier: 'Mega Cap Producer' },
@@ -914,11 +1169,345 @@ function loadETFData() {
       }
       filterRow.appendChild(td);
     });
-    table.querySelector('thead').appendChild(filterRow);
+    if (!table.querySelector('.filter-row')) table.querySelector('thead').appendChild(filterRow);
   });
 }
 
-window.onload = loadETFData;
+
+const silverKnownData = {
+  'HL': { current: '$17.64', ath: '$34.16', pct: 48.4, tier: 'Mid-Tier Producer' },
+  'AG': { current: '$20.42', ath: '$32.04', pct: 36.3, tier: 'Junior-Mid Producer' },
+  'WPM': { current: '$130.41', ath: '$165.50', pct: 21.2, tier: 'Mega Cap Streaming' },
+  'PAAS': { current: '$56.40', ath: '$69.81', pct: 19.2, tier: 'Mid-Tier Producer' },
+  'CDE': { current: '$17.61', ath: '$27.77', pct: 36.6, tier: 'Mid-Tier Producer' },
+  'NEM': { current: '$109.06', ath: '$134.61', pct: 19.0, tier: 'Mega Cap Producer' },
+  'AEM': { current: '$180.33', ath: '$255.24', pct: 29.3, tier: 'Mega Cap Producer' },
+  'HYMC': { current: '$36.16', ath: '$58.73', pct: 38.4, tier: 'Junior Dev' },
+  'FRES': { current: '~Est', ath: '~Est', pct: -22, tier: 'Senior Producer' },
+  'PE&OLES*': { current: '~Est', ath: '~Est', pct: -25, tier: 'Senior Producer' },
+  'PE&OLES': { current: '~Est', ath: '~Est', pct: -25, tier: 'Senior Producer' },
+  'SVM': { current: '$13.57', ath: '$15.77', pct: 14.0, tier: 'Mid-Tier Producer' },
+  'DSV': { current: '$6.74', ath: '$9.11', pct: 26.0, tier: 'Mid-Tier Dev' },
+  'AYA': { current: '$19.23', ath: '$22.00', pct: 12.6, tier: 'Junior-Mid Producer' },
+  'EDR': { current: '~Est', ath: '~Est', pct: -35, tier: 'Mid-Tier Producer' },
+  'EXK': { current: '$9.81', ath: '$15.15', pct: 35.2, tier: 'Mid-Tier Producer' },
+  'OR': { current: '$36.42', ath: '$47.99', pct: 24.1, tier: 'Junior Royalty' },
+  'SSRM': { current: '$31.39', ath: '$36.52', pct: 14.0, tier: 'Mid-Tier Producer' },
+  'BVN': { current: '$34.29', ath: '$43.41', pct: 21.0, tier: 'Mid-Tier Producer' },
+  'KGH': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Senior Producer' },
+  'PPTA': { current: '$28.17', ath: '$37.37', pct: 24.6, tier: 'Junior Dev' },
+  'K': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Senior Producer' },
+  'FNV': { current: '$225.38', ath: '$285.20', pct: 21.0, tier: 'Mega Cap Royalty' },
+  'SA': { current: '$29.41', ath: '$40.06', pct: 26.6, tier: 'Junior-Mid Dev' },
+  'DPM': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Mid-Tier Producer' },
+  'ELD': { current: '$28.51', ath: '$29.84', pct: 4.5, tier: 'Mid-Tier Producer' },
+  'GORO': { current: '$1.40', ath: '$1.87', pct: 25.1, tier: 'Junior Producer' },
+  'SAND': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Mid-Tier Royalty' },
+  'MAG': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior-Mid Dev' },
+  'MUX': { current: '$22.81', ath: '$29.70', pct: 23.2, tier: 'Junior Producer' },
+  'ASM': { current: '$7.14', ath: '$11.99', pct: 40.5, tier: 'Junior-Mid Producer' },
+  'GGD': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior-Mid Producer' },
+  'SKE': { current: '$30.99', ath: '$38.77', pct: 20.1, tier: 'Mid-Tier Dev' },
+  'SILV': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Acquired by Coeur' },
+  'WDO': { current: 'N/A', ath: '$124.00', pct: null, tier: 'Junior Producer' },
+  'EQX': { current: '$14.49', ath: '$18.94', pct: 23.5, tier: 'Mid-Tier Producer' },
+  'SBSW': { current: '$13.61', ath: '$20.69', pct: 34.2, tier: 'Senior Producer' },
+  'HSLV': { current: '$6.10', ath: '$6.97', pct: 12.5, tier: 'Junior Explorer' },
+  'RGLD': { current: '$228.32', ath: '$305.70', pct: 25.3, tier: 'Senior Royalty' },
+  'TFPM': { current: '$31.98', ath: '$41.70', pct: 23.3, tier: 'Mid-Tier Royalty' },
+  'FSM': { current: '$9.55', ath: '$13.85', pct: 31.0, tier: 'Mid-Tier Producer' },
+  'FVI': { current: '$13.14', ath: '$18.99', pct: 30.8, tier: 'Mid-Tier Producer' },
+  'BOL': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Senior Producer' },
+  'GROY': { current: '$3.73', ath: '$6.91', pct: 46.0, tier: 'Junior Royalty' },
+  'FURY': { current: '$0.63', ath: '$4.71', pct: 86.7, tier: 'Junior Explorer' },
+  'VZLA': { current: '$3.50', ath: '$7.19', pct: 51.3, tier: 'Junior-Mid Dev' },
+  'ITR': { current: '$3.82', ath: '$6.60', pct: 42.1, tier: 'Junior Dev' },
+  'NUAG': { current: '$7.61', ath: '$8.57', pct: 11.3, tier: 'Junior Dev' },
+  'SCZ': { current: '$12.02', ath: '$23.90', pct: 49.7, tier: 'Junior Producer' },
+  'ARTG': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior-Mid Dev' },
+  'GSVR': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Micro Producer' },
+  'BRC': { current: '$1.37', ath: '$2.41', pct: 43.2, tier: 'Junior Explorer' },
+  'SLVR': { current: '$0.92', ath: '$1.42', pct: 35.2, tier: 'Junior Explorer' },
+  'APM': { current: '$0.82', ath: '$4.47', pct: 81.6, tier: 'Junior Producer' },
+  'USL': { current: '$0.80', ath: '$1.17', pct: 32.2, tier: 'Junior Dev' },
+  'AAG': { current: '$0.82', ath: '$1.42', pct: 42.3, tier: 'Junior Explorer' },
+  'ABRA': { current: '~Est', ath: '~Est', pct: -35, tier: 'Junior Dev' },
+  'GUY': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior-Mid Producer' },
+  'ASL': { current: '$2.33', ath: '$2.74', pct: 15.0, tier: 'Junior Explorer' },
+  'SOSI': { current: '$1.67', ath: '$7.88', pct: 78.8, tier: 'Junior Producer' },
+  'SVL': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior Explorer' },
+  'HNGW':     { current: 'N/A', ath: 'N/A', pct: null, tier: 'Micro Cap' },
+  'USA': { current: '$5.73', ath: '$6.24', pct: 8.2, tier: 'Junior-Mid Producer' },
+  'HOC': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Mid-Tier Producer' },
+  'TMQ': { current: '$4.12', ath: '$11.29', pct: 63.5, tier: 'Junior Dev' },
+  'WRN': { current: '$2.80', ath: '$4.26', pct: 34.3, tier: 'Junior Dev' },
+  'KCN': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior Producer' },
+  'IAUX': { current: '$1.48', ath: '$2.24', pct: 33.9, tier: 'Junior Dev' },
+  'FF': { current: '$4.03', ath: '$5.12', pct: 21.3, tier: 'Junior Dev' },
+  'OM': { current: '$3.63', ath: '$21.98', pct: 83.5, tier: 'Junior Dev' },
+  'HSTR': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior Explorer' },
+  'CTGO': { current: '$22.44', ath: '$34.38', pct: 34.7, tier: 'Junior Dev' },
+  'SVRS': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior Explorer' },
+  'PZG': { current: '$1.41', ath: '$2.71', pct: 48.0, tier: 'Junior Dev' },
+  'TUD': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior Explorer' },
+  'AGMR': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Micro Cap' },
+  'VOLCABC1': { current: '$0.75', ath: '$1.02', pct: 26.5, tier: 'Senior Producer' },
+  'CKG': { current: '$0.00', ath: 'N/A', pct: null, tier: 'Junior Dev' },
+  'MKR': { current: 'N/A', ath: '$158.00', pct: null, tier: 'Micro Producer' },
+  'CUU': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior Explorer' },
+  'FPC': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior Dev' },
+  'IPT': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior Producer' },
+  'WAM': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Micro Cap' },
+  'PML': { current: '$7.40', ath: '$7.78', pct: 4.8, tier: 'Micro Cap' },
+  'MFRISCOA': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Senior Producer' },
+  'WVM': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Micro Cap' },
+  'AMM': { current: 'N/A', ath: 'N/A', pct: null, tier: 'Junior Explorer' },
+  'TV': { current: '$2.85', ath: '$3.49', pct: 18.3, tier: 'Micro Cap' },
+  'FRES.L': { current: '$3335.00', ath: '$4471.03', pct: 25.4, tier: 'Senior Producer' },
+  'ABRA.TO': { current: '$17.15', ath: '$19.89', pct: 13.8, tier: 'Junior Dev' },
+  'PE&OLES.MX': { current: '$951.99', ath: '$1229.51', pct: 22.6, tier: 'Senior Producer' },
+  'KGH.WA': { current: '$336.15', ath: '$396.40', pct: 15.2, tier: 'Senior Producer' },
+  'BOL.ST': { current: '$515.20', ath: '$711.73', pct: 27.6, tier: 'Senior Producer' },
+  'ARTG.V': { current: '$33.15', ath: '$48.80', pct: 32.1, tier: 'Junior-Mid Dev' },
+  'HOC.L': { current: '$617.00', ath: '$849.45', pct: 27.4, tier: 'Mid-Tier Producer' },
+  'GGD.TO': { current: '$3.22', ath: '$4.12', pct: 21.8, tier: 'Junior-Mid Producer' },
+  'KCN.AX': { current: '$5.85', ath: '$7.22', pct: 19.0, tier: 'Junior Producer' },
+  'SVL.AX': { current: '$0.17', ath: '$0.28', pct: 42.1, tier: 'Junior Explorer' },
+  'HSTR.V': { current: '$2.08', ath: '$3.47', pct: 40.1, tier: 'Junior Explorer' },
+  'GSVR.V': { current: '$0.61', ath: '$1.15', pct: 47.0, tier: 'Micro Producer' },
+  'SVRS.V': { current: '$0.59', ath: '$0.80', pct: 26.3, tier: 'Junior Explorer' },
+  'TUD.V': { current: '$0.99', ath: '$1.68', pct: 41.1, tier: 'Junior Explorer' },
+  'AAG.V': { current: '$0.79', ath: '$1.42', pct: 44.4, tier: 'Junior Explorer' },
+  'AGMR.TO': { current: '$4.11', ath: '$6.16', pct: 33.3, tier: 'Micro Cap' },
+  'CKG.V': { current: '$4.26', ath: '$5.18', pct: 17.8, tier: 'Junior Dev' },
+  'CUU.V': { current: '$0.80', ath: '$0.90', pct: 11.1, tier: 'Junior Explorer' },
+  'FPC.V': { current: '$0.54', ath: '$0.58', pct: 6.9, tier: 'Junior Dev' },
+  'IPT.V': { current: '$0.29', ath: '$0.60', pct: 50.8, tier: 'Junior Producer' },
+  'WAM.V': { current: '$0.82', ath: '$1.52', pct: 46.1, tier: 'Micro Cap' },
+  'MFRISCOA-1.MX': { current: '$10.70', ath: '$17.41', pct: 38.5, tier: 'Senior Producer' },
+  'WVM.V': { current: '$1.67', ath: '$2.79', pct: 40.1, tier: 'Micro Cap' },
+  'AMM.V': { current: '$0.27', ath: '$0.35', pct: 22.9, tier: 'Junior Explorer' },
+  'MKR.AX': { current: '$0.11', ath: '$0.23', pct: 52.2, tier: 'Micro Producer' },
+  '010130.KS': { current: '$1483000.00', ath: '$2188000.00', pct: 32.2, tier: 'Senior Producer' },
+  'CDE.TO': { current: '$24.22', ath: '$29.51', pct: 17.9, tier: 'Mid-Tier Producer' },
+  'EDR.TO': { current: '$13.49', ath: '$20.70', pct: 34.8, tier: 'Mid-Tier Producer' },
+  'K.TO': { current: '$39.03', ath: '$53.51', pct: 27.1, tier: 'Senior Producer' },
+  'DPM.TO': { current: '$44.77', ath: '$60.06', pct: 25.5, tier: 'Mid-Tier Producer' },
+  'HAR.JO': { current: '$26509.00', ath: '$42880.16', pct: 38.2, tier: 'Senior Producer' },
+  '2099.HK': { current: '$158.80', ath: '$247.53', pct: 35.8, tier: 'Mid-Tier Producer' },
+  'LUG.TO': { current: '$86.76', ath: '$129.25', pct: 32.9, tier: 'Mid-Tier Producer' },
+  'OLA.TO': { current: '$18.38', ath: '$29.99', pct: 38.7, tier: 'Junior-Mid Producer' },
+  '1818.HK': { current: '$23.38', ath: '$42.36', pct: 44.8, tier: 'Mid-Tier Producer' },
+  'TXG.TO': { current: '$61.10', ath: '$84.84', pct: 28.0, tier: 'Mid-Tier Producer' },
+  'FFM.AX': { current: '$1.93', ath: '$2.30', pct: 16.1, tier: 'Junior Explorer' },
+  'APX.PS': { current: '$16.80', ath: '$18.24', pct: 7.9, tier: 'Micro Producer' },
+  'BVR.AX': { current: '$0.50', ath: '$0.99', pct: 49.2, tier: 'Micro Explorer' },
+};
+
+// Merged knownData - silver values override gold for shared tickers
+const knownData = Object.assign({}, goldKnownData, silverKnownData);
+
+function loadSilverETFData() {
+  const siljData = [
+    {ticker:'AG',      name:'First Majestic Silver Corp',       weight:'10.79%'},
+    {ticker:'CDE',     name:'Coeur Mining Inc',                 weight:'9.05%'},
+    {ticker:'HL',      name:'Hecla Mining Co',                  weight:'8.76%'},
+    {ticker:'WPM',     name:'Wheaton Precious Metals Corp',     weight:'5.65%'},
+    {ticker:'HYMC',    name:'Hycroft Mining Holding Corp',      weight:'4.34%'},
+    {ticker:'EXK',     name:'Endeavour Silver Corp',            weight:'4.31%'},
+    {ticker:'KGH.WA',  name:'KGHM Polska Miedz SA',             weight:'3.89%'},
+    {ticker:'PAAS',    name:'Pan American Silver Corp',         weight:'3.88%'},
+    {ticker:'PPTA',    name:'Perpetua Resources Corp',          weight:'3.66%'},
+    {ticker:'BVN',     name:'Cia de Minas Buenaventura SAA',    weight:'3.60%'},
+    {ticker:'SSRM',    name:'SSR Mining Inc',                   weight:'3.59%'},
+    {ticker:'SVM',     name:'Silvercorp Metals Inc',            weight:'3.52%'},
+    {ticker:'SA',      name:'Seabridge Gold Inc',               weight:'2.85%'},
+    {ticker:'BOL.ST',  name:'Boliden AB',                       weight:'2.81%'},
+    {ticker:'AYA',     name:'Aya Gold & Silver Inc',            weight:'2.62%'},
+    {ticker:'OR',      name:'OR Royalties Inc',                 weight:'2.27%'},
+    {ticker:'FNV',     name:'Franco-Nevada Corp',               weight:'2.14%'},
+    {ticker:'TFPM',    name:'Triple Flag Precious Metals Corp', weight:'1.95%'},
+    {ticker:'SKE',     name:'Skeena Resources Ltd',             weight:'1.79%'},
+    {ticker:'ARTG.V',  name:'Artemis Gold Inc',                 weight:'1.73%'},
+    {ticker:'VZLA',    name:'Vizsla Silver Corp',               weight:'1.66%'},
+    {ticker:'FSM',     name:'Fortuna Mining Corp',              weight:'1.48%'},
+    {ticker:'RGLD',    name:'Royal Gold Inc',                   weight:'1.42%'},
+    {ticker:'USA',     name:'Americas Gold & Silver Corp',      weight:'1.36%'},
+    {ticker:'FRES.L',  name:'Fresnillo PLC',                    weight:'1.14%'},
+    {ticker:'ASM',     name:'Avino Silver & Gold Mines Ltd',    weight:'1.11%'},
+    {ticker:'HOC.L',   name:'Hochschild Mining PLC',            weight:'1.02%'},
+    {ticker:'TMQ',     name:'Trilogy Metals Inc',               weight:'0.98%'},
+    {ticker:'ABRA.TO', name:'AbraSilver Resource Corp',         weight:'0.94%'},
+    {ticker:'PE&OLES.MX',name:'Industrias Penoles SAB de CV',  weight:'0.77%'},
+    {ticker:'MUX',     name:'McEwen Inc',                       weight:'0.70%'},
+    {ticker:'WRN',     name:'Western Copper & Gold Corp',       weight:'0.40%'},
+    {ticker:'GGD.TO',  name:'GoGold Resources Inc',             weight:'0.39%'},
+    {ticker:'SCZ',     name:'Santacruz Silver Mining Ltd',      weight:'0.38%'},
+    {ticker:'KCN.AX',  name:'Kingsgate Consolidated Ltd',       weight:'0.28%'},
+    {ticker:'IAUX',    name:'i-80 Gold Corp',                   weight:'0.28%'},
+    {ticker:'FF',      name:'First Mining Gold Corp',           weight:'0.26%'},
+    {ticker:'OM',      name:'Osisko Metals Inc',                weight:'0.26%'},
+    {ticker:'SVL.AX',  name:'Silver Mines Ltd',                 weight:'0.21%'},
+    {ticker:'APM',     name:'Andean Precious Metals Corp',      weight:'0.19%'},
+    {ticker:'HSTR.V',  name:'Heliostar Metals Ltd',             weight:'0.15%'},
+    {ticker:'GSVR.V',  name:'Guanajuato Silver Co Ltd',         weight:'0.15%'},
+    {ticker:'CTGO',    name:'Contango Silver & Gold Inc',       weight:'0.12%'},
+    {ticker:'SVRS.V',  name:'Silver Storm Mining Ltd',          weight:'0.12%'},
+    {ticker:'PZG',     name:'Paramount Gold Nevada Corp',       weight:'0.11%'},
+    {ticker:'TUD.V',   name:'Tudor Gold Corp',                  weight:'0.10%'},
+    {ticker:'AAG.V',   name:'Aftermath Silver Ltd',             weight:'0.10%'},
+    {ticker:'AGMR.TO', name:'Silver Mountain Resources Inc',    weight:'0.09%'},
+    {ticker:'VOLCABC1',name:'Volcan Cia Minera SAA',            weight:'0.07%'},
+    {ticker:'CKG.V',   name:'Chesapeake Gold Corp',             weight:'0.06%'},
+    {ticker:'MKR.AX',  name:'Manuka Resources Ltd',             weight:'0.05%'},
+    {ticker:'CUU.V',   name:'Copper Fox Metals Inc',            weight:'0.03%'},
+    {ticker:'FPC.V',   name:'Falco Resources Ltd',              weight:'0.03%'},
+    {ticker:'IPT.V',   name:'IMPACT Silver Corp',               weight:'0.03%'},
+    {ticker:'WAM.V',    name:'Alaska Silver Corp',            weight:'0.01%'},
+    {ticker:'PML',      name:'Panoro Minerals Ltd',           weight:'0.01%'},
+    {ticker:'MFRISCOA-1.MX', name:'Minera Frisco SAB de CV',  weight:'0.00%'},
+    {ticker:'WVM.V',    name:'West Vault Mining Inc',         weight:'0.00%'},
+    {ticker:'AMM.V',    name:'Almaden Minerals Ltd',          weight:'0.00%'},
+    {ticker:'TV',       name:'Trevali Mining Corp',           weight:'0.00%'}
+  ];
+
+  const slvpData = [
+    {ticker:'HL',         name:'Hecla Mining Co',                       weight:'13.42%'},
+    {ticker:'PE&OLES.MX', name:'Industrias Penoles SAB de CV',           weight:'11.21%'},
+    {ticker:'FRES.L',     name:'Fresnillo PLC',                          weight:'10.10%'},
+    {ticker:'AG',         name:'First Majestic Silver Corp',             weight:'9.48%'},
+    {ticker:'SVM',        name:'Silvercorp Metals Inc',                  weight:'5.04%'},
+    {ticker:'DSV',        name:'Discovery Silver Corp',                  weight:'4.76%'},
+    {ticker:'EDR.TO',     name:'Endeavour Silver Corp',                  weight:'4.29%'},
+    {ticker:'NEM',        name:'Newmont Corp',                           weight:'4.24%'},
+    {ticker:'AYA',        name:'Aya Gold & Silver Inc',                  weight:'4.20%'},
+    {ticker:'WPM',        name:'Wheaton Precious Metals Corp',           weight:'4.04%'},
+    {ticker:'AEM',        name:'Agnico Eagle Mines Ltd',                 weight:'4.03%'},
+    {ticker:'K.TO',       name:'Kinross Gold Corp',                      weight:'2.99%'},
+    {ticker:'CDE',        name:'Coeur Mining Inc (NYSE)',                 weight:'1.51%'},
+    {ticker:'CDE.TO',     name:'Coeur Mining Inc (TSX)',                  weight:'1.26%'},
+    {ticker:'PAAS',       name:'Pan American Silver Corp',               weight:'1.90%'},
+    {ticker:'ASM',        name:'Avino Silver & Gold Mines Ltd',          weight:'1.63%'},
+    {ticker:'SSRM',       name:'SSR Mining Inc',                         weight:'1.49%'},
+    {ticker:'GGD.TO',     name:'GoGold Resources Inc',                   weight:'1.42%'},
+    {ticker:'DPM.TO',     name:'Dundee Precious Metals Inc',             weight:'1.25%'},
+    {ticker:'ELD',        name:'Eldorado Gold Corp',                     weight:'1.20%'},
+    {ticker:'HAR.JO',     name:'Harmony Gold Mining Co',                 weight:'1.07%'},
+    {ticker:'2099.HK',    name:'China Gold International Resources',     weight:'1.06%'},
+    {ticker:'LUG.TO',     name:'Lundin Gold Inc',                        weight:'1.01%'},
+    {ticker:'OLA.TO',     name:'Orla Mining Ltd',                        weight:'0.97%'},
+    {ticker:'1818.HK',    name:'Zhaojin Mining Industry Co',             weight:'0.94%'},
+    {ticker:'FVI',        name:'Fortuna Mining Corp',                    weight:'0.76%'},
+    {ticker:'HOC.L',      name:'Hochschild Mining PLC',                  weight:'0.69%'},
+    {ticker:'SA',         name:'Seabridge Gold Inc',                     weight:'0.63%'},
+    {ticker:'SKE',        name:'Skeena Resources Ltd',                   weight:'0.60%'},
+    {ticker:'PPTA',       name:'Perpetua Resources Corp',                weight:'0.55%'},
+    {ticker:'TXG.TO',     name:'Torex Gold Resources Inc',               weight:'0.52%'},
+    {ticker:'APM',        name:'Andean Precious Metals Corp',            weight:'0.44%'},
+    {ticker:'HYMC',       name:'Hycroft Mining Holding Corp',            weight:'0.40%'},
+    {ticker:'KCN.AX',     name:'Kingsgate Consolidated Ltd',             weight:'0.24%'},
+    {ticker:'FFM.AX',     name:'Firefly Metals Ltd',                     weight:'0.21%'},
+    {ticker:'APX.PS',     name:'Apex Mining Inc',                        weight:'0.10%'},
+    {ticker:'BVR.AX',     name:'Bellavista Resources Ltd',               weight:'0.00%'}
+  ];
+
+  const silData = [
+    {ticker:'WPM',        name:'Wheaton Precious Metals Corp',     weight:'20.96%'},
+    {ticker:'PAAS',       name:'Pan American Silver Corp',         weight:'13.30%'},
+    {ticker:'CDE',        name:'Coeur Mining Inc',                 weight:'10.07%'},
+    {ticker:'AG',         name:'First Majestic Silver Corp',       weight:'5.14%'},
+    {ticker:'PE&OLES.MX', name:'Industrias Penoles SAB de CV',     weight:'5.04%'},
+    {ticker:'HL',         name:'Hecla Mining Co',                  weight:'4.96%'},
+    {ticker:'FRES.L',     name:'Fresnillo PLC',                    weight:'4.75%'},
+    {ticker:'OR',         name:'OR Royalties Inc',                 weight:'3.94%'},
+    {ticker:'BVN',        name:'Cia de Minas Buenaventura ADR',    weight:'3.81%'},
+    {ticker:'SSRM',       name:'SSR Mining Inc',                   weight:'3.75%'},
+    {ticker:'DSV',        name:'Discovery Silver Corp',            weight:'2.60%'},
+    {ticker:'010130.KS',  name:'Korea Zinc Co Ltd',                weight:'2.50%'},
+    {ticker:'EXK',        name:'Endeavour Silver Corp',            weight:'1.79%'},
+    {ticker:'SVM',        name:'Silvercorp Metals Inc',            weight:'1.79%'},
+    {ticker:'FVI',        name:'Fortuna Mining Corp',              weight:'1.75%'},
+    {ticker:'AYA',        name:'Aya Gold & Silver Inc',            weight:'1.58%'},
+    {ticker:'HOC.L',      name:'Hochschild Mining PLC',            weight:'1.53%'},
+    {ticker:'TFPM',       name:'Triple Flag Precious Metals Corp', weight:'1.33%'},
+    {ticker:'HYMC',       name:'Hycroft Mining Holding Corp',      weight:'1.06%'},
+    {ticker:'ABRA.TO',    name:'AbraSilver Resource Corp',         weight:'1.05%'},
+    {ticker:'USA',        name:'Americas Gold & Silver Corp',      weight:'0.85%'},
+    {ticker:'MUX',        name:'McEwen Inc',                       weight:'0.71%'},
+    {ticker:'VZLA',       name:'Vizsla Silver Corp',               weight:'0.69%'},
+    {ticker:'ASM',        name:'Avino Silver & Gold Mines Ltd',    weight:'0.66%'},
+    {ticker:'KCN.AX',     name:'Kingsgate Consolidated Ltd',       weight:'0.65%'},
+    {ticker:'GGD.TO',     name:'GoGold Resources Inc',             weight:'0.57%'},
+    {ticker:'HSLV',       name:'Highlander Silver Corp',           weight:'0.48%'},
+    {ticker:'SCZ',        name:'Santacruz Silver Mining Ltd',      weight:'0.46%'},
+    {ticker:'NUAG',       name:'New Pacific Metals Corp',          weight:'0.31%'},
+    {ticker:'ITR',        name:'Integra Resources Corp',           weight:'0.29%'},
+    {ticker:'SLVR',       name:'Silver Tiger Metals Inc',          weight:'0.20%'},
+    {ticker:'GSVR.V',     name:'Guanajuato Silver Co Ltd',         weight:'0.19%'},
+    {ticker:'ASL',        name:'Andean Silver Ltd',                weight:'0.17%'},
+    {ticker:'BRC',        name:'Blackrock Silver Corp',            weight:'0.17%'},
+    {ticker:'APM',        name:'Andean Precious Metals Corp',      weight:'0.16%'},
+    {ticker:'USL',        name:'Unico Silver Ltd',                 weight:'0.16%'},
+    {ticker:'SVL.AX',     name:'Silver Mines Ltd',                 weight:'0.15%'},
+    {ticker:'GORO',       name:'Gold Resource Corp',               weight:'0.12%'},
+    {ticker:'AAG',        name:'Aftermath Silver Ltd',             weight:'0.09%'},
+    {ticker:'SOSI',       name:'Sotkamo Silver AB',                weight:'0.08%'}
+  ];
+
+  renderTable('slvp', slvpData);
+  renderTable('sil', silData);
+  renderTable('silj', siljData);
+
+  ['slvp', 'sil', 'silj'].forEach(etf => {
+    const table = document.getElementById(`table-${etf}`);
+
+    table.querySelectorAll('thead th').forEach((th, i) => {
+      th.addEventListener('click', () => handleSort(etf, i));
+    });
+
+    const filterRow = document.createElement('tr');
+    filterRow.className = 'filter-row';
+    ['', 'Ticker', 'Company', 'Tier', 'Price', 'High', '% Below', 'Weight'].forEach((_, i) => {
+      const td = document.createElement('td');
+      if (i > 0) {
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.placeholder = 'Filter…';
+        inp.className = 'col-filter';
+        inp.addEventListener('input', e => handleFilter(etf, i, e.target.value));
+        td.appendChild(inp);
+      }
+      filterRow.appendChild(td);
+    });
+    if (!table.querySelector('.filter-row')) table.querySelector('thead').appendChild(filterRow);
+  });
+}
+
+function showGoldTab(name) {
+  document.querySelectorAll('#gold-section .tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#gold-section .tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.querySelector('#gold-section .tab-btn.' + name).classList.add('active');
+}
+
+function showSilverTab(name) {
+  document.querySelectorAll('#silver-section .tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#silver-section .tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.querySelector('#silver-section .tab-btn.' + name).classList.add('active');
+}
+
+function setMetal(metal) {
+  document.querySelectorAll('.metal-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.metal-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(metal + '-section').classList.add('active');
+  document.querySelector('.metal-tab.' + metal + '-tab').classList.add('active');
+}
+
+// Initialize both metals on load - script is at end of body so DOM is ready
+loadETFData();
+loadSilverETFData();
+
 </script>
 </body>
 </html>
