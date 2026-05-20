@@ -203,6 +203,19 @@ def build_html(ticker, long_name, rows, data_js, period="1y"):
   .divider {{ height: 1px; background: var(--border); margin: 28px 0; }}
   .generated {{ font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--muted); text-align: right; margin-top: 32px; }}
   .error-msg {{ font-family: 'Space Mono', monospace; font-size: 0.9rem; color: var(--red); background: var(--panel); border: 1px solid var(--red); border-radius: 8px; padding: 20px 24px; margin-bottom: 24px; }}
+  .etf-bar {{ display:flex; align-items:center; gap:10px; margin-bottom:20px; flex-wrap:wrap; }}
+  .etf-bar-label {{ font-family:'Space Mono',monospace; font-size:0.6rem; letter-spacing:2px; text-transform:uppercase; color:var(--muted); white-space:nowrap; border:1px solid var(--border); padding:6px 10px; border-radius:4px; }}
+  .etf-bar input[type="text"] {{ font-family:'Space Mono',monospace; font-size:0.85rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; padding:9px 14px; background:var(--panel); border:1px solid var(--border); color:var(--accent3); border-radius:4px; outline:none; width:140px; transition:border-color 0.15s; }}
+  .etf-bar input[type="text"]:focus {{ border-color:var(--accent3); }}
+  .etf-result-panel {{ background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:24px; }}
+  .etf-two-col {{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }}
+  @media (max-width:900px) {{ .etf-two-col {{ grid-template-columns:1fr; }} }}
+  .etf-table {{ width:100%; border-collapse:collapse; font-family:'Space Mono',monospace; font-size:0.7rem; }}
+  .etf-table thead th {{ text-align:left; padding:8px 10px; font-size:0.58rem; letter-spacing:2px; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border); }}
+  .etf-table tbody tr:hover {{ background:rgba(90,180,224,0.04); }}
+  .etf-table tbody td {{ padding:7px 10px; border-bottom:1px solid rgba(30,30,46,0.5); color:var(--text); }}
+  .etf-msg {{ font-family:'Space Mono',monospace; font-size:0.75rem; color:var(--muted); padding:12px 0; }}
+  .etf-err {{ font-family:'Space Mono',monospace; font-size:0.75rem; color:var(--red); padding:12px 0; }}
 </style>
 </head>
 <body>
@@ -220,6 +233,15 @@ def build_html(ticker, long_name, rows, data_js, period="1y"):
     <button class="theme-btn" id="theme-classic" onclick="applyTheme('classic')">Classic</button>
   </div>
 </div>
+
+<div class="etf-bar">
+  <span class="etf-bar-label">ETF Lookup</span>
+  <form style="display:flex;gap:8px;align-items:center" onsubmit="event.preventDefault();searchETF()">
+    <input type="text" id="etfInput" placeholder="e.g. NVDA" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <button type="submit" class="apply-btn" style="background:var(--accent3);color:#fff">Search ETFs</button>
+  </form>
+</div>
+<div id="etfPanel" style="display:none;"></div>
 
 <div class="topbar">
 {search_bar}
@@ -1077,6 +1099,52 @@ const initFrom = new Date(maxDate);
 initFrom.setFullYear(initFrom.getFullYear() - 1);
 document.getElementById('dateFrom').value = toInputDate(initFrom);
 render(initFrom, maxDate);
+
+async function searchETF() {{
+  const ticker = (document.getElementById('etfInput').value || '').trim().toUpperCase();
+  if (!ticker) return;
+  const panel = document.getElementById('etfPanel');
+  panel.style.display = 'block';
+  panel.innerHTML = '<div class="etf-result-panel"><div class="etf-msg">Loading ETF &amp; fund holders for ' + ticker + '…</div></div>';
+  try {{
+    const resp = await fetch('/api/etf-holders?ticker=' + encodeURIComponent(ticker));
+    const data = await resp.json();
+    if (data.error) {{
+      panel.innerHTML = '<div class="etf-result-panel"><div class="etf-err">Error: ' + data.error + '</div></div>';
+      return;
+    }}
+    const fmtN   = (n) => n != null ? Number(n).toLocaleString() : '—';
+    const fmtPct = (n) => n != null ? (parseFloat(n) * 100).toFixed(2) + '%' : '—';
+    const fmtUSD = (n) => n != null ? '$' + Number(n).toLocaleString() : '—';
+    const fmtDt  = (s) => s ? new Date(s).toLocaleDateString('en-US', {{month:'short', day:'numeric', year:'numeric'}}) : '—';
+    const mkTbl  = (rows) => {{
+      if (!rows || !rows.length) return '<div class="etf-msg">No data available.</div>';
+      return '<table class="etf-table"><thead><tr><th>#</th><th>Holder</th><th>Shares</th><th>% Out</th><th>Value</th><th>Date</th></tr></thead><tbody>' +
+        rows.map((r, i) =>
+          '<tr><td style="color:var(--muted)">' + (i + 1) + '</td>' +
+          '<td>' + (r['Holder'] || '—') + '</td>' +
+          '<td>' + fmtN(r['Shares']) + '</td>' +
+          '<td>' + fmtPct(r['% Out']) + '</td>' +
+          '<td>' + fmtUSD(r['Value']) + '</td>' +
+          '<td>' + fmtDt(r['Date Reported']) + '</td></tr>'
+        ).join('') +
+        '</tbody></table>';
+    }};
+    panel.innerHTML =
+      '<div class="etf-result-panel">' +
+        '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">' +
+          '<span style="font-family:Space Mono,monospace;font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--accent3)">ETF &amp; Fund Holders — ' + data.ticker + '</span>' +
+          '<button onclick="document.getElementById(\'etfPanel\').style.display=\'none\'" style="margin-left:auto;font-family:Space Mono,monospace;font-size:0.65rem;padding:4px 12px;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:4px;cursor:pointer">✕ Close</button>' +
+        '</div>' +
+        '<div class="etf-two-col">' +
+          '<div><div style="font-family:Space Mono,monospace;font-size:0.62rem;letter-spacing:2px;text-transform:uppercase;color:var(--accent3);margin-bottom:10px">Mutual Fund / ETF Holders</div>' + mkTbl(data.mutualFunds) + '</div>' +
+          '<div><div style="font-family:Space Mono,monospace;font-size:0.62rem;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:10px">Institutional Holders</div>' + mkTbl(data.institutional) + '</div>' +
+        '</div>' +
+      '</div>';
+  }} catch(e) {{
+    panel.innerHTML = '<div class="etf-result-panel"><div class="etf-err">Request failed.</div></div>';
+  }}
+}}
 </script>
 </body>
 </html>"""
@@ -1114,6 +1182,29 @@ Check the symbol and try again.</div>
 
     html = build_html(ticker, long_name, rows, data_js, period=period)
     return Response(html, mimetype="text/html")
+
+@app.route("/api/etf-holders")
+def etf_holders():
+    ticker = request.args.get("ticker", "").upper().strip()
+    if not ticker:
+        return Response(json.dumps({"error": "ticker required"}), status=400, mimetype="application/json")
+    try:
+        t = yf.Ticker(ticker)
+        def df_to_records(df):
+            if df is None or df.empty:
+                return []
+            return json.loads(df.to_json(orient="records", date_format="iso"))
+        return Response(
+            json.dumps({
+                "ticker": ticker,
+                "mutualFunds":   df_to_records(t.mutualfund_holders),
+                "institutional": df_to_records(t.institutional_holders),
+            }),
+            mimetype="application/json"
+        )
+    except Exception as e:
+        return Response(json.dumps({"error": str(e)}), status=500, mimetype="application/json")
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
