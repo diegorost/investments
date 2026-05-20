@@ -186,6 +186,10 @@ def dashboard():
     style="padding:6px 14px;background:#1e40af;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:0.85em;">
     Silver Only
   </button>
+  <button onclick="openETFModal()"
+    style="padding:6px 14px;background:#4338ca;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:0.85em;">
+    ETF Lookup
+  </button>
 </div>
 <div style="height:44px;"></div>
 <script>
@@ -214,6 +218,81 @@ function pollStatus() {{
 // Auto-poll if update is already running
 fetch('/api/status').then(r => r.json()).then(d => {{ if (d.running) pollStatus(); }});
 </script>
+
+<div id="etf-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:10000;align-items:center;justify-content:center;">
+  <div style="background:#1a1a2e;border:1px solid #d97706;border-radius:12px;padding:24px;width:min(780px,94vw);max-height:82vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <span style="font-family:monospace;font-size:0.78rem;letter-spacing:2px;text-transform:uppercase;color:#d97706;">ETF &amp; Fund Holders</span>
+      <button onclick="closeETFModal()" style="margin-left:auto;background:transparent;border:1px solid #444;color:#9ca3af;border-radius:4px;padding:4px 12px;cursor:pointer;font-family:monospace;font-size:0.75rem;">&#x2715; Close</button>
+    </div>
+    <form onsubmit="event.preventDefault();searchETFHolders()" style="display:flex;gap:8px;margin-bottom:16px;">
+      <input type="text" id="etf-ticker-input" placeholder="e.g. NVDA, GDX, SILJ"
+        autocomplete="off" autocapitalize="characters" spellcheck="false"
+        style="flex:1;font-family:monospace;font-size:0.9rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:8px 14px;background:#0f1629;border:1px solid #555;color:#facc15;border-radius:4px;outline:none;transition:border-color 0.15s;"
+        onfocus="this.style.borderColor='#d97706'" onblur="this.style.borderColor='#555'">
+      <button type="submit" style="padding:8px 18px;background:#d97706;color:#000;border:none;border-radius:4px;cursor:pointer;font-family:monospace;font-size:0.8rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Search</button>
+    </form>
+    <div id="etf-results"></div>
+  </div>
+</div>
+<script>
+function openETFModal() {{
+  const m = document.getElementById('etf-modal');
+  m.style.display = 'flex';
+  setTimeout(() => document.getElementById('etf-ticker-input').focus(), 50);
+}}
+function closeETFModal() {{
+  document.getElementById('etf-modal').style.display = 'none';
+  document.getElementById('etf-results').innerHTML = '';
+}}
+document.getElementById('etf-modal').addEventListener('click', function(e) {{
+  if (e.target === this) closeETFModal();
+}});
+async function searchETFHolders() {{
+  const ticker = (document.getElementById('etf-ticker-input').value || '').trim().toUpperCase();
+  if (!ticker) return;
+  const res = document.getElementById('etf-results');
+  res.innerHTML = '<div style="font-family:monospace;font-size:0.8rem;color:#9ca3af;padding:12px 0">Loading holders for ' + ticker + '…</div>';
+  try {{
+    const resp = await fetch('/api/etf-holders?ticker=' + encodeURIComponent(ticker));
+    const data = await resp.json();
+    if (data.error) {{
+      res.innerHTML = '<div style="font-family:monospace;font-size:0.8rem;color:#f87171;padding:12px 0">Error: ' + data.error + '</div>';
+      return;
+    }}
+    const fmtN   = (n) => n != null ? Number(n).toLocaleString() : '—';
+    const fmtPct = (n) => n != null ? (parseFloat(n) * 100).toFixed(2) + '%' : '—';
+    const fmtUSD = (n) => n != null ? '$' + Number(n).toLocaleString() : '—';
+    const fmtDt  = (s) => s ? new Date(s).toLocaleDateString('en-US', {{month:'short',day:'numeric',year:'numeric'}}) : '—';
+    const thS = 'text-align:left;padding:7px 10px;font-size:0.58rem;letter-spacing:2px;text-transform:uppercase;color:#9ca3af;border-bottom:1px solid #2d3748;';
+    const tdS = 'padding:7px 10px;border-bottom:1px solid rgba(255,255,255,0.06);color:#e2e8f0;font-family:monospace;font-size:0.7rem;';
+    const mkTbl = (rows) => {{
+      if (!rows || !rows.length) return '<div style="font-family:monospace;font-size:0.75rem;color:#6b7280;padding:8px 0">No data available.</div>';
+      return '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-family:monospace;font-size:0.7rem;"><thead><tr>' +
+        ['#','Holder','Shares','% Out','Value','Date'].map(h => '<th style="' + thS + '">' + h + '</th>').join('') +
+        '</tr></thead><tbody>' +
+        rows.map((r, i) =>
+          '<tr>' +
+          '<td style="' + tdS + 'color:#6b7280">' + (i + 1) + '</td>' +
+          '<td style="' + tdS + '">' + (r['Holder'] || '—') + '</td>' +
+          '<td style="' + tdS + '">' + fmtN(r['Shares']) + '</td>' +
+          '<td style="' + tdS + '">' + fmtPct(r['% Out']) + '</td>' +
+          '<td style="' + tdS + '">' + fmtUSD(r['Value']) + '</td>' +
+          '<td style="' + tdS + '">' + fmtDt(r['Date Reported']) + '</td>' +
+          '</tr>'
+        ).join('') +
+        '</tbody></table></div>';
+    }};
+    res.innerHTML =
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">' +
+        '<div><div style="font-family:monospace;font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:#5ab4e0;margin-bottom:8px">Mutual Fund / ETF Holders</div>' + mkTbl(data.mutualFunds) + '</div>' +
+        '<div><div style="font-family:monospace;font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:#d97706;margin-bottom:8px">Institutional Holders</div>' + mkTbl(data.institutional) + '</div>' +
+      '</div>';
+  }} catch(e) {{
+    res.innerHTML = '<div style="font-family:monospace;font-size:0.8rem;color:#f87171;padding:12px 0">Request failed.</div>';
+  }}
+}}
+</script>
 """
     html = html.replace('</body>', status_bar + '\n</body>')
     return Response(html, mimetype='text/html')
@@ -239,6 +318,28 @@ def api_status():
         'last_error':   _update_status['last_error'],
         'progress':     _update_status['progress'],
     })
+
+@app.route('/api/etf-holders')
+def etf_holders():
+    from flask import request as freq
+    import yfinance as yf
+    ticker = freq.args.get('ticker', '').upper().strip()
+    if not ticker:
+        return jsonify({'error': 'ticker required'}), 400
+    try:
+        t = yf.Ticker(ticker)
+        def df_to_records(df):
+            if df is None or df.empty:
+                return []
+            return json.loads(df.to_json(orient='records', date_format='iso'))
+        return jsonify({
+            'ticker':        ticker,
+            'mutualFunds':   df_to_records(t.mutualfund_holders),
+            'institutional': df_to_records(t.institutional_holders),
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 # ── Entry point ────────────────────────────────────────────────────────────────
 
