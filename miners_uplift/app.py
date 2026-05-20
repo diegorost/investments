@@ -186,10 +186,6 @@ def dashboard():
     style="padding:6px 14px;background:#1e40af;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:0.85em;">
     Silver Only
   </button>
-  <button onclick="openETFModal()"
-    style="padding:6px 14px;background:#4338ca;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:0.85em;">
-    ETF Lookup
-  </button>
 </div>
 <div style="height:44px;"></div>
 <script>
@@ -218,82 +214,72 @@ function pollStatus() {{
 // Auto-poll if update is already running
 fetch('/api/status').then(r => r.json()).then(d => {{ if (d.running) pollStatus(); }});
 </script>
-
-<div id="etf-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:10000;align-items:center;justify-content:center;">
-  <div style="background:#1a1a2e;border:1px solid #d97706;border-radius:12px;padding:24px;width:min(780px,94vw);max-height:82vh;overflow-y:auto;">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-      <span style="font-family:monospace;font-size:0.78rem;letter-spacing:2px;text-transform:uppercase;color:#d97706;">ETF &amp; Fund Holders</span>
-      <button onclick="closeETFModal()" style="margin-left:auto;background:transparent;border:1px solid #444;color:#9ca3af;border-radius:4px;padding:4px 12px;cursor:pointer;font-family:monospace;font-size:0.75rem;">&#x2715; Close</button>
-    </div>
-    <form onsubmit="event.preventDefault();searchETFHolders()" style="display:flex;gap:8px;margin-bottom:16px;">
-      <input type="text" id="etf-ticker-input" placeholder="e.g. NVDA, GDX, SILJ"
-        autocomplete="off" autocapitalize="characters" spellcheck="false"
-        style="flex:1;font-family:monospace;font-size:0.9rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:8px 14px;background:#0f1629;border:1px solid #555;color:#facc15;border-radius:4px;outline:none;transition:border-color 0.15s;"
-        onfocus="this.style.borderColor='#d97706'" onblur="this.style.borderColor='#555'">
-      <button type="submit" style="padding:8px 18px;background:#d97706;color:#000;border:none;border-radius:4px;cursor:pointer;font-family:monospace;font-size:0.8rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Search</button>
-    </form>
-    <div id="etf-results"></div>
-  </div>
-</div>
 <script>
-function openETFModal() {{
-  const m = document.getElementById('etf-modal');
-  m.style.display = 'flex';
-  setTimeout(() => document.getElementById('etf-ticker-input').focus(), 50);
-}}
-function closeETFModal() {{
-  document.getElementById('etf-modal').style.display = 'none';
-  document.getElementById('etf-results').innerHTML = '';
-}}
-document.getElementById('etf-modal').addEventListener('click', function(e) {{
-  if (e.target === this) closeETFModal();
-}});
-async function searchETFHolders() {{
-  const ticker = (document.getElementById('etf-ticker-input').value || '').trim().toUpperCase();
-  if (!ticker) return;
-  const res = document.getElementById('etf-results');
-  res.innerHTML = '<div style="font-family:monospace;font-size:0.8rem;color:#9ca3af;padding:12px 0">Loading holders for ' + ticker + '…</div>';
-  try {{
-    const resp = await fetch('/api/etf-holders?ticker=' + encodeURIComponent(ticker));
-    const data = await resp.json();
-    if (data.error) {{
-      res.innerHTML = '<div style="font-family:monospace;font-size:0.8rem;color:#f87171;padding:12px 0">Error: ' + data.error + '</div>';
-      return;
-    }}
-    const fmtN   = (n) => n != null ? Number(n).toLocaleString() : '—';
-    const fmtPct = (n) => n != null ? (parseFloat(n) * 100).toFixed(2) + '%' : '—';
-    const fmtUSD = (n) => n != null ? '$' + Number(n).toLocaleString() : '—';
-    const fmtDt  = (s) => s ? new Date(s).toLocaleDateString('en-US', {{month:'short',day:'numeric',year:'numeric'}}) : '—';
-    const thS = 'text-align:left;padding:7px 10px;font-size:0.58rem;letter-spacing:2px;text-transform:uppercase;color:#9ca3af;border-bottom:1px solid #2d3748;';
-    const tdS = 'padding:7px 10px;border-bottom:1px solid rgba(255,255,255,0.06);color:#e2e8f0;font-family:monospace;font-size:0.7rem;';
-    const mkTbl = (rows) => {{
-      if (!rows || !rows.length) return '<div style="font-family:monospace;font-size:0.75rem;color:#6b7280;padding:8px 0">No data available.</div>';
-      return '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-family:monospace;font-size:0.7rem;"><thead><tr>' +
-        ['#','Holder','Shares','% Out','Value','Date'].map(h => '<th style="' + thS + '">' + h + '</th>').join('') +
-        '</tr></thead><tbody>' +
-        rows.map((r, i) =>
-          '<tr>' +
-          '<td style="' + tdS + 'color:#6b7280">' + (i + 1) + '</td>' +
-          '<td style="' + tdS + '">' + (r['Holder'] || '—') + '</td>' +
-          '<td style="' + tdS + '">' + fmtN(r['Shares']) + '</td>' +
-          '<td style="' + tdS + '">' + fmtPct(r['% Out']) + '</td>' +
-          '<td style="' + tdS + '">' + fmtUSD(r['Value']) + '</td>' +
-          '<td style="' + tdS + '">' + fmtDt(r['Date Reported']) + '</td>' +
-          '</tr>'
-        ).join('') +
-        '</tbody></table></div>';
-    }};
-    res.innerHTML =
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">' +
-        '<div><div style="font-family:monospace;font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:#5ab4e0;margin-bottom:8px">Mutual Fund / ETF Holders</div>' + mkTbl(data.mutualFunds) + '</div>' +
-        '<div><div style="font-family:monospace;font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:#d97706;margin-bottom:8px">Institutional Holders</div>' + mkTbl(data.institutional) + '</div>' +
-      '</div>';
-  }} catch(e) {{
-    res.innerHTML = '<div style="font-family:monospace;font-size:0.8rem;color:#f87171;padding:12px 0">Request failed.</div>';
-  }}
-}}
+
 </script>
 """
+
+    miner_lookup = """
+<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:14px 18px;margin-bottom:20px;">
+  <form onsubmit="event.preventDefault();searchMiner()" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <span style="font-weight:700;font-size:0.9em;color:#92400e;white-space:nowrap;">&#128269; Miner Lookup</span>
+    <input type="text" id="miner-input" placeholder="Ticker or name..."
+      autocomplete="off" autocapitalize="characters" spellcheck="false"
+      style="font-family:monospace;font-size:0.9em;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:7px 12px;border:1px solid #fcd34d;border-radius:6px;outline:none;width:160px;background:#fff;color:#92400e;">
+    <button type="submit"
+      style="padding:7px 18px;background:#d97706;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:0.85em;">
+      Search
+    </button>
+    <span style="font-size:0.75em;color:#b45309;">Searches RING &middot; AUAU &middot; GDX &middot; GDXJ &middot; SLVP &middot; SIL &middot; SILJ</span>
+  </form>
+  <div id="miner-results" style="margin-top:12px;display:none;"></div>
+</div>
+<script>
+async function searchMiner() {
+  const q = (document.getElementById('miner-input').value || '').trim().toUpperCase();
+  if (!q) return;
+  const res = document.getElementById('miner-results');
+  res.style.display = 'block';
+  res.innerHTML = '<span style="font-family:monospace;font-size:0.8em;color:#6b7280">Searching...</span>';
+  try {
+    const resp = await fetch('/api/miner-search?q=' + encodeURIComponent(q));
+    const data = await resp.json();
+    if (data.error) { res.innerHTML = '<span style="color:#dc2626;font-family:monospace;font-size:0.8em">' + data.error + '</span>'; return; }
+    if (!data.results.length) {
+      res.innerHTML = '<span style="font-family:monospace;font-size:0.82em;color:#6b7280">Not found in any of the 7 dashboard ETFs.</span>';
+      return;
+    }
+    const colors = {RING:'#d97706',AUAU:'#f59e0b',GDX:'#b45309',GDXJ:'#92400e',SLVP:'#1d4ed8',SIL:'#7c3aed',SILJ:'#059669'};
+    const rows = data.results;
+    let html = '<div style="font-size:0.82em;color:#374151;margin-bottom:8px;font-weight:600">Found <strong>'
+      + rows[0].name + '</strong> (' + rows[0].ticker + ') in <strong>' + rows.length + '</strong> ETF' + (rows.length > 1 ? 's' : '') + ':</div>';
+    html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.82em;">'
+      + '<thead><tr style="border-bottom:2px solid #e5e7eb">'
+      + ['ETF','Rank','Weight','Current','52wk High','% Below ATH','Tier'].map(function(h) {
+          return '<th style="text-align:left;padding:6px 10px;font-size:0.72em;letter-spacing:1px;text-transform:uppercase;color:#6b7280;white-space:nowrap">' + h + '</th>';
+        }).join('')
+      + '</tr></thead><tbody>'
+      + rows.map(function(r) {
+          return '<tr style="border-bottom:1px solid #f3f4f6">'
+            + '<td style="padding:7px 10px"><span style="background:' + (colors[r.etf]||'#374151') + ';color:#fff;padding:2px 8px;border-radius:4px;font-weight:700;font-size:0.85em">' + r.etf + '</span></td>'
+            + '<td style="padding:7px 10px;color:#6b7280">#' + r.rank + '</td>'
+            + '<td style="padding:7px 10px;font-weight:700">' + r.weight + '</td>'
+            + '<td style="padding:7px 10px;font-weight:700;color:#059669">' + r.current + '</td>'
+            + '<td style="padding:7px 10px">' + r.ath + '</td>'
+            + '<td style="padding:7px 10px;font-weight:700;color:#dc2626">' + (r.pct != null ? '-' + r.pct + '%' : 'N/A') + '</td>'
+            + '<td style="padding:7px 10px;color:#6b7280">' + (r.tier||'') + '</td>'
+            + '</tr>';
+        }).join('')
+      + '</tbody></table></div>';
+    res.innerHTML = html;
+  } catch(e) {
+    res.innerHTML = '<span style="color:#dc2626;font-family:monospace;font-size:0.8em">Request failed.</span>';
+  }
+}
+</script>
+"""
+
+    html = html.replace('<div class="metal-tab-bar">', miner_lookup + '<div class="metal-tab-bar">')
     html = html.replace('</body>', status_bar + '\n</body>')
     return Response(html, mimetype='text/html')
 
@@ -319,24 +305,62 @@ def api_status():
         'progress':     _update_status['progress'],
     })
 
-@app.route('/api/etf-holders')
-def etf_holders():
+@app.route('/api/miner-search')
+def miner_search():
+    import re
     from flask import request as freq
-    import yfinance as yf
-    ticker = freq.args.get('ticker', '').upper().strip()
-    if not ticker:
-        return jsonify({'error': 'ticker required'}), 400
+    q = freq.args.get('q', '').strip().upper()
+    if not q:
+        return jsonify({'error': 'query required'}), 400
     try:
-        t = yf.Ticker(ticker)
-        def df_to_records(df):
-            if df is None or df.empty:
-                return []
-            return json.loads(df.to_json(orient='records', date_format='iso'))
-        return jsonify({
-            'ticker':        ticker,
-            'mutualFunds':   df_to_records(t.mutualfund_holders),
-            'institutional': df_to_records(t.institutional_holders),
-        })
+        gold_html   = GOLD_HTML.read_text(encoding='utf-8')
+        silver_html = SILVER_HTML.read_text(encoding='utf-8')
+
+        etf_defs = [
+            ('RING', gold_html,   r'const ringData\s*=\s*(\[[\s\S]*?\]);'),
+            ('AUAU', gold_html,   r'const auauData\s*=\s*(\[[\s\S]*?\]);'),
+            ('GDX',  gold_html,   r'const gdxData\s*=\s*(\[[\s\S]*?\]);'),
+            ('GDXJ', gold_html,   r'const gdxjData\s*=\s*(\[[\s\S]*?\]);'),
+            ('SLVP', silver_html, r'const slvpData\s*=\s*(\[[\s\S]*?\]);'),
+            ('SIL',  silver_html, r'const silData\s*=\s*(\[[\s\S]*?\]);'),
+            ('SILJ', silver_html, r'const siljData\s*=\s*(\[[\s\S]*?\]);'),
+        ]
+
+        known = {}
+        for html in (gold_html, silver_html):
+            for m in re.finditer(
+                r"'([^']+)':\s*\{\s*current:\s*'([^']*)',\s*ath:\s*'([^']*)',\s*pct:\s*([^,\n]+),\s*tier:\s*'([^']*)'",
+                html
+            ):
+                ticker, current, ath, pct_raw, tier = m.groups()
+                try:
+                    pct = round(float(pct_raw.strip()), 1)
+                except ValueError:
+                    pct = None
+                known[ticker] = {'current': current, 'ath': ath, 'pct': pct, 'tier': tier}
+
+        results = []
+        for etf_name, html, pattern in etf_defs:
+            m = re.search(pattern, html)
+            if not m:
+                continue
+            entries = re.findall(r"\{ticker:'([^']+)',\s*name:'([^']+)',\s*weight:'([^']+)'\}", m.group(1))
+            for i, (ticker, name, weight) in enumerate(entries):
+                if ticker.upper() == q or q in name.upper():
+                    info = known.get(ticker, {})
+                    results.append({
+                        'etf':     etf_name,
+                        'ticker':  ticker,
+                        'name':    name,
+                        'weight':  weight,
+                        'rank':    i + 1,
+                        'current': info.get('current', 'N/A'),
+                        'ath':     info.get('ath', 'N/A'),
+                        'pct':     info.get('pct'),
+                        'tier':    info.get('tier', ''),
+                    })
+
+        return jsonify({'query': q, 'results': results})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
