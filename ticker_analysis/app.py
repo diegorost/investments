@@ -63,9 +63,10 @@ def fetch_data(ticker, period):
 
 # ── HTML builder ──────────────────────────────────────────────────────────────
 
-def build_html(ticker, long_name, rows, data_js, period="1y"):
+def build_html(ticker, long_name, rows, data_js, period="1y", compare_tickers=None):
     now = datetime.now().strftime('%Y-%m-%d %H:%M')
     n = len(rows)
+    compare_tickers_js = json.dumps(compare_tickers or [])
 
     period_options = ""
     for val, label in [("1mo","1M"), ("3mo","3M"), ("6mo","6M"), ("1y","1Y"), ("2y","2Y"), ("5y","5Y"), ("10y","10Y"), ("max","Max")]:
@@ -1085,13 +1086,34 @@ async function addCompare() {{
     }}).sort((a,b) => a.date - b.date);
     compareItems.push({{ ticker: json.ticker, name: json.name, allData: parsed }});
     input.value = '';
+    updateURL();
     renderCompareChips();
     if (lastFrom && lastTo) render(lastFrom, lastTo);
   }} catch(e) {{ alert('Error fetching ' + t); }}
 }}
 
+function updateURL() {{
+  const parts = ['{ticker}', ...compareItems.map(c => c.ticker)];
+  history.replaceState(null, '', '/dashboard?ticker=' + parts.map(t => encodeURIComponent(t)).join('+'));
+}}
+
+async function loadCompare(t) {{
+  if (!t || compareItems.find(c => c.ticker === t)) return;
+  try {{
+    const res = await fetch('/api/ticker?ticker=' + encodeURIComponent(t));
+    if (!res.ok) return;
+    const json = await res.json();
+    const parsed = json.data.map(r => {{
+      const [m,d,y] = r.date.split('/');
+      return {{ date: new Date(+y, +m-1, +d), price: parseFloat(r.price), high: parseFloat(r.high), low: parseFloat(r.low), open: parseFloat(r.open) }};
+    }}).sort((a,b) => a.date - b.date);
+    compareItems.push({{ ticker: json.ticker, name: json.name, allData: parsed }});
+  }} catch(e) {{}}
+}}
+
 function removeCompare(ticker) {{
   compareItems = compareItems.filter(c => c.ticker !== ticker);
+  updateURL();
   renderCompareChips();
   if (lastFrom && lastTo) render(lastFrom, lastTo);
 }}
@@ -1193,7 +1215,11 @@ applyTheme(currentTheme);
 const initFrom = new Date(maxDate);
 initFrom.setFullYear(initFrom.getFullYear() - 1);
 document.getElementById('dateFrom').value = toInputDate(initFrom);
-render(initFrom, maxDate);
+(async () => {{
+  for (const t of {compare_tickers_js}) await loadCompare(t);
+  renderCompareChips();
+  render(initFrom, maxDate);
+}})();
 </script>
 </body>
 </html>"""
@@ -1208,7 +1234,9 @@ def index():
 
 @app.route("/dashboard")
 def dashboard():
-    ticker = request.args.get("ticker", "SPY").upper().strip()
+    parts = request.args.get("ticker", "SPY").upper().strip().split()
+    ticker = parts[0] if parts else "SPY"
+    compare_tickers = parts[1:]
     period = "max"
 
     long_name, rows, data_js = fetch_data(ticker, period)
@@ -1229,7 +1257,7 @@ Check the symbol and try again.</div>
 </body></html>"""
         return Response(error_html, status=404, mimetype="text/html")
 
-    html = build_html(ticker, long_name, rows, data_js, period=period)
+    html = build_html(ticker, long_name, rows, data_js, period=period, compare_tickers=compare_tickers)
     return Response(html, mimetype="text/html")
 
 @app.route("/api/ticker")
