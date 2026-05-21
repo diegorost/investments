@@ -213,7 +213,7 @@ def build_html(ticker, long_name, rows, data_js, period="1y"):
   .chip-dot {{ width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }}
   .chip-remove {{ cursor: pointer; opacity: 0.55; margin-left: 3px; font-size: 0.9rem; line-height: 1; }}
   .chip-remove:hover {{ opacity: 1; }}
-  .export-btn {{ position: absolute; top: 14px; right: 16px; font-family: 'Space Mono', monospace; font-size: 0.62rem; font-weight: 700; letter-spacing: 1px; padding: 5px 12px; background: transparent; border: 1px solid var(--border); color: var(--muted); cursor: pointer; border-radius: 4px; transition: all 0.15s; text-transform: uppercase; z-index: 10; }}
+  .export-btn {{ margin-left: auto; font-family: 'Space Mono', monospace; font-size: 0.62rem; font-weight: 700; letter-spacing: 1px; padding: 5px 12px; background: transparent; border: 1px solid var(--border); color: var(--muted); cursor: pointer; border-radius: 4px; transition: all 0.15s; text-transform: uppercase; white-space: nowrap; flex-shrink: 0; }}
   .export-btn:hover {{ border-color: var(--accent3); color: var(--accent3); }}
 </style>
 </head>
@@ -277,10 +277,10 @@ def build_html(ticker, long_name, rows, data_js, period="1y"):
   <div id="compareChips"></div>
   <input class="compare-input" type="text" id="compareInput" placeholder="Ticker…" autocomplete="off" autocapitalize="characters" spellcheck="false" onkeydown="if(event.key==='Enter')addCompare()">
   <button class="add-ticker-btn" onclick="addCompare()" title="Add ticker">+</button>
+  <button class="export-btn" onclick="exportCSV()" title="Export visible data as CSV">↓ Export CSV</button>
 </div>
 
 <div class="chart-panel">
-  <button class="export-btn" onclick="exportCSV()" title="Export visible data as CSV">↓ Export CSV</button>
   <canvas id="priceChart"></canvas>
 </div>
 
