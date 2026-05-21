@@ -266,10 +266,14 @@ def build_html(ticker, long_name, rows, data_js, period="1y", compare_tickers=No
 <div class="stats-grid" id="statsGrid"></div>
 
 <div class="ind-toggles">
-  <button class="ind-toggle active" id="tog-rsi"  onclick="toggleGroup('rsi')"  style="--tc:#f0c040">RSI</button>
-  <button class="ind-toggle active" id="tog-vwap" onclick="toggleGroup('vwap')" style="--tc:#34d399">VWAP</button>
-  <button class="ind-toggle active" id="tog-sma"  onclick="toggleGroup('sma')"  style="--tc:#5ab4e0">SMA</button>
-  <button class="ind-toggle active" id="tog-ema"  onclick="toggleGroup('ema')"  style="--tc:#fb923c">EMA</button>
+  <button class="ind-toggle active" id="tog-rsi"   onclick="toggleGroup('rsi')"   style="--tc:#f0c040">RSI</button>
+  <button class="ind-toggle active" id="tog-vwap"  onclick="toggleGroup('vwap')"  style="--tc:#34d399">VWAP</button>
+  <button class="ind-toggle active" id="tog-sma"   onclick="toggleGroup('sma')"   style="--tc:#5ab4e0">SMA</button>
+  <button class="ind-toggle active" id="tog-ema"   onclick="toggleGroup('ema')"   style="--tc:#fb923c">EMA</button>
+  <button class="ind-toggle active" id="tog-close" onclick="toggleGroup('close')" style="--tc:#f0c040">Close</button>
+  <button class="ind-toggle active" id="tog-high"  onclick="toggleGroup('high')"  style="--tc:#4ade80">High</button>
+  <button class="ind-toggle active" id="tog-open"  onclick="toggleGroup('open')"  style="--tc:#a3a3a3">Open</button>
+  <button class="ind-toggle active" id="tog-low"   onclick="toggleGroup('low')"   style="--tc:#f87171">Low</button>
 </div>
 <div id="indicatorsGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(50px,1fr));gap:12px;margin-bottom:24px;"></div>
 
@@ -1022,11 +1026,15 @@ function render(from, to) {{
   renderTables(data);
 }}
 
-const activeGroups = {{ rsi: true, vwap: true, sma: true, ema: true }};
+const activeGroups = {{ rsi: true, vwap: true, sma: true, ema: true, close: true, high: true, open: true, low: true }};
 const groupDatasets = {{
-  vwap: ['VWAP 20'],
-  sma:  ['SMA 20', 'SMA 50', 'SMA 200'],
-  ema:  ['EMA 20', 'EMA 50', 'EMA 200']
+  vwap:  ['VWAP 20'],
+  sma:   ['SMA 20', 'SMA 50', 'SMA 200'],
+  ema:   ['EMA 20', 'EMA 50', 'EMA 200'],
+  close: ['Close'],
+  high:  ['High'],
+  open:  ['Open'],
+  low:   ['Low']
 }};
 
 function toggleGroup(group) {{
