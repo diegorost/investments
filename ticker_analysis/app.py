@@ -455,12 +455,18 @@ let chartMode = 'price';
 let lastFrom = null, lastTo = null;
 let intradayMode = false;
 let currentInterval = '5m';
+let lastIntradayData = null;
+let lastIntradayCompareData = {{}};
 
 function setMode(mode) {{
   chartMode = mode;
   document.getElementById('btnPrice').classList.toggle('active', mode === 'price');
   document.getElementById('btnPct').classList.toggle('active', mode === 'pct');
-  if (lastFrom && lastTo) render(lastFrom, lastTo);
+  if (intradayMode) {{
+    if (lastIntradayData) renderIntraday(lastIntradayData, lastIntradayCompareData);
+  }} else {{
+    if (lastFrom && lastTo) render(lastFrom, lastTo);
+  }}
 }}
 
 function getFilteredData(from, to) {{
@@ -513,16 +519,28 @@ function setIntradayInterval(iv) {{
 
 async function loadIntraday(iv) {{
   try {{
-    const res = await fetch('/api/intraday?ticker={ticker}&interval=' + iv);
-    if (!res.ok) {{ alert('No intraday data available'); return; }}
-    const json = await res.json();
-    renderIntraday(json.data);
+    const [mainRes, ...compareRes] = await Promise.all([
+      fetch('/api/intraday?ticker={ticker}&interval=' + iv),
+      ...compareItems.map(c => fetch('/api/intraday?ticker=' + encodeURIComponent(c.ticker) + '&interval=' + iv).catch(() => null))
+    ]);
+    if (!mainRes.ok) {{ alert('No intraday data available'); return; }}
+    const mainJson = await mainRes.json();
+    lastIntradayData = mainJson.data;
+    lastIntradayCompareData = {{}};
+    for (let i = 0; i < compareItems.length; i++) {{
+      if (compareRes[i] && compareRes[i].ok) {{
+        const j = await compareRes[i].json();
+        lastIntradayCompareData[compareItems[i].ticker] = j.data;
+      }}
+    }}
+    renderIntraday(lastIntradayData, lastIntradayCompareData);
   }} catch(e) {{ alert('Error loading intraday data'); }}
 }}
 
-function renderIntraday(data) {{
+function renderIntraday(data, compareData) {{
   if (!data || data.length === 0) return;
-  const pts = data.map(d => ({{ date: new Date(d.ts), price: d.price, high: d.high, low: d.low, open: d.open, vol: d.vol }}));
+  compareData = compareData || {{}};
+  const pts   = data.map(d => ({{ date: new Date(d.ts), price: d.price, high: d.high, low: d.low, open: d.open }}));
   const last  = pts[pts.length - 1].price;
   const open  = pts[0].open;
   const high  = Math.max(...pts.map(d => d.high));
@@ -530,6 +548,9 @@ function renderIntraday(data) {{
   const pct   = (last - open) / open * 100;
   const isPos = pct >= 0;
   const fmtT  = d => d.toLocaleTimeString('en-US', {{hour: '2-digit', minute: '2-digit'}});
+  const isPct = chartMode === 'pct';
+  const base  = pts[0].price;
+  const toVal = v => isPct ? ((v - base) / base * 100) : v;
 
   document.getElementById('statsGrid').innerHTML = `
     <div class="stat-card">
@@ -561,6 +582,21 @@ function renderIntraday(data) {{
     </div>
   `;
 
+  const compareDatasets = compareItems.flatMap((c, idx) => {{
+    const raw = compareData[c.ticker];
+    if (!raw || raw.length === 0) return [];
+    const cPts = raw.map(d => ({{ date: new Date(d.ts), price: d.price, high: d.high, low: d.low, open: d.open }}));
+    const clr  = COMPARE_COLORS[idx % COMPARE_COLORS.length];
+    const cBase = cPts[0].price;
+    const toC   = v => isPct ? ((v - cBase) / cBase * 100) : v;
+    return [
+      {{ label: c.ticker + ' Close', data: cPts.map(d => ({{x: d.date, y: toC(d.price)}})), borderColor: clr, backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: clr, fill: false, tension: 0.2, order: 0 }},
+      {{ label: c.ticker + ' High',  data: cPts.map(d => ({{x: d.date, y: toC(d.high)}})),  borderColor: clr, backgroundColor: 'transparent', borderWidth: 1, borderDash: [4,3], pointRadius: 0, pointHoverRadius: 3, fill: false, tension: 0.2, order: 0 }},
+      {{ label: c.ticker + ' Open',  data: cPts.map(d => ({{x: d.date, y: toC(d.open)}})),  borderColor: clr, backgroundColor: 'transparent', borderWidth: 1, borderDash: [2,4], pointRadius: 0, pointHoverRadius: 3, fill: false, tension: 0.2, order: 0 }},
+      {{ label: c.ticker + ' Low',   data: cPts.map(d => ({{x: d.date, y: toC(d.low)}})),   borderColor: clr, backgroundColor: 'transparent', borderWidth: 1, borderDash: [3,3], pointRadius: 0, pointHoverRadius: 3, fill: false, tension: 0.2, order: 0 }}
+    ];
+  }});
+
   if (chart) chart.destroy();
   const ctx = document.getElementById('priceChart').getContext('2d');
   const gradient = ctx.createLinearGradient(0, 0, 0, 400);
@@ -572,10 +608,11 @@ function renderIntraday(data) {{
     type: 'line',
     data: {{
       datasets: [
-        {{ label: 'Close', data: pts.map(d => ({{x: d.date, y: d.price}})), borderColor: '#f0c040', backgroundColor: gradient, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: '#f0c040', fill: true, tension: 0.2, order: 1 }},
-        {{ label: 'High',  data: pts.map(d => ({{x: d.date, y: d.high}})),  borderColor: '#4ade80', backgroundColor: 'transparent', borderWidth: 1.5, borderDash: [4,3], pointRadius: 0, pointHoverRadius: 4, fill: false, tension: 0.2, order: 2 }},
-        {{ label: 'Open',  data: pts.map(d => ({{x: d.date, y: d.open}})),  borderColor: '#a3a3a3', backgroundColor: 'transparent', borderWidth: 1, borderDash: [2,4], pointRadius: 0, pointHoverRadius: 4, fill: false, tension: 0.2, order: 3 }},
-        {{ label: 'Low',   data: pts.map(d => ({{x: d.date, y: d.low}})),   borderColor: '#f87171', backgroundColor: 'transparent', borderWidth: 1, borderDash: [3,3], pointRadius: 0, pointHoverRadius: 4, fill: false, tension: 0.2, order: 4 }}
+        {{ label: 'Close', data: pts.map(d => ({{x: d.date, y: toVal(d.price)}})), borderColor: '#f0c040', backgroundColor: gradient, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: '#f0c040', fill: true, tension: 0.2, order: 1 }},
+        {{ label: 'High',  data: pts.map(d => ({{x: d.date, y: toVal(d.high)}})),  borderColor: '#4ade80', backgroundColor: 'transparent', borderWidth: 1.5, borderDash: [4,3], pointRadius: 0, pointHoverRadius: 4, fill: false, tension: 0.2, order: 2 }},
+        {{ label: 'Open',  data: pts.map(d => ({{x: d.date, y: toVal(d.open)}})),  borderColor: '#a3a3a3', backgroundColor: 'transparent', borderWidth: 1, borderDash: [2,4], pointRadius: 0, pointHoverRadius: 4, fill: false, tension: 0.2, order: 3 }},
+        {{ label: 'Low',   data: pts.map(d => ({{x: d.date, y: toVal(d.low)}})),   borderColor: '#f87171', backgroundColor: 'transparent', borderWidth: 1, borderDash: [3,3], pointRadius: 0, pointHoverRadius: 4, fill: false, tension: 0.2, order: 4 }},
+        ...compareDatasets
       ]
     }},
     options: {{
@@ -589,13 +626,15 @@ function renderIntraday(data) {{
           titleFont: {{ family: 'Space Mono', size: 11 }}, bodyFont: {{ family: 'Space Mono', size: 11 }}, padding: 12,
           callbacks: {{
             title: (items) => fmtT(new Date(items[0].parsed.x)),
-            label: (item) => ` ${{item.dataset.label}}: $${{item.parsed.y.toFixed(2)}}`
+            label: (item) => isPct
+              ? ` ${{item.dataset.label}}: ${{item.parsed.y >= 0 ? '+' : ''}}${{item.parsed.y.toFixed(2)}}%`
+              : ` ${{item.dataset.label}}: $${{item.parsed.y.toFixed(2)}}`
           }}
         }}
       }},
       scales: {{
         x: {{ type: 'time', time: {{ unit: timeUnit, displayFormats: {{ minute: 'HH:mm', hour: 'HH:mm' }} }}, grid: {{ color: '#1e1e2e' }}, ticks: {{ color: '#a8a8c8', font: {{ family: 'Space Mono', size: 10 }} }} }},
-        y: {{ grid: {{ color: '#1e1e2e' }}, ticks: {{ color: '#a8a8c8', font: {{ family: 'Space Mono', size: 10 }}, callback: v => '$' + v.toFixed(2) }} }}
+        y: {{ grid: {{ color: '#1e1e2e' }}, ticks: {{ color: '#a8a8c8', font: {{ family: 'Space Mono', size: 10 }}, callback: v => isPct ? (v >= 0 ? '+' : '') + v.toFixed(1) + '%' : '$' + v.toFixed(2) }} }}
       }}
     }}
   }});
