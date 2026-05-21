@@ -150,7 +150,8 @@ def build_html(ticker, long_name, rows, data_js, period="1y", compare_tickers=No
   .ind-toggles {{ display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }}
   .ind-toggle {{ font-family: 'Space Mono', monospace; font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; padding: 5px 14px; border: 1.5px solid var(--tc, #888); background: transparent; color: var(--tc, #888); cursor: pointer; border-radius: 20px; transition: all 0.15s; text-transform: uppercase; }}
   .ind-toggle.active {{ background: var(--tc, #888); color: #09090f; }}
-  .ind-toggle:hover {{ opacity: 0.75; }}
+  .ind-toggle:not(.active) {{ text-decoration: line-through; opacity: 0.5; }}
+  .ind-toggle:hover {{ opacity: 0.75; text-decoration: none; }}
   .stat-sub {{ font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--text); margin-top: 4px; }}
   .stat-card.high .stat-value {{ color: var(--green); }}
   .stat-card.low .stat-value {{ color: var(--red); }}
@@ -748,6 +749,7 @@ function render(from, to) {{
       }}
     }}
   }});
+  applyActiveGroups();
 
   // Drawdown chart
   let peak = data[0].price;
@@ -1030,12 +1032,31 @@ const activeGroups = {{ rsi: true, vwap: true, sma: true, ema: true, close: true
 const groupDatasets = {{
   vwap:  ['VWAP 20'],
   sma:   ['SMA 20', 'SMA 50', 'SMA 200'],
-  ema:   ['EMA 20', 'EMA 50', 'EMA 200'],
-  close: ['Close'],
-  high:  ['High'],
-  open:  ['Open'],
-  low:   ['Low']
+  ema:   ['EMA 20', 'EMA 50', 'EMA 200']
 }};
+const ohlcGroups = new Set(['close', 'high', 'open', 'low']);
+
+function dsMatchesGroup(label, group) {{
+  if (groupDatasets[group]) return groupDatasets[group].includes(label);
+  if (ohlcGroups.has(group)) {{
+    const cap = group[0].toUpperCase() + group.slice(1);
+    return label === cap || label.endsWith(' ' + cap);
+  }}
+  return false;
+}}
+
+function applyActiveGroups() {{
+  if (!chart) return;
+  chart.data.datasets.forEach(ds => {{
+    for (const group of Object.keys(activeGroups)) {{
+      if (dsMatchesGroup(ds.label, group)) {{
+        ds.hidden = !activeGroups[group];
+        break;
+      }}
+    }}
+  }});
+  chart.update();
+}}
 
 function toggleGroup(group) {{
   activeGroups[group] = !activeGroups[group];
@@ -1043,12 +1064,7 @@ function toggleGroup(group) {{
   document.querySelectorAll('#indicatorsGrid .stat-card[data-group="' + group + '"]').forEach(el => {{
     el.style.display = activeGroups[group] ? '' : 'none';
   }});
-  if (chart && groupDatasets[group]) {{
-    chart.data.datasets.forEach(ds => {{
-      if (groupDatasets[group].includes(ds.label)) ds.hidden = !activeGroups[group];
-    }});
-    chart.update();
-  }}
+  applyActiveGroups();
   requestAnimationFrame(fitIndicatorText);
 }}
 
