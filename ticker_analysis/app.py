@@ -61,6 +61,27 @@ def fetch_data(ticker, period):
     data_js = json.dumps(rows)
     return long_name, rows, data_js
 
+def fetch_intraday(ticker, interval='5m'):
+    ticker = ticker.upper().strip()
+    valid = {'1m','2m','5m','15m','30m','60m','90m'}
+    if interval not in valid:
+        interval = '5m'
+    ticker_obj = yf.Ticker(ticker)
+    hist = ticker_obj.history(period='1d', interval=interval, auto_adjust=True)
+    if hist.empty:
+        return None
+    rows = []
+    for dt, row in hist.iterrows():
+        rows.append({
+            "ts":    int(dt.timestamp() * 1000),
+            "price": round(float(row["Close"]), 4),
+            "high":  round(float(row["High"]),  4),
+            "low":   round(float(row["Low"]),   4),
+            "open":  round(float(row["Open"]),  4),
+            "vol":   f"{row['Volume']:,.0f}",
+        })
+    return rows
+
 # ── HTML builder ──────────────────────────────────────────────────────────────
 
 def build_html(ticker, long_name, rows, data_js, period="1y", compare_tickers=None):
@@ -238,6 +259,7 @@ def build_html(ticker, long_name, rows, data_js, period="1y", compare_tickers=No
 <div class="topbar">
 {search_bar}
   <div class="preset-btns">
+    <button class="btn" onclick="setPreset('1D')">1D</button>
     <button class="btn" onclick="setPreset('1W')">1W</button>
     <button class="btn" onclick="setPreset('2W')">2W</button>
     <button class="btn" onclick="setPreset('3W')">3W</button>
@@ -284,6 +306,17 @@ def build_html(ticker, long_name, rows, data_js, period="1y", compare_tickers=No
   <input class="compare-input" type="text" id="compareInput" placeholder="Ticker…" autocomplete="off" autocapitalize="characters" spellcheck="false" onkeydown="if(event.key==='Enter')addCompare()">
   <button class="add-ticker-btn" onclick="addCompare()" title="Add ticker">+</button>
   <button class="export-btn" onclick="exportCSV()" title="Export visible data as CSV">↓ Export CSV</button>
+</div>
+
+<div id="intraday-bar" style="display:none;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
+  <span style="font-family:'Space Mono',monospace;font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-right:4px;">Interval</span>
+  <button class="btn" data-iv="1m"  onclick="setIntradayInterval('1m')">1m</button>
+  <button class="btn" data-iv="2m"  onclick="setIntradayInterval('2m')">2m</button>
+  <button class="btn active" data-iv="5m"  onclick="setIntradayInterval('5m')">5m</button>
+  <button class="btn" data-iv="15m" onclick="setIntradayInterval('15m')">15m</button>
+  <button class="btn" data-iv="30m" onclick="setIntradayInterval('30m')">30m</button>
+  <button class="btn" data-iv="60m" onclick="setIntradayInterval('60m')">60m</button>
+  <button class="btn" data-iv="90m" onclick="setIntradayInterval('90m')">90m</button>
 </div>
 
 <div class="chart-panel">
@@ -420,6 +453,8 @@ let chart = null;
 let drawdownChart = null;
 let chartMode = 'price';
 let lastFrom = null, lastTo = null;
+let intradayMode = false;
+let currentInterval = '5m';
 
 function setMode(mode) {{
   chartMode = mode;
@@ -435,6 +470,14 @@ function getFilteredData(from, to) {{
 function setPreset(p) {{
   document.querySelectorAll('.preset-btns .btn').forEach(b => b.classList.remove('active'));
   event.target.classList.add('active');
+  if (p === '1D') {{
+    intradayMode = true;
+    document.getElementById('intraday-bar').style.display = 'flex';
+    loadIntraday(currentInterval);
+    return;
+  }}
+  intradayMode = false;
+  document.getElementById('intraday-bar').style.display = 'none';
   const to = maxDate;
   let from = new Date(maxDate);
   if      (p === '1W')  from.setDate(from.getDate()-7);
@@ -455,9 +498,109 @@ function setPreset(p) {{
 
 function applyCustomRange() {{
   document.querySelectorAll('.preset-btns .btn').forEach(b => b.classList.remove('active'));
+  intradayMode = false;
+  document.getElementById('intraday-bar').style.display = 'none';
   const from = new Date(document.getElementById('dateFrom').value + 'T00:00:00');
   const to   = new Date(document.getElementById('dateTo').value   + 'T00:00:00');
   render(from, to);
+}}
+
+function setIntradayInterval(iv) {{
+  currentInterval = iv;
+  document.querySelectorAll('#intraday-bar .btn').forEach(b => b.classList.toggle('active', b.dataset.iv === iv));
+  loadIntraday(iv);
+}}
+
+async function loadIntraday(iv) {{
+  try {{
+    const res = await fetch('/api/intraday?ticker={ticker}&interval=' + iv);
+    if (!res.ok) {{ alert('No intraday data available'); return; }}
+    const json = await res.json();
+    renderIntraday(json.data);
+  }} catch(e) {{ alert('Error loading intraday data'); }}
+}}
+
+function renderIntraday(data) {{
+  if (!data || data.length === 0) return;
+  const pts = data.map(d => ({{ date: new Date(d.ts), price: d.price, high: d.high, low: d.low, open: d.open, vol: d.vol }}));
+  const last  = pts[pts.length - 1].price;
+  const open  = pts[0].open;
+  const high  = Math.max(...pts.map(d => d.high));
+  const low   = Math.min(...pts.map(d => d.low));
+  const pct   = (last - open) / open * 100;
+  const isPos = pct >= 0;
+  const fmtT  = d => d.toLocaleTimeString('en-US', {{hour: '2-digit', minute: '2-digit'}});
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Last Price</div>
+      <div class="stat-value" style="color:var(--accent)">$${{last.toFixed(2)}}</div>
+      <div class="stat-sub">${{fmtT(pts[pts.length-1].date)}}</div>
+    </div>
+    <div class="stat-card high">
+      <div class="stat-label">Day High</div>
+      <div class="stat-value">$${{high.toFixed(2)}}</div>
+    </div>
+    <div class="stat-card low">
+      <div class="stat-label">Day Low</div>
+      <div class="stat-value">$${{low.toFixed(2)}}</div>
+    </div>
+    <div class="stat-card range">
+      <div class="stat-label">Open</div>
+      <div class="stat-value">$${{open.toFixed(2)}}</div>
+    </div>
+    <div class="stat-card ${{isPos ? 'change-pos' : 'change-neg'}}">
+      <div class="stat-label">Day Return</div>
+      <div class="stat-value">${{isPos?'+':''}}${{pct.toFixed(2)}}%</div>
+      <div class="stat-sub">$${{open.toFixed(2)}} → $${{last.toFixed(2)}}</div>
+    </div>
+    <div class="stat-card count">
+      <div class="stat-label">Bars</div>
+      <div class="stat-value">${{pts.length}}</div>
+      <div class="stat-sub">${{fmtT(pts[0].date)}} – ${{fmtT(pts[pts.length-1].date)}}</div>
+    </div>
+  `;
+
+  if (chart) chart.destroy();
+  const ctx = document.getElementById('priceChart').getContext('2d');
+  const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+  gradient.addColorStop(0, 'rgba(240,192,64,0.25)');
+  gradient.addColorStop(1, 'rgba(240,192,64,0.01)');
+  const timeUnit = ['60m','90m'].includes(currentInterval) ? 'hour' : 'minute';
+
+  chart = new Chart(ctx, {{
+    type: 'line',
+    data: {{
+      datasets: [
+        {{ label: 'Close', data: pts.map(d => ({{x: d.date, y: d.price}})), borderColor: '#f0c040', backgroundColor: gradient, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: '#f0c040', fill: true, tension: 0.2, order: 1 }},
+        {{ label: 'High',  data: pts.map(d => ({{x: d.date, y: d.high}})),  borderColor: '#4ade80', backgroundColor: 'transparent', borderWidth: 1.5, borderDash: [4,3], pointRadius: 0, pointHoverRadius: 4, fill: false, tension: 0.2, order: 2 }},
+        {{ label: 'Open',  data: pts.map(d => ({{x: d.date, y: d.open}})),  borderColor: '#a3a3a3', backgroundColor: 'transparent', borderWidth: 1, borderDash: [2,4], pointRadius: 0, pointHoverRadius: 4, fill: false, tension: 0.2, order: 3 }},
+        {{ label: 'Low',   data: pts.map(d => ({{x: d.date, y: d.low}})),   borderColor: '#f87171', backgroundColor: 'transparent', borderWidth: 1, borderDash: [3,3], pointRadius: 0, pointHoverRadius: 4, fill: false, tension: 0.2, order: 4 }}
+      ]
+    }},
+    options: {{
+      responsive: true,
+      interaction: {{ mode: 'index', intersect: false }},
+      plugins: {{
+        legend: {{ display: true, position: 'top', align: 'end', labels: {{ color: '#a8a8c8', font: {{ family: 'Space Mono', size: 10 }}, boxWidth: 24, boxHeight: 2, padding: 16 }} }},
+        tooltip: {{
+          backgroundColor: '#111118', borderColor: '#1e1e2e', borderWidth: 1,
+          titleColor: '#f0c040', bodyColor: '#e8e8f0',
+          titleFont: {{ family: 'Space Mono', size: 11 }}, bodyFont: {{ family: 'Space Mono', size: 11 }}, padding: 12,
+          callbacks: {{
+            title: (items) => fmtT(new Date(items[0].parsed.x)),
+            label: (item) => ` ${{item.dataset.label}}: $${{item.parsed.y.toFixed(2)}}`
+          }}
+        }}
+      }},
+      scales: {{
+        x: {{ type: 'time', time: {{ unit: timeUnit, displayFormats: {{ minute: 'HH:mm', hour: 'HH:mm' }} }}, grid: {{ color: '#1e1e2e' }}, ticks: {{ color: '#a8a8c8', font: {{ family: 'Space Mono', size: 10 }} }} }},
+        y: {{ grid: {{ color: '#1e1e2e' }}, ticks: {{ color: '#a8a8c8', font: {{ family: 'Space Mono', size: 10 }}, callback: v => '$' + v.toFixed(2) }} }}
+      }}
+    }}
+  }});
+  applyActiveGroups();
+  if (drawdownChart) {{ drawdownChart.destroy(); drawdownChart = null; }}
 }}
 
 function resetZoom() {{
@@ -1293,6 +1436,17 @@ def api_ticker():
     if rows is None:
         return Response('{"error":"not found"}', status=404, mimetype="application/json")
     return Response(json.dumps({"ticker": ticker, "name": long_name, "data": rows}), mimetype="application/json")
+
+@app.route("/api/intraday")
+def api_intraday():
+    ticker = request.args.get("ticker", "").upper().strip()
+    interval = request.args.get("interval", "5m")
+    if not ticker:
+        return Response('{"error":"no ticker"}', status=400, mimetype="application/json")
+    rows = fetch_intraday(ticker, interval)
+    if rows is None:
+        return Response('{"error":"no data"}', status=404, mimetype="application/json")
+    return Response(json.dumps({"ticker": ticker, "data": rows}), mimetype="application/json")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
