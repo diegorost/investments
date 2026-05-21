@@ -203,6 +203,16 @@ def build_html(ticker, long_name, rows, data_js, period="1y"):
   .divider {{ height: 1px; background: var(--border); margin: 28px 0; }}
   .generated {{ font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--muted); text-align: right; margin-top: 32px; }}
   .error-msg {{ font-family: 'Space Mono', monospace; font-size: 0.9rem; color: var(--red); background: var(--panel); border: 1px solid var(--red); border-radius: 8px; padding: 20px 24px; margin-bottom: 24px; }}
+  .compare-bar {{ display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }}
+  .compare-label {{ font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; white-space: nowrap; }}
+  .compare-input {{ font-family: 'Space Mono', monospace; font-size: 0.8rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; padding: 6px 12px; background: var(--panel); border: 1px solid var(--border); color: var(--accent); border-radius: 4px; outline: none; width: 110px; transition: border-color 0.15s; }}
+  .compare-input:focus {{ border-color: var(--accent); }}
+  .add-ticker-btn {{ font-family: 'Space Mono', monospace; font-size: 1.1rem; font-weight: 700; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; padding: 0; border: 1px solid var(--border); background: var(--panel); color: var(--muted); cursor: pointer; border-radius: 4px; transition: all 0.15s; flex-shrink: 0; }}
+  .add-ticker-btn:hover {{ border-color: var(--accent); color: var(--accent); }}
+  .compare-chip {{ display: inline-flex; align-items: center; gap: 5px; font-family: 'Space Mono', monospace; font-size: 0.68rem; font-weight: 700; letter-spacing: 1px; padding: 4px 10px 4px 8px; border: 1px solid; border-radius: 20px; }}
+  .chip-dot {{ width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }}
+  .chip-remove {{ cursor: pointer; opacity: 0.55; margin-left: 3px; font-size: 0.9rem; line-height: 1; }}
+  .chip-remove:hover {{ opacity: 1; }}
 </style>
 </head>
 <body>
@@ -259,6 +269,13 @@ def build_html(ticker, long_name, rows, data_js, period="1y"):
   <button class="ind-toggle active" id="tog-ema"  onclick="toggleGroup('ema')"  style="--tc:#fb923c">EMA</button>
 </div>
 <div id="indicatorsGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(50px,1fr));gap:12px;margin-bottom:24px;"></div>
+
+<div class="compare-bar">
+  <span class="compare-label">Compare against a ticker</span>
+  <div id="compareChips"></div>
+  <input class="compare-input" type="text" id="compareInput" placeholder="Ticker…" autocomplete="off" autocapitalize="characters" spellcheck="false" onkeydown="if(event.key==='Enter')addCompare()">
+  <button class="add-ticker-btn" onclick="addCompare()" title="Add ticker">+</button>
+</div>
 
 <div class="chart-panel">
   <canvas id="priceChart"></canvas>
@@ -498,6 +515,26 @@ function render(from, to) {{
   const toVal = (v) => isPct ? ((v - base) / base * 100) : v;
   const closePrices = data.map(d => toVal(d.price));
 
+  const compareDatasets = compareItems.flatMap((c, idx) => {{
+    const clr = COMPARE_COLORS[idx % COMPARE_COLORS.length];
+    const cData = c.allData.filter(d => d.date >= from && d.date <= to);
+    if (cData.length === 0) return [];
+    const cBase = cData[0].price;
+    return [{{
+      label: c.ticker,
+      data: cData.map(d => ({{ x: d.date, y: isPct ? ((d.price - cBase) / cBase * 100) : d.price }})),
+      borderColor: clr,
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 5,
+      pointHoverBackgroundColor: clr,
+      fill: false,
+      tension: 0.2,
+      order: 0
+    }}];
+  }});
+
   if (chart) chart.destroy();
   const ctx = document.getElementById('priceChart').getContext('2d');
   const gradient = ctx.createLinearGradient(0, 0, 0, 400);
@@ -665,7 +702,8 @@ function render(from, to) {{
           tension: 0.2,
           spanGaps: false,
           order: 11
-        }}
+        }},
+        ...compareDatasets
       ]
     }},
     options: {{
@@ -1025,6 +1063,42 @@ function fitIndicatorText() {{
   }});
 }}
 
+const COMPARE_COLORS = ['#60a5fa','#a78bfa','#34d399','#f97316','#e879f9','#2dd4bf'];
+let compareItems = [];
+
+function renderCompareChips() {{
+  const el = document.getElementById('compareChips');
+  el.innerHTML = compareItems.map((c, i) => {{
+    const clr = COMPARE_COLORS[i % COMPARE_COLORS.length];
+    return `<span class="compare-chip" style="border-color:${{clr}};color:${{clr}}"><span class="chip-dot" style="background:${{clr}}"></span>${{c.ticker}}<span class="chip-remove" onclick="removeCompare('${{c.ticker}}')">×</span></span>`;
+  }}).join('');
+}}
+
+async function addCompare() {{
+  const input = document.getElementById('compareInput');
+  const t = input.value.trim().toUpperCase();
+  if (!t || compareItems.find(c => c.ticker === t)) {{ input.value = ''; return; }}
+  try {{
+    const res = await fetch('/api/ticker?ticker=' + encodeURIComponent(t));
+    if (!res.ok) {{ alert('Ticker not found: ' + t); return; }}
+    const json = await res.json();
+    const parsed = json.data.map(r => {{
+      const [m,d,y] = r.date.split('/');
+      return {{ date: new Date(+y, +m-1, +d), price: parseFloat(r.price) }};
+    }}).sort((a,b) => a.date - b.date);
+    compareItems.push({{ ticker: json.ticker, name: json.name, allData: parsed }});
+    input.value = '';
+    renderCompareChips();
+    if (lastFrom && lastTo) render(lastFrom, lastTo);
+  }} catch(e) {{ alert('Error fetching ' + t); }}
+}}
+
+function removeCompare(ticker) {{
+  compareItems = compareItems.filter(c => c.ticker !== ticker);
+  renderCompareChips();
+  if (lastFrom && lastTo) render(lastFrom, lastTo);
+}}
+
 let topN = 10;
 let lastTableData = null;
 
@@ -1114,6 +1188,16 @@ Check the symbol and try again.</div>
 
     html = build_html(ticker, long_name, rows, data_js, period=period)
     return Response(html, mimetype="text/html")
+
+@app.route("/api/ticker")
+def api_ticker():
+    ticker = request.args.get("ticker", "").upper().strip()
+    if not ticker:
+        return Response('{"error":"no ticker"}', status=400, mimetype="application/json")
+    long_name, rows, _ = fetch_data(ticker, "max")
+    if rows is None:
+        return Response('{"error":"not found"}', status=404, mimetype="application/json")
+    return Response(json.dumps({"ticker": ticker, "name": long_name, "data": rows}), mimetype="application/json")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
