@@ -213,6 +213,8 @@ def build_html(ticker, long_name, rows, data_js, period="1y"):
   .chip-dot {{ width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }}
   .chip-remove {{ cursor: pointer; opacity: 0.55; margin-left: 3px; font-size: 0.9rem; line-height: 1; }}
   .chip-remove:hover {{ opacity: 1; }}
+  .export-btn {{ position: absolute; top: 14px; right: 16px; font-family: 'Space Mono', monospace; font-size: 0.62rem; font-weight: 700; letter-spacing: 1px; padding: 5px 12px; background: transparent; border: 1px solid var(--border); color: var(--muted); cursor: pointer; border-radius: 4px; transition: all 0.15s; text-transform: uppercase; z-index: 10; }}
+  .export-btn:hover {{ border-color: var(--accent3); color: var(--accent3); }}
 </style>
 </head>
 <body>
@@ -278,6 +280,7 @@ def build_html(ticker, long_name, rows, data_js, period="1y"):
 </div>
 
 <div class="chart-panel">
+  <button class="export-btn" onclick="exportCSV()" title="Export visible data as CSV">↓ Export CSV</button>
   <canvas id="priceChart"></canvas>
 </div>
 
@@ -520,19 +523,13 @@ function render(from, to) {{
     const cData = c.allData.filter(d => d.date >= from && d.date <= to);
     if (cData.length === 0) return [];
     const cBase = cData[0].price;
-    return [{{
-      label: c.ticker,
-      data: cData.map(d => ({{ x: d.date, y: isPct ? ((d.price - cBase) / cBase * 100) : d.price }})),
-      borderColor: clr,
-      backgroundColor: 'transparent',
-      borderWidth: 2,
-      pointRadius: 0,
-      pointHoverRadius: 5,
-      pointHoverBackgroundColor: clr,
-      fill: false,
-      tension: 0.2,
-      order: 0
-    }}];
+    const toC = (v) => isPct ? ((v - cBase) / cBase * 100) : v;
+    return [
+      {{ label: c.ticker + ' Close', data: cData.map(d => ({{ x: d.date, y: toC(d.price) }})), borderColor: clr, backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: clr, fill: false, tension: 0.2, order: 0 }},
+      {{ label: c.ticker + ' High',  data: cData.map(d => ({{ x: d.date, y: toC(d.high)  }})), borderColor: clr, backgroundColor: 'transparent', borderWidth: 1, borderDash: [4,3], pointRadius: 0, pointHoverRadius: 3, fill: false, tension: 0.2, order: 0 }},
+      {{ label: c.ticker + ' Open',  data: cData.map(d => ({{ x: d.date, y: toC(d.open)  }})), borderColor: clr, backgroundColor: 'transparent', borderWidth: 1, borderDash: [2,4], pointRadius: 0, pointHoverRadius: 3, fill: false, tension: 0.2, order: 0 }},
+      {{ label: c.ticker + ' Low',   data: cData.map(d => ({{ x: d.date, y: toC(d.low)   }})), borderColor: clr, backgroundColor: 'transparent', borderWidth: 1, borderDash: [3,3], pointRadius: 0, pointHoverRadius: 3, fill: false, tension: 0.2, order: 0 }}
+    ];
   }});
 
   if (chart) chart.destroy();
@@ -1084,7 +1081,7 @@ async function addCompare() {{
     const json = await res.json();
     const parsed = json.data.map(r => {{
       const [m,d,y] = r.date.split('/');
-      return {{ date: new Date(+y, +m-1, +d), price: parseFloat(r.price) }};
+      return {{ date: new Date(+y, +m-1, +d), price: parseFloat(r.price), high: parseFloat(r.high), low: parseFloat(r.low), open: parseFloat(r.open) }};
     }}).sort((a,b) => a.date - b.date);
     compareItems.push({{ ticker: json.ticker, name: json.name, allData: parsed }});
     input.value = '';
@@ -1097,6 +1094,52 @@ function removeCompare(ticker) {{
   compareItems = compareItems.filter(c => c.ticker !== ticker);
   renderCompareChips();
   if (lastFrom && lastTo) render(lastFrom, lastTo);
+}}
+
+function exportCSV() {{
+  if (!lastFrom || !lastTo) return;
+  const data = getFilteredData(lastFrom, lastTo);
+  if (data.length === 0) return;
+
+  const hdrs = ['Date', 'Close', 'High', 'Open', 'Low'];
+  if (activeGroups.rsi)  hdrs.push('RSI 14');
+  if (activeGroups.vwap) hdrs.push('VWAP 20');
+  if (activeGroups.sma)  hdrs.push('SMA 20', 'SMA 50', 'SMA 200');
+  if (activeGroups.ema)  hdrs.push('EMA 20', 'EMA 50', 'EMA 200');
+  compareItems.forEach(c => hdrs.push(c.ticker + ' Close', c.ticker + ' High', c.ticker + ' Open', c.ticker + ' Low'));
+
+  const csvRows = data.map(d => {{
+    const row = [
+      d.date.toLocaleDateString('en-US', {{month:'2-digit', day:'2-digit', year:'numeric'}}),
+      d.price.toFixed(4), d.high.toFixed(4), d.open.toFixed(4), d.low.toFixed(4)
+    ];
+    if (activeGroups.rsi)  row.push(d.rsi14  != null ? d.rsi14.toFixed(2)  : '');
+    if (activeGroups.vwap) row.push(d.vwap   != null ? d.vwap.toFixed(4)   : '');
+    if (activeGroups.sma)  {{
+      row.push(d.sma20  != null ? d.sma20.toFixed(4)  : '');
+      row.push(d.sma50  != null ? d.sma50.toFixed(4)  : '');
+      row.push(d.sma200 != null ? d.sma200.toFixed(4) : '');
+    }}
+    if (activeGroups.ema)  {{
+      row.push(d.ema20  != null ? d.ema20.toFixed(4)  : '');
+      row.push(d.ema50  != null ? d.ema50.toFixed(4)  : '');
+      row.push(d.ema200 != null ? d.ema200.toFixed(4) : '');
+    }}
+    compareItems.forEach(c => {{
+      const m = c.allData.find(cd => Math.abs(cd.date - d.date) < 86400000);
+      row.push(m ? m.price.toFixed(4) : '', m ? m.high.toFixed(4) : '', m ? m.open.toFixed(4) : '', m ? m.low.toFixed(4) : '');
+    }});
+    return row;
+  }});
+
+  const csv = [hdrs, ...csvRows].map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], {{ type: 'text/csv' }});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '{ticker}_export.csv';
+  a.click();
+  URL.revokeObjectURL(url);
 }}
 
 let topN = 10;
