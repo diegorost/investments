@@ -31,19 +31,12 @@ from main import (
 
 app = Flask(__name__)
 
-# ── Midnight auto-refresh ──────────────────────────────────────────────────────
+# ── Hourly auto-refresh ────────────────────────────────────────────────────────
 
-def _seconds_until_midnight():
-    now  = datetime.now()
-    midnight = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
-    return (midnight - now).total_seconds()
-
-def _midnight_scheduler():
+def _hourly_scheduler():
     while True:
-        secs = _seconds_until_midnight()
-        print(f'Auto-refresh scheduled in {secs/3600:.1f}h (at midnight)')
-        time.sleep(secs)
-        print('Midnight auto-refresh triggered')
+        time.sleep(3600)
+        print('Hourly auto-refresh triggered')
         t = threading.Thread(target=_do_update, args=('all',), daemon=True)
         t.start()
 
@@ -434,7 +427,7 @@ def miner_search():
 # ── Entry point ────────────────────────────────────────────────────────────────
 
 # Start midnight scheduler (runs regardless of local vs Railway)
-threading.Thread(target=_midnight_scheduler, daemon=True).start()
+threading.Thread(target=_hourly_scheduler, daemon=True).start()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
