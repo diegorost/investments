@@ -17,6 +17,7 @@ import sys
 import re
 import os
 import json
+import concurrent.futures
 import cloudscraper
 from bs4 import BeautifulSoup
 import yfinance as yf
@@ -274,6 +275,17 @@ def update_html_file(html, metal, ticker_map, static_tickers, investing_com_tick
             updates['PLZL'] = (f'{cur:,.0f}', f'{ath:,.0f}' if ath else 'N/A', pct)
             print(f"  PLZL: {cur:,.0f} RUB / ATH {ath:,.0f} RUB / {pct:.1f}%")
 
+    # Investing.com tickers (sequential — rate limit)
+    for ticker in tickers:
+        if ticker in (investing_com_tickers or {}):
+            url = investing_com_tickers[ticker]
+            cur, ath = get_investing_com_data(url)
+            pct = ((ath - cur) / ath * 100) if cur and ath else None
+            updates[ticker] = (cur, ath, pct)
+            print(f"  {ticker} (investing.com): {cur} / {ath} / {pct}")
+
+    # yfinance tickers (parallel)
+    yf_work = []
     for ticker in tickers:
         if metal == 'GOLD' and ticker == 'PLZL':
             continue
@@ -281,18 +293,20 @@ def update_html_file(html, metal, ticker_map, static_tickers, investing_com_tick
             print(f"  Skipping {ticker} (not on yfinance)")
             continue
         if ticker in (investing_com_tickers or {}):
-            url = investing_com_tickers[ticker]
-            cur, ath = get_investing_com_data(url)
-            pct = ((ath - cur) / ath * 100) if cur and ath else None
-            updates[ticker] = (cur, ath, pct)
-            print(f"  {ticker} (investing.com): {cur} / {ath} / {pct}")
             continue
-        yf_ticker = ticker_map.get(ticker, ticker)
-        cur, ath  = get_stock_data(yf_ticker)
-        pct       = ((ath - cur) / ath * 100) if cur and ath else None
-        updates[ticker] = (cur, ath, pct)
-        label = f"{ticker} ({yf_ticker})" if yf_ticker != ticker else ticker
+        yf_work.append((ticker, ticker_map.get(ticker, ticker)))
+
+    def _fetch_yf(args):
+        orig, yf_t = args
+        cur, ath = get_stock_data(yf_t)
+        pct = ((ath - cur) / ath * 100) if cur and ath else None
+        label = f"{orig} ({yf_t})" if yf_t != orig else orig
         print(f"  {label}: {cur} / {ath} / {pct}")
+        return orig, (cur, ath, pct)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as ex:
+        for orig, result in ex.map(_fetch_yf, yf_work):
+            updates[orig] = result
 
     html = update_known_data(html, updates)
 
