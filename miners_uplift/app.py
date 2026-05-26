@@ -57,6 +57,59 @@ _update_status = {
     'progress':     '',
 }
 
+def _do_update_miner(ticker):
+    """Update a single ticker in both gold and silver HTML files."""
+    with _update_lock:
+        if _update_status['running']:
+            return
+        _update_status['running']    = True
+        _update_status['last_error'] = None
+        _update_status['progress']   = f'Updating {ticker}...'
+    try:
+        gold_html   = GOLD_HTML.read_text(encoding='utf-8')
+        silver_html = SILVER_HTML.read_text(encoding='utf-8')
+        gold_patterns = [
+            r'const ringData = (\[[\s\S]*?\]);',
+            r'const auauData = (\[[\s\S]*?\]);',
+            r'const gdxData  = (\[[\s\S]*?\]);',
+            r'const gdxjData = (\[[\s\S]*?\]);',
+        ]
+        silver_patterns = [
+            r'const slvpData = (\[[\s\S]*?\]);',
+            r'const silData  = (\[[\s\S]*?\]);',
+            r'const siljData = (\[[\s\S]*?\]);',
+        ]
+        gold_html = update_html_file(
+            gold_html, 'GOLD',
+            ticker_map=GOLD_TICKER_MAP,
+            static_tickers=GOLD_STATIC,
+            investing_com_tickers=None,
+            etf_classes=GOLD_ETF_CLASSES,
+            gold_patterns=gold_patterns,
+            only=ticker,
+        )
+        GOLD_HTML.write_text(gold_html, encoding='utf-8')
+        silver_html = update_html_file(
+            silver_html, 'SILVER',
+            ticker_map=SILVER_TICKER_MAP,
+            static_tickers=set(),
+            investing_com_tickers=SILVER_INVESTING_COM,
+            etf_classes=SILVER_ETF_CLASSES,
+            silver_patterns=silver_patterns,
+            only=ticker,
+        )
+        SILVER_HTML.write_text(silver_html, encoding='utf-8')
+        merged = generate_merged_html(gold_html, silver_html)
+        OUTPUT_HTML.write_text(merged, encoding='utf-8')
+        _update_status['last_updated'] = datetime.now().strftime('%Y-%m-%d %H:%M')
+        _update_status['progress']     = f'{ticker} updated'
+    except Exception as e:
+        _update_status['last_error'] = str(e)
+        _update_status['progress']   = f'Error: {e}'
+    finally:
+        _update_status['running'] = False
+
+
 def _do_update(mode='all'):
     """Run price update in background thread."""
     with _update_lock:
@@ -282,6 +335,19 @@ async function searchMiner() {
     html = html.replace('<div class="metal-tab-bar">', miner_lookup + '<div class="metal-tab-bar">')
     html = html.replace('</body>', status_bar + '\n</body>')
     return Response(html, mimetype='text/html')
+
+@app.route('/api/refresh-miner', methods=['POST'])
+def api_refresh_miner():
+    from flask import request
+    if _update_status['running']:
+        return jsonify({'ok': False, 'error': 'Update already in progress'})
+    data   = request.get_json(silent=True) or {}
+    ticker = (data.get('ticker') or '').strip().upper()
+    if not ticker:
+        return jsonify({'ok': False, 'error': 'ticker required'})
+    t = threading.Thread(target=_do_update_miner, args=(ticker,), daemon=True)
+    t.start()
+    return jsonify({'ok': True, 'ticker': ticker})
 
 @app.route('/api/refresh', methods=['POST'])
 def api_refresh():
