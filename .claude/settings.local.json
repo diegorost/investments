@@ -66,7 +66,14 @@
       "PowerShell(git -C \"c:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\investments\" commit -m \"Fix JS syntax error: escape \\\\n in CSV join string`n`nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\")",
       "PowerShell(git -C \"c:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\investments\" push)",
       "PowerShell(git -C \"c:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\investments\" commit -m \"Move Export CSV button to compare bar to fix legend overlap`n`nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\")",
-      "PowerShell(git -C \"c:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\investments\" commit -m \"Sync comparison tickers with URL for shareable links`n`nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\")"
+      "PowerShell(git -C \"c:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\investments\" commit -m \"Sync comparison tickers with URL for shareable links`n`nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\")",
+      "PowerShell(Get-ChildItem \"c:\\\\Users\\\\diego\\\\Downloads\\\\stocks\" -Depth 1 | Where-Object { $_.Name -ne \".venv\" })",
+      "Bash(git -C \"c:\\\\Users\\\\diego\\\\Downloads\\\\stocks\" add stock_exchanges/app.py)",
+      "Bash(git -C 'c:\\\\Users\\\\diego\\\\Downloads\\\\stocks' commit -m ' *)",
+      "Bash(git -C \"c:\\\\Users\\\\diego\\\\Downloads\\\\stocks\" push)",
+      "Bash(git -C \"c:\\\\Users\\\\diego\\\\Downloads\\\\stocks\" status)",
+      "Bash(git -C \"c:\\\\Users\\\\diego\\\\Downloads\\\\stocks\" diff .claude/settings.local.json)",
+      "Bash(git -C \"c:\\\\Users\\\\diego\\\\Downloads\\\\stocks\" add .claude/settings.local.json)"
     ]
   }
 }
