@@ -27,6 +27,7 @@ from main import (
     GOLD_STATIC, SILVER_INVESTING_COM,
     GOLD_ETF_CLASSES, SILVER_ETF_CLASSES,
     update_html_file, generate_merged_html,
+    get_etf_aum, _fmt_aum,
 )
 
 app = Flask(__name__)
@@ -134,11 +135,12 @@ def _do_update(mode='all'):
             for etf_cls, etf_ticker in {**GOLD_ETF_CLASSES, **SILVER_ETF_CLASSES}.items():
                 from main import get_stock_data, update_etf_hero
                 cur, ath = get_stock_data(etf_ticker)
+                aum = get_etf_aum(etf_ticker)
                 if cur and ath:
                     pct = (ath - cur) / ath * 100
-                    gold_html   = update_etf_hero(gold_html,   etf_cls, cur, ath, pct)
-                    silver_html = update_etf_hero(silver_html, etf_cls, cur, ath, pct)
-                    print(f'  {etf_ticker}: ${cur:.2f}')
+                    gold_html   = update_etf_hero(gold_html,   etf_cls, cur, ath, pct, aum)
+                    silver_html = update_etf_hero(silver_html, etf_cls, cur, ath, pct, aum)
+                    print(f'  {etf_ticker}: ${cur:.2f} / AUM {_fmt_aum(aum)}')
             GOLD_HTML.write_text(gold_html, encoding='utf-8')
             SILVER_HTML.write_text(silver_html, encoding='utf-8')
 

@@ -146,6 +146,23 @@ def get_stock_data(ticker):
         print(f"  Error fetching {ticker}: {e}")
         return None, None
 
+def get_etf_aum(ticker):
+    try:
+        info = yf.Ticker(ticker).info
+        aum = info.get('totalAssets') or info.get('netAssets')
+        return aum
+    except Exception:
+        return None
+
+def _fmt_aum(aum):
+    if aum is None:
+        return 'N/A'
+    if aum >= 1e9:
+        return f'${aum/1e9:.1f}B'
+    if aum >= 1e6:
+        return f'${aum/1e6:.0f}M'
+    return f'${aum:,.0f}'
+
 def get_plzl_data():
     url = 'https://www.investing.com/equities/polyus-zoloto_rts'
     try:
@@ -228,10 +245,11 @@ def update_known_data(html, updates):
         html = '\n'.join(lines)
     return html
 
-def update_etf_hero(html, etf_class, current, ath, pct):
+def update_etf_hero(html, etf_class, current, ath, pct, aum=None):
     current_str = f'${current:.2f}' if current is not None else 'N/A'
     ath_str     = f'${ath:.2f}'     if ath     is not None else 'N/A'
     pct_str     = f'-{abs(pct):.1f}%' if pct is not None else 'N/A'
+    aum_str     = _fmt_aum(aum)
     tab_start = html.find(f'id="tab-{etf_class}"')
     if tab_start == -1: return html
     next_tab  = html.find('<div id="tab-', tab_start + 1)
@@ -243,6 +261,7 @@ def update_etf_hero(html, etf_class, current, ath, pct):
     section = re.sub(r'(<h3>ETF Price</h3><div class="value">)[^<]*(</div>)',                 rf'\g<1>{current_str}\2', section, count=1)
     section = re.sub(r'(<h3>52-Wk High</h3><div class="value">)[^<]*(</div>)',               rf'\g<1>{ath_str}\2',     section, count=1)
     section = re.sub(r'(% Below: )[^<]*(</p>)',                                               rf'\g<1>{pct_str}\2',    section, count=1)
+    section = re.sub(r'(<h3>AUM</h3><div class="value">)[^<]*(</div>)',                       rf'\g<1>{aum_str}\2',    section, count=1)
     return html[:tab_start] + section + html[next_tab:]
 
 #  Price update orchestration 
@@ -339,10 +358,11 @@ def update_html_file(html, metal, ticker_map, static_tickers, investing_com_tick
             if only and only != etf_ticker:
                 continue
             cur, ath = get_stock_data(etf_ticker)
+            aum = get_etf_aum(etf_ticker)
             if cur:
                 pct = ((ath - cur) / ath * 100) if ath else None
-                html = update_etf_hero(html, etf_cls, cur, ath, pct)
-                print(f"  {etf_ticker}: ${cur:.2f} / ${ath:.2f} / -{pct:.1f}%")
+                html = update_etf_hero(html, etf_cls, cur, ath, pct, aum)
+                print(f"  {etf_ticker}: ${cur:.2f} / ${ath:.2f} / -{pct:.1f}% / AUM {_fmt_aum(aum)}")
 
     return html
 
