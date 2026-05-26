@@ -284,8 +284,8 @@ def update_html_file(html, metal, ticker_map, static_tickers, investing_com_tick
             updates[ticker] = (cur, ath, pct)
             print(f"  {ticker} (investing.com): {cur} / {ath} / {pct}")
 
-    # yfinance tickers (parallel)
-    yf_work = []
+    # yfinance tickers — batch download (one request for all tickers)
+    yf_map = {}  # orig_ticker -> yf_ticker
     for ticker in tickers:
         if metal == 'GOLD' and ticker == 'PLZL':
             continue
@@ -294,19 +294,42 @@ def update_html_file(html, metal, ticker_map, static_tickers, investing_com_tick
             continue
         if ticker in (investing_com_tickers or {}):
             continue
-        yf_work.append((ticker, ticker_map.get(ticker, ticker)))
+        yf_map[ticker] = ticker_map.get(ticker, ticker)
 
-    def _fetch_yf(args):
-        orig, yf_t = args
-        cur, ath = get_stock_data(yf_t)
-        pct = ((ath - cur) / ath * 100) if cur and ath else None
-        label = f"{orig} ({yf_t})" if yf_t != orig else orig
-        print(f"  {label}: {cur} / {ath} / {pct}")
-        return orig, (cur, ath, pct)
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as ex:
-        for orig, result in ex.map(_fetch_yf, yf_work):
-            updates[orig] = result
+    if yf_map:
+        yf_symbols = list(yf_map.values())
+        try:
+            batch = yf.download(yf_symbols, period='1y', auto_adjust=True,
+                                progress=False, threads=True)
+            close = batch['Close'] if 'Close' in batch else batch.get('close', batch)
+            high  = batch['High']  if 'High'  in batch else batch.get('high',  batch)
+            for orig, yf_t in yf_map.items():
+                try:
+                    col = yf_t if yf_t in close.columns else None
+                    if col is None and len(yf_symbols) == 1:
+                        col = close.columns[0] if not close.empty else None
+                    if col is not None:
+                        cur = float(close[col].dropna().iloc[-1])
+                        ath = float(high[col].dropna().max())
+                        pct = ((ath - cur) / ath * 100) if ath else None
+                        updates[orig] = (cur, ath, pct)
+                        label = f"{orig} ({yf_t})" if yf_t != orig else orig
+                        print(f"  {label}: {cur:.2f} / {ath:.2f}")
+                    else:
+                        updates[orig] = (None, None, None)
+                except Exception as e:
+                    print(f"  {orig}: parse error {e}")
+                    updates[orig] = (None, None, None)
+        except Exception as e:
+            print(f"  Batch download failed ({e}), falling back to individual fetches")
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as ex:
+                def _fetch_one(args):
+                    orig, yf_t = args
+                    cur, ath = get_stock_data(yf_t)
+                    pct = ((ath - cur) / ath * 100) if cur and ath else None
+                    return orig, (cur, ath, pct)
+                for orig, result in ex.map(_fetch_one, list(yf_map.items())):
+                    updates[orig] = result
 
     html = update_known_data(html, updates)
 
