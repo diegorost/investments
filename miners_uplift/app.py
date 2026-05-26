@@ -283,38 +283,11 @@ fetch('/api/status').then(r => r.json()).then(d => {{ if (d.running) pollStatus(
       style="padding:7px 18px;background:#d97706;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:0.85em;">
       Search
     </button>
-    <button type="button" onclick="refreshMiner()"
-      style="padding:7px 18px;background:#15803d;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:0.85em;">
-      &#x21bb; Refresh
-    </button>
     <span style="font-size:0.75em;color:#b45309;">Searches RING &middot; AUAU &middot; GDX &middot; GDXJ &middot; SLVP &middot; SIL &middot; SILJ</span>
   </form>
   <div id="miner-results" style="margin-top:12px;display:none;"></div>
 </div>
 <script>
-async function refreshMiner() {
-  const q = (document.getElementById('miner-input').value || '').trim().toUpperCase();
-  if (!q) { alert('Ingresa un ticker primero'); return; }
-  const res = document.getElementById('miner-results');
-  res.style.display = 'block';
-  res.innerHTML = '<span style="font-family:monospace;font-size:0.8em;color:#6b7280">Actualizando ' + q + '...</span>';
-  try {
-    const resp = await fetch('/api/refresh-miner', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ticker: q})
-    });
-    const data = await resp.json();
-    if (!data.ok) {
-      res.innerHTML = '<span style="color:#dc2626;font-family:monospace;font-size:0.8em">' + (data.error || 'Error') + '</span>';
-      return;
-    }
-    res.innerHTML = '<span style="color:#15803d;font-family:monospace;font-size:0.8em">Actualizando ' + q + '... recargando en 15s</span>';
-    setTimeout(function() { location.reload(); }, 15000);
-  } catch(e) {
-    res.innerHTML = '<span style="color:#dc2626;font-family:monospace;font-size:0.8em">Request failed.</span>';
-  }
-}
 async function searchMiner() {
   const q = (document.getElementById('miner-input').value || '').trim().toUpperCase();
   if (!q) return;
