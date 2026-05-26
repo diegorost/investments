@@ -11,14 +11,14 @@ app = Flask(__name__)
 # ── Yahoo Finance ─────────────────────────────────────────────────────────────
 
 YAHOO_MARKETS = [
-    {"name": "S&P 500",            "ticker": "^GSPC",  "region": "US"},
-    {"name": "NASDAQ",             "ticker": "^IXIC",  "region": "US"},
-    {"name": "Dow Jones",          "ticker": "^DJI",   "region": "US"},
-    {"name": "Canadá (TSX)",       "ticker": "^GSPTSE","region": "US"},
-    {"name": "México (IPC)",       "ticker": "^MXX",   "region": "LATAM"},
-    {"name": "Chile (IPSA)",       "ticker": "^IPSA",  "region": "LATAM"},
-    {"name": "Brasil (IBOVESPA)",  "ticker": "^BVSP",  "region": "LATAM"},
-    {"name": "Argentina (MERVAL)", "ticker": "^MERV",  "region": "LATAM"},
+    {"name": "S&P 500",            "ticker": "^GSPC",  "region": "US",    "flag": "🇺🇸"},
+    {"name": "NASDAQ",             "ticker": "^IXIC",  "region": "US",    "flag": "🇺🇸"},
+    {"name": "Dow Jones",          "ticker": "^DJI",   "region": "US",    "flag": "🇺🇸"},
+    {"name": "Canadá (TSX)",       "ticker": "^GSPTSE","region": "US",    "flag": "🇨🇦"},
+    {"name": "México (IPC)",       "ticker": "^MXX",   "region": "LATAM", "flag": "🇲🇽"},
+    {"name": "Chile (IPSA)",       "ticker": "^IPSA",  "region": "LATAM", "flag": "🇨🇱"},
+    {"name": "Brasil (IBOVESPA)",  "ticker": "^BVSP",  "region": "LATAM", "flag": "🇧🇷"},
+    {"name": "Argentina (MERVAL)", "ticker": "^MERV",  "region": "LATAM", "flag": "🇦🇷"},
 ]
 
 def _fetch_yahoo_one(market):
@@ -38,10 +38,12 @@ def _fetch_yahoo_one(market):
             "pct":    round(pct, 2)    if pct    is not None else None,
             "error":  None,
             "region": market["region"],
+            "flag":   market["flag"],
         }
     except Exception:
         return name, {"value": None, "change": None, "pct": None,
-                      "error": "Error al obtener datos", "region": market["region"]}
+                      "error": "Error al obtener datos", "region": market["region"],
+                      "flag": market["flag"]}
 
 def fetch_yahoo():
     order = [m["name"] for m in YAHOO_MARKETS]
@@ -122,7 +124,7 @@ function renderSection(title, markets) {
     const pctCell = m.pct == null ? '<span class="na">—</span>'
       : `<span class="${cls(m.pct)}">${sign(m.pct)}${fmt(m.pct, 2)}%</span>`;
     return `<tr>
-      <td class="market-name">${m.name}</td>
+      <td class="market-name"><span style="margin-right:6px">${m.flag || ''}</span>${m.name}</td>
       <td>${valCell}</td><td>${chgCell}</td><td>${pctCell}</td>
     </tr>`;
   }).join('');
