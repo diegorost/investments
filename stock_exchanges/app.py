@@ -14,10 +14,8 @@ MARKETS = [
     {"name": "Dow Jones",            "ticker": "^DJI",      "region": "US"},
     {"name": "México (IPC)",         "ticker": "^MXX",      "region": "LATAM"},
     {"name": "Chile (IPSA)",         "ticker": "^IPSA",     "region": "LATAM"},
-    {"name": "Colombia (COLCAP)",    "ticker": "^COLCAP",   "region": "LATAM"},
     {"name": "Brasil (IBOVESPA)",    "ticker": "^BVSP",     "region": "LATAM"},
     {"name": "Argentina (MERVAL)",   "ticker": "^MERV",     "region": "LATAM"},
-    {"name": "Perú (S&P BVL)",      "ticker": "^SPBLPGPT", "region": "LATAM"},
 ]
 
 _NAME_TO_REGION = {m["name"]: m["region"] for m in MARKETS}
@@ -29,16 +27,13 @@ def _fetch_one(market):
     if ticker is None:
         return name, {"value": None, "change": None, "pct": None, "error": "Sin bolsa en Yahoo Finance"}
     try:
-        closes = yf.Ticker(ticker).history(period="5d")["Close"].dropna()
-        if closes.empty:
+        fi = yf.Ticker(ticker).fast_info
+        current = fi.get("last_price") or fi.get("regularMarketPrice")
+        prev    = fi.get("previous_close") or fi.get("regularMarketPreviousClose")
+        if current is None:
             return name, {"value": None, "change": None, "pct": None, "error": "Sin datos"}
-        current = float(closes.iloc[-1])
-        if len(closes) >= 2:
-            prev = float(closes.iloc[-2])
-            change = current - prev
-            pct = (change / prev) * 100
-        else:
-            change = pct = None
+        change = (current - prev) if prev else None
+        pct    = ((change / prev) * 100) if prev else None
         return name, {
             "value": round(current, 2),
             "change": round(change, 2) if change is not None else None,
