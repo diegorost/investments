@@ -73,7 +73,10 @@
       "Bash(git -C \"c:\\\\Users\\\\diego\\\\Downloads\\\\stocks\" push)",
       "Bash(git -C \"c:\\\\Users\\\\diego\\\\Downloads\\\\stocks\" status)",
       "Bash(git -C \"c:\\\\Users\\\\diego\\\\Downloads\\\\stocks\" diff .claude/settings.local.json)",
-      "Bash(git -C \"c:\\\\Users\\\\diego\\\\Downloads\\\\stocks\" add .claude/settings.local.json)"
+      "Bash(git -C \"c:\\\\Users\\\\diego\\\\Downloads\\\\stocks\" add .claude/settings.local.json)",
+      "Bash(git -C \"c:\\\\Users\\\\diego\\\\Downloads\\\\stocks\" diff --stat)",
+      "Bash(git -C \"c:\\\\Users\\\\diego\\\\Downloads\\\\stocks\" status --short)",
+      "Bash(git -C \"c:\\\\Users\\\\diego\\\\Downloads\\\\stocks\" ls-files --others --exclude-standard)"
     ]
   }
 }
