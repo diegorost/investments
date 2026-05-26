@@ -14,6 +14,7 @@ MARKETS = [
     {"name": "Dow Jones",            "ticker": "^DJI",      "region": "US"},
     {"name": "México (IPC)",         "ticker": "^MXX",      "region": "LATAM"},
     {"name": "Chile (IPSA)",         "ticker": "^IPSA",     "region": "LATAM"},
+    {"name": "Colombia (COLCAP)",    "ticker": "^COLCAP",   "region": "LATAM"},
     {"name": "Brasil (IBOVESPA)",    "ticker": "^BVSP",     "region": "LATAM"},
     {"name": "Argentina (MERVAL)",   "ticker": "^MERV",     "region": "LATAM"},
 ]
@@ -27,9 +28,9 @@ def _fetch_one(market):
     if ticker is None:
         return name, {"value": None, "change": None, "pct": None, "error": "Sin bolsa en Yahoo Finance"}
     try:
-        fi = yf.Ticker(ticker).fast_info
-        current = fi.get("last_price") or fi.get("regularMarketPrice")
-        prev    = fi.get("previous_close") or fi.get("regularMarketPreviousClose")
+        fi      = yf.Ticker(ticker).fast_info
+        current = fi.last_price
+        prev    = fi.previous_close
         if current is None:
             return name, {"value": None, "change": None, "pct": None, "error": "Sin datos"}
         change = (current - prev) if prev else None
