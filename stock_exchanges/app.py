@@ -118,7 +118,9 @@ HTML = """<!DOCTYPE html>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, -apple-system, sans-serif; background: #0f1117; color: #e0e0e0; min-height: 100vh; padding: 40px 20px; }
-  .container { max-width: 820px; margin: 0 auto; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px; align-items: start; }
+  @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
   header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
   h1 { font-size: 1.5rem; font-weight: 700; color: #fff; letter-spacing: -.01em; }
   .meta { font-size: 0.78rem; color: #555; display: flex; align-items: center; gap: 12px; }
@@ -199,11 +201,17 @@ function render(data) {
   const latam  = data.markets.filter(m => m.region === 'LATAM');
   const metals = data.markets.filter(m => m.region === 'METALS');
   const forex  = data.markets.filter(m => m.region === 'FOREX');
-  document.getElementById('content').innerHTML =
-    renderSection('Estados Unidos', us) +
-    renderSection('América Latina', latam) +
-    renderSection('Metales', metals) +
-    renderSection('Divisas (1 USD = X)', forex);
+  document.getElementById('content').innerHTML = `
+    <div class="grid">
+      <div>
+        ${renderSection('Estados Unidos', us)}
+        ${renderSection('América Latina', latam)}
+      </div>
+      <div>
+        ${renderSection('Metales', metals)}
+        ${renderSection('Divisas (1 USD = X)', forex)}
+      </div>
+    </div>`;
   document.getElementById('updated').textContent = 'Actualizado: ' + data.updated;
   document.getElementById('dot').className = 'dot';
 }
