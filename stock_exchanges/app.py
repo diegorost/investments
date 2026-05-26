@@ -11,14 +11,14 @@ app = Flask(__name__)
 # ── Yahoo Finance ─────────────────────────────────────────────────────────────
 
 YAHOO_MARKETS = [
-    {"name": "S&P 500",            "ticker": "^GSPC",  "region": "US",    "flag": "🇺🇸"},
-    {"name": "NASDAQ",             "ticker": "^IXIC",  "region": "US",    "flag": "🇺🇸"},
-    {"name": "Dow Jones",          "ticker": "^DJI",   "region": "US",    "flag": "🇺🇸"},
-    {"name": "Canadá (TSX)",       "ticker": "^GSPTSE","region": "US",    "flag": "🇨🇦"},
-    {"name": "México (IPC)",       "ticker": "^MXX",   "region": "LATAM", "flag": "🇲🇽"},
-    {"name": "Chile (IPSA)",       "ticker": "^IPSA",  "region": "LATAM", "flag": "🇨🇱"},
-    {"name": "Brasil (IBOVESPA)",  "ticker": "^BVSP",  "region": "LATAM", "flag": "🇧🇷"},
-    {"name": "Argentina (MERVAL)", "ticker": "^MERV",  "region": "LATAM", "flag": "🇦🇷"},
+    {"name": "S&P 500",            "ticker": "^GSPC",  "region": "US",    "flag": "us"},
+    {"name": "NASDAQ",             "ticker": "^IXIC",  "region": "US",    "flag": "us"},
+    {"name": "Dow Jones",          "ticker": "^DJI",   "region": "US",    "flag": "us"},
+    {"name": "Canadá (TSX)",       "ticker": "^GSPTSE","region": "US",    "flag": "ca"},
+    {"name": "México (IPC)",       "ticker": "^MXX",   "region": "LATAM", "flag": "mx"},
+    {"name": "Chile (IPSA)",       "ticker": "^IPSA",  "region": "LATAM", "flag": "cl"},
+    {"name": "Brasil (IBOVESPA)",  "ticker": "^BVSP",  "region": "LATAM", "flag": "br"},
+    {"name": "Argentina (MERVAL)", "ticker": "^MERV",  "region": "LATAM", "flag": "ar"},
 ]
 
 def _fetch_yahoo_one(market):
@@ -123,8 +123,9 @@ function renderSection(title, markets) {
       : `<span class="${cls(m.change)}">${sign(m.change)}${fmt(m.change, 2)}</span>`;
     const pctCell = m.pct == null ? '<span class="na">—</span>'
       : `<span class="${cls(m.pct)}">${sign(m.pct)}${fmt(m.pct, 2)}%</span>`;
+    const flagImg = m.flag ? `<img src="https://flagcdn.com/20x15/${m.flag}.png" width="20" height="15" style="margin-right:7px;vertical-align:middle;border-radius:2px">` : '';
     return `<tr>
-      <td class="market-name"><span style="margin-right:6px">${m.flag || ''}</span>${m.name}</td>
+      <td class="market-name">${flagImg}${m.name}</td>
       <td>${valCell}</td><td>${chgCell}</td><td>${pctCell}</td>
     </tr>`;
   }).join('');
