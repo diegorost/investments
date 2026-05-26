@@ -8,49 +8,101 @@ from flask import Flask, Response
 
 app = Flask(__name__)
 
-# ── Yahoo Finance ─────────────────────────────────────────────────────────────
+# ── Markets ───────────────────────────────────────────────────────────────────
 
 YAHOO_MARKETS = [
-    {"name": "S&P 500",            "ticker": "^GSPC",  "region": "US",    "flag": "us"},
-    {"name": "NASDAQ",             "ticker": "^IXIC",  "region": "US",    "flag": "us"},
-    {"name": "Dow Jones",          "ticker": "^DJI",   "region": "US",    "flag": "us"},
-    {"name": "Canadá (TSX)",       "ticker": "^GSPTSE","region": "US",    "flag": "ca"},
-    {"name": "México (IPC)",       "ticker": "^MXX",   "region": "LATAM", "flag": "mx"},
-    {"name": "Chile (IPSA)",       "ticker": "^IPSA",  "region": "LATAM", "flag": "cl"},
-    {"name": "Brasil (IBOVESPA)",  "ticker": "^BVSP",  "region": "LATAM", "flag": "br"},
-    {"name": "Argentina (MERVAL)", "ticker": "^MERV",  "region": "LATAM", "flag": "ar"},
+    # US indices & volatility
+    {"name": "S&P 500",            "ticker": "^GSPC",    "region": "US",     "flag": "us"},
+    {"name": "NASDAQ",             "ticker": "^IXIC",    "region": "US",     "flag": "us"},
+    {"name": "Dow Jones",          "ticker": "^DJI",     "region": "US",     "flag": "us"},
+    {"name": "VIX",                "ticker": "^VIX",     "region": "US",     "flag": "us"},
+    # LATAM
+    {"name": "Chile (IPSA)",       "ticker": "^IPSA",    "region": "LATAM",  "flag": "cl"},
+    {"name": "Brasil (IBOVESPA)",  "ticker": "^BVSP",    "region": "LATAM",  "flag": "br"},
+    {"name": "Argentina (MERVAL)", "ticker": "^MERV",    "region": "LATAM",  "flag": "ar"},
+    # Metals
+    {"name": "Oro",                "ticker": "GC=F",     "region": "METALS", "icon": "🥇"},
+    {"name": "Plata",              "ticker": "SI=F",     "region": "METALS", "icon": "🥈"},
+    {"name": "Cobre",              "ticker": "HG=F",     "region": "METALS", "icon": "🟤", "dec": 4},
+    # Forex (1 USD = X) — flags: [base, quote]
+    {"name": "USD / CLP",          "ticker": "USDCLP=X", "region": "FOREX",  "flags": ["us", "cl"]},
+    {"name": "USD / EUR",          "ticker": "USDEUR=X", "region": "FOREX",  "flags": ["us", "eu"], "dec": 4},
+    {"name": "USD / JPY",          "ticker": "USDJPY=X", "region": "FOREX",  "flags": ["us", "jp"]},
+    {"name": "USD / GBP",          "ticker": "USDGBP=X", "region": "FOREX",  "flags": ["us", "gb"], "dec": 4},
+    {"name": "USD / BRL",          "ticker": "USDBRL=X", "region": "FOREX",  "flags": ["us", "br"], "dec": 4},
+    {"name": "USD / ARS",          "ticker": "USDARS=X", "region": "FOREX",  "flags": ["us", "ar"]},
 ]
+
 
 def _fetch_yahoo_one(market):
     name, ticker = market["name"], market["ticker"]
+    d = market.get("dec", 2)
     try:
         fi      = yf.Ticker(ticker).fast_info
         current = fi.last_price
         prev    = fi.previous_close
         if current is None:
-            return name, {"value": None, "change": None, "pct": None,
-                          "error": "Sin datos", "region": market["region"]}
+            return name, {
+                "value": None, "prev": None, "change": None, "pct": None,
+                "error": "Sin datos", "region": market["region"],
+                "flag": market.get("flag"), "flags": market.get("flags"),
+                "icon": market.get("icon"), "dec": d,
+            }
         change = (current - prev) if prev else None
         pct    = ((change / prev) * 100) if prev else None
         return name, {
-            "value":  round(current, 2),
-            "change": round(change, 2) if change is not None else None,
-            "pct":    round(pct, 2)    if pct    is not None else None,
+            "value":  round(current, d),
+            "prev":   round(prev, d) if prev else None,
+            "change": round(change, d) if change is not None else None,
+            "pct":    round(pct, 2)   if pct    is not None else None,
             "error":  None,
             "region": market["region"],
-            "flag":   market["flag"],
+            "flag":   market.get("flag"),
+            "flags":  market.get("flags"),
+            "icon":   market.get("icon"),
+            "dec":    d,
         }
     except Exception:
-        return name, {"value": None, "change": None, "pct": None,
-                      "error": "Error al obtener datos", "region": market["region"],
-                      "flag": market["flag"]}
+        return name, {
+            "value": None, "prev": None, "change": None, "pct": None,
+            "error": "Error al obtener datos", "region": market["region"],
+            "flag": market.get("flag"), "flags": market.get("flags"),
+            "icon": market.get("icon"), "dec": d,
+        }
+
 
 def fetch_yahoo():
     order = [m["name"] for m in YAHOO_MARKETS]
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=16) as ex:
         raw = dict(ex.map(_fetch_yahoo_one, YAHOO_MARKETS))
+
+    markets = [{"name": n, **raw[n]} for n in order]
+
+    # Compute GSR (Gold-Silver Ratio) from fetched metal prices
+    gold, silver = raw.get("Oro", {}), raw.get("Plata", {})
+    gv, sv = gold.get("value"), silver.get("value")
+    gp, sp = gold.get("prev"),  silver.get("prev")
+    if gv and sv:
+        gsr_val    = gv / sv
+        gsr_prev   = (gp / sp) if gp and sp else None
+        gsr_change = (gsr_val - gsr_prev)          if gsr_prev else None
+        gsr_pct    = (gsr_change / gsr_prev * 100) if gsr_change is not None else None
+        gsr_entry  = {
+            "name":   "Ratio Oro/Plata (GSR)",
+            "icon":   "📊",
+            "value":  round(gsr_val, 2),
+            "change": round(gsr_change, 2) if gsr_change is not None else None,
+            "pct":    round(gsr_pct, 2)    if gsr_pct    is not None else None,
+            "error":  None,
+            "region": "METALS",
+            "dec":    2,
+        }
+        plata_idx = next((i for i, m in enumerate(markets) if m["name"] == "Plata"), None)
+        if plata_idx is not None:
+            markets.insert(plata_idx + 1, gsr_entry)
+
     return {
-        "markets": [{"name": n, **raw[n]} for n in order],
+        "markets": markets,
         "updated": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
     }
 
@@ -116,16 +168,21 @@ const cls  = n => n == null ? '' : n >= 0 ? 'pos' : 'neg';
 function renderSection(title, markets) {
   if (!markets.length) return '';
   const rows = markets.map(m => {
+    const d = m.dec || 2;
     const valCell = (m.error && m.value == null)
       ? `<span class="unavail">${m.error}</span>`
-      : `<span class="value">${fmt(m.value, 2)}</span>`;
+      : `<span class="value">${fmt(m.value, d)}</span>`;
     const chgCell = m.change == null ? '<span class="na">—</span>'
-      : `<span class="${cls(m.change)}">${sign(m.change)}${fmt(m.change, 2)}</span>`;
+      : `<span class="${cls(m.change)}">${sign(m.change)}${fmt(m.change, d)}</span>`;
     const pctCell = m.pct == null ? '<span class="na">—</span>'
       : `<span class="${cls(m.pct)}">${sign(m.pct)}${fmt(m.pct, 2)}%</span>`;
-    const flagImg = m.flag ? `<img src="https://flagcdn.com/20x15/${m.flag}.png" width="20" height="15" style="margin-right:7px;vertical-align:middle;border-radius:2px">` : '';
+    const iconHtml = m.icon ? `<span style="margin-right:7px;font-size:1.05em;vertical-align:middle">${m.icon}</span>` : '';
+    const flagList = m.flags || (m.flag ? [m.flag] : []);
+    const flagsHtml = flagList.map((f, i) =>
+      `<img src="https://flagcdn.com/20x15/${f}.png" width="20" height="15" style="vertical-align:middle;border-radius:2px;${i < flagList.length - 1 ? 'margin-right:3px' : 'margin-right:7px'}">`
+    ).join('');
     return `<tr>
-      <td class="market-name">${flagImg}${m.name}</td>
+      <td class="market-name">${iconHtml}${flagsHtml}${m.name}</td>
       <td>${valCell}</td><td>${chgCell}</td><td>${pctCell}</td>
     </tr>`;
   }).join('');
@@ -138,11 +195,15 @@ function renderSection(title, markets) {
 }
 
 function render(data) {
-  const us    = data.markets.filter(m => m.region === 'US');
-  const latam = data.markets.filter(m => m.region === 'LATAM');
+  const us     = data.markets.filter(m => m.region === 'US');
+  const latam  = data.markets.filter(m => m.region === 'LATAM');
+  const metals = data.markets.filter(m => m.region === 'METALS');
+  const forex  = data.markets.filter(m => m.region === 'FOREX');
   document.getElementById('content').innerHTML =
-    renderSection('Estados Unidos / Canadá', us) +
-    renderSection('América Latina', latam);
+    renderSection('Estados Unidos', us) +
+    renderSection('América Latina', latam) +
+    renderSection('Metales', metals) +
+    renderSection('Divisas (1 USD = X)', forex);
   document.getElementById('updated').textContent = 'Actualizado: ' + data.updated;
   document.getElementById('dot').className = 'dot';
 }
