@@ -428,8 +428,9 @@ def miner_search():
 
 # ── Entry point ────────────────────────────────────────────────────────────────
 
-# Start midnight scheduler (runs regardless of local vs Railway)
+# Start hourly scheduler and trigger an immediate update on startup
 threading.Thread(target=_hourly_scheduler, daemon=True).start()
+threading.Thread(target=_do_update, args=('all',), daemon=True).start()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
