@@ -15,6 +15,7 @@ YAHOO_MARKETS = [
     {"name": "S&P 500",            "ticker": "^GSPC",    "region": "US",     "flag": "us"},
     {"name": "NASDAQ",             "ticker": "^IXIC",    "region": "US",     "flag": "us"},
     {"name": "Dow Jones",          "ticker": "^DJI",     "region": "US",     "flag": "us"},
+    {"name": "Russell 2000",       "ticker": "^RUT",     "region": "US",     "flag": "us"},
     {"name": "VIX",                "ticker": "^VIX",     "region": "US",     "flag": "us"},
     # LATAM
     {"name": "Chile (IPSA)",       "ticker": "^IPSA",    "region": "LATAM",  "flag": "cl"},
