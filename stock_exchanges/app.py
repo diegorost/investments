@@ -25,7 +25,7 @@ YAHOO_MARKETS = [
     {"name": "LATAM Airlines",     "ticker": "LTM.SN",      "region": "CHILE", "flag": "cl"},
     {"name": "Santander Chile",    "ticker": "BSANTANDER.SN","region": "CHILE", "flag": "cl"},
     {"name": "Itaú Chile",         "ticker": "ITAUCL.SN",   "region": "CHILE", "flag": "cl"},
-    {"name": "CFMITNIPSA",         "ticker": "CFMITNIPSA",  "region": "CHILE", "flag": "cl"},
+    {"name": "CFMITNIPSA",         "ticker": "CFMITNIPSA.SN","region": "CHILE", "flag": "cl"},
     # Metals
     {"name": "Oro",                "ticker": "GC=F",     "region": "METALS", "icon": "🥇"},
     {"name": "Plata",              "ticker": "SI=F",     "region": "METALS", "icon": "🥈"},
