@@ -27,8 +27,8 @@ YAHOO_MARKETS = [
     {"name": "Itaú Chile",         "ticker": "ITAUCL.SN",   "region": "CHILE", "flag": "cl"},
     {"name": "CFMITNIPSA",         "ticker": "CFMITNIPSA.SN","region": "CHILE", "flag": "cl"},
     {"name": "Banco de Chile",     "ticker": "CHILE.SN",    "region": "CHILE", "flag": "cl"},
-    {"name": "POEL",               "ticker": "POEL.SN",     "region": "CHILE", "flag": "cl"},
-    {"name": "RVI",                "ticker": "RVI.SN",      "region": "CHILE", "flag": "cl"},
+    {"name": "POEL",               "ticker": "POEL",        "region": "US",    "flag": "us"},
+    {"name": "RVI",                "ticker": "RVI",         "region": "US",    "flag": "us"},
     # Metals
     {"name": "Oro",                "ticker": "GC=F",     "region": "METALS", "icon": "🥇"},
     {"name": "Plata",              "ticker": "SI=F",     "region": "METALS", "icon": "🥈"},
