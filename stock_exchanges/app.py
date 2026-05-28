@@ -43,6 +43,16 @@ YAHOO_MARKETS = [
     {"name": "USD / GBP",          "ticker": "USDGBP=X", "region": "FOREX",  "flags": ["us", "gb"], "dec": 4},
     {"name": "USD / BRL",          "ticker": "USDBRL=X", "region": "FOREX",  "flags": ["us", "br"], "dec": 4},
     {"name": "USD / ARS",          "ticker": "USDARS=X", "region": "FOREX",  "flags": ["us", "ar"]},
+    # Miners
+    {"name": "AEM",   "ticker": "AEM",  "region": "MINERS", "icon": "🥇"},
+    {"name": "BTG",   "ticker": "BTG",  "region": "MINERS", "icon": "🥇"},
+    {"name": "IAG",   "ticker": "IAG",  "region": "MINERS", "icon": "🥇"},
+    {"name": "RGLD",  "ticker": "RGLD", "region": "MINERS", "icon": "🥇"},
+    {"name": "AG",    "ticker": "AG",   "region": "MINERS", "icon": "🥈"},
+    {"name": "SILJ",  "ticker": "SILJ", "region": "MINERS", "icon": "🥈"},
+    {"name": "JNUG",  "ticker": "JNUG", "region": "MINERS", "icon": "🥇"},
+    {"name": "NUGT",  "ticker": "NUGT", "region": "MINERS", "icon": "🥇"},
+    {"name": "GDXU",  "ticker": "GDXU", "region": "MINERS", "icon": "🥇"},
 ]
 
 
@@ -214,6 +224,7 @@ function render(data) {
   const chile  = data.markets.filter(m => m.region === 'CHILE');
   const metals = data.markets.filter(m => m.region === 'FUTURES');
   const forex  = data.markets.filter(m => m.region === 'FOREX');
+  const miners = data.markets.filter(m => m.region === 'MINERS');
   document.getElementById('content').innerHTML = `
     <div class="grid">
       <div>
@@ -224,6 +235,7 @@ function render(data) {
       <div>
         ${renderSection('Futures', metals)}
         ${renderSection('Forex (1 USD = X)', forex)}
+        ${renderSection('Miners', miners)}
       </div>
     </div>`;
   document.getElementById('updated').textContent = 'Updated: ' + data.updated;
