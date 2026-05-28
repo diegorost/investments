@@ -1,12 +1,12 @@
 import os
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, send_from_directory, request, jsonify
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-app = Flask(__name__, template_folder=os.path.join(BASE_DIR, "templates"))
+app = Flask(__name__)
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return send_from_directory(BASE_DIR, "index.html")
 
 @app.route("/calcular", methods=["POST"])
 def calcular():
