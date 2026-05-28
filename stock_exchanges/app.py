@@ -31,10 +31,10 @@ YAHOO_MARKETS = [
     {"name": "RVI",                "ticker": "RVI",         "region": "US",    "flag": "us"},
     {"name": "AAOX",               "ticker": "AAOX",        "region": "US",    "flag": "us"},
     # Futures
-    {"name": "Oro",                "ticker": "GC=F",     "region": "FUTURES", "icon": "🥇"},
-    {"name": "Plata",              "ticker": "SI=F",     "region": "FUTURES", "icon": "🥈"},
-    {"name": "Cobre",              "ticker": "HG=F",     "region": "FUTURES", "icon": "🟤", "dec": 4},
-    {"name": "Petróleo (WTI)",     "ticker": "CL=F",     "region": "FUTURES", "icon": "🛢️"},
+    {"name": "Gold",               "ticker": "GC=F",     "region": "FUTURES", "icon": "🥇"},
+    {"name": "Silver",             "ticker": "SI=F",     "region": "FUTURES", "icon": "🥈"},
+    {"name": "Copper",             "ticker": "HG=F",     "region": "FUTURES", "icon": "🟤", "dec": 4},
+    {"name": "Oil (WTI)",          "ticker": "CL=F",     "region": "FUTURES", "icon": "🛢️"},
     {"name": "DXY",                "ticker": "DX=F",     "region": "FUTURES", "icon": "💵", "dec": 3},
     # Forex (1 USD = X) — flags: [base, quote]
     {"name": "USD / CLP",          "ticker": "USDCLP=X", "region": "FOREX",  "flags": ["us", "cl"]},
@@ -56,7 +56,7 @@ def _fetch_yahoo_one(market):
         if current is None:
             return name, {
                 "value": None, "prev": None, "change": None, "pct": None,
-                "error": "Sin datos", "region": market["region"],
+                "error": "No data", "region": market["region"],
                 "flag": market.get("flag"), "flags": market.get("flags"),
                 "icon": market.get("icon"), "dec": d,
             }
@@ -77,7 +77,7 @@ def _fetch_yahoo_one(market):
     except Exception:
         return name, {
             "value": None, "prev": None, "change": None, "pct": None,
-            "error": "Error al obtener datos", "region": market["region"],
+            "error": "Error fetching data", "region": market["region"],
             "flag": market.get("flag"), "flags": market.get("flags"),
             "icon": market.get("icon"), "dec": d,
         }
@@ -91,7 +91,7 @@ def fetch_yahoo():
     markets = [{"name": n, **raw[n]} for n in order]
 
     # Compute GSR (Gold-Silver Ratio) from fetched metal prices
-    gold, silver = raw.get("Oro", {}), raw.get("Plata", {})
+    gold, silver = raw.get("Gold", {}), raw.get("Silver", {})
     gv, sv = gold.get("value"), silver.get("value")
     gp, sp = gold.get("prev"),  silver.get("prev")
     if gv and sv:
@@ -100,7 +100,7 @@ def fetch_yahoo():
         gsr_change = (gsr_val - gsr_prev)          if gsr_prev else None
         gsr_pct    = (gsr_change / gsr_prev * 100) if gsr_change is not None else None
         gsr_entry  = {
-            "name":   "Ratio Oro/Plata (GSR)",
+            "name":   "Gold/Silver Ratio (GSR)",
             "icon":   "📊",
             "value":  round(gsr_val, 2),
             "change": round(gsr_change, 2) if gsr_change is not None else None,
@@ -109,9 +109,9 @@ def fetch_yahoo():
             "region": "FUTURES",
             "dec":    2,
         }
-        plata_idx = next((i for i, m in enumerate(markets) if m["name"] == "Plata"), None)
-        if plata_idx is not None:
-            markets.insert(plata_idx + 1, gsr_entry)
+        silver_idx = next((i for i, m in enumerate(markets) if m["name"] == "Silver"), None)
+        if silver_idx is not None:
+            markets.insert(silver_idx + 1, gsr_entry)
 
     return {
         "markets": markets,
@@ -122,11 +122,11 @@ def fetch_yahoo():
 # ── HTML ──────────────────────────────────────────────────────────────────────
 
 HTML = """<!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bolsas del Mundo</title>
+<title>World Markets</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, -apple-system, sans-serif; background: #0f1117; color: #e0e0e0; min-height: 100vh; padding: 40px 20px; }
@@ -162,15 +162,15 @@ HTML = """<!DOCTYPE html>
 <body>
 <div class="container">
   <header>
-    <h1>Bolsas del Mundo</h1>
+    <h1>World Markets</h1>
     <div class="meta">
       <span class="dot loading" id="dot"></span>
-      <span id="updated">Cargando…</span>
-      <button class="refresh-btn" onclick="reload()">&#8635; Actualizar</button>
+      <span id="updated">Loading…</span>
+      <button class="refresh-btn" onclick="reload()">&#8635; Refresh</button>
     </div>
   </header>
 
-  <div id="content"><div class="empty-msg">Cargando…</div></div>
+  <div id="content"><div class="empty-msg">Loading…</div></div>
 </div>
 
 <script>
@@ -203,7 +203,7 @@ function renderSection(title, markets) {
   return `<div class="section">
     <div class="section-title">${title}</div>
     <table>
-      <thead><tr><th>Mercado</th><th>Valor</th><th>Variación</th><th>% Cambio</th></tr></thead>
+      <thead><tr><th>Market</th><th>Value</th><th>Change</th><th>% Change</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
 }
@@ -217,16 +217,16 @@ function render(data) {
   document.getElementById('content').innerHTML = `
     <div class="grid">
       <div>
-        ${renderSection('Estados Unidos', us)}
-        ${renderSection('América Latina', latam)}
-        ${renderSection('Acciones Chile', chile)}
+        ${renderSection('United States', us)}
+        ${renderSection('Latin America', latam)}
+        ${renderSection('Chile Stocks', chile)}
       </div>
       <div>
-        ${renderSection('Futuros', metals)}
-        ${renderSection('Divisas (1 USD = X)', forex)}
+        ${renderSection('Futures', metals)}
+        ${renderSection('Forex (1 USD = X)', forex)}
       </div>
     </div>`;
-  document.getElementById('updated').textContent = 'Actualizado: ' + data.updated;
+  document.getElementById('updated').textContent = 'Updated: ' + data.updated;
   document.getElementById('dot').className = 'dot';
 }
 
@@ -237,7 +237,7 @@ async function load() {
     const data = await res.json();
     render(data);
   } catch {
-    document.getElementById('updated').textContent = 'Error de conexión';
+    document.getElementById('updated').textContent = 'Connection error';
   }
 }
 
