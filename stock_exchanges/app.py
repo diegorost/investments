@@ -30,10 +30,12 @@ YAHOO_MARKETS = [
     {"name": "POEL",               "ticker": "POEL",        "region": "US",    "flag": "us"},
     {"name": "RVI",                "ticker": "RVI",         "region": "US",    "flag": "us"},
     {"name": "AAOX",               "ticker": "AAOX",        "region": "US",    "flag": "us"},
-    # Metals
-    {"name": "Oro",                "ticker": "GC=F",     "region": "METALS", "icon": "🥇"},
-    {"name": "Plata",              "ticker": "SI=F",     "region": "METALS", "icon": "🥈"},
-    {"name": "Cobre",              "ticker": "HG=F",     "region": "METALS", "icon": "🟤", "dec": 4},
+    # Futures
+    {"name": "Oro",                "ticker": "GC=F",     "region": "FUTURES", "icon": "🥇"},
+    {"name": "Plata",              "ticker": "SI=F",     "region": "FUTURES", "icon": "🥈"},
+    {"name": "Cobre",              "ticker": "HG=F",     "region": "FUTURES", "icon": "🟤", "dec": 4},
+    {"name": "Petróleo (WTI)",     "ticker": "CL=F",     "region": "FUTURES", "icon": "🛢️"},
+    {"name": "DXY",                "ticker": "DX=F",     "region": "FUTURES", "icon": "💵", "dec": 3},
     # Forex (1 USD = X) — flags: [base, quote]
     {"name": "USD / CLP",          "ticker": "USDCLP=X", "region": "FOREX",  "flags": ["us", "cl"]},
     {"name": "USD / EUR",          "ticker": "USDEUR=X", "region": "FOREX",  "flags": ["us", "eu"], "dec": 4},
@@ -104,7 +106,7 @@ def fetch_yahoo():
             "change": round(gsr_change, 2) if gsr_change is not None else None,
             "pct":    round(gsr_pct, 2)    if gsr_pct    is not None else None,
             "error":  None,
-            "region": "METALS",
+            "region": "FUTURES",
             "dec":    2,
         }
         plata_idx = next((i for i, m in enumerate(markets) if m["name"] == "Plata"), None)
@@ -210,7 +212,7 @@ function render(data) {
   const us     = data.markets.filter(m => m.region === 'US');
   const latam  = data.markets.filter(m => m.region === 'LATAM');
   const chile  = data.markets.filter(m => m.region === 'CHILE');
-  const metals = data.markets.filter(m => m.region === 'METALS');
+  const metals = data.markets.filter(m => m.region === 'FUTURES');
   const forex  = data.markets.filter(m => m.region === 'FOREX');
   document.getElementById('content').innerHTML = `
     <div class="grid">
@@ -220,7 +222,7 @@ function render(data) {
         ${renderSection('Acciones Chile', chile)}
       </div>
       <div>
-        ${renderSection('Metales', metals)}
+        ${renderSection('Futuros', metals)}
         ${renderSection('Divisas (1 USD = X)', forex)}
       </div>
     </div>`;
