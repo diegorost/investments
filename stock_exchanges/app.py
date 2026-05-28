@@ -229,12 +229,12 @@ function render(data) {
     <div class="grid">
       <div>
         ${renderSection('United States', us)}
-        ${renderSection('Latin America', latam)}
+        ${renderSection('Forex (1 USD = X)', forex)}
         ${renderSection('Chile Stocks', chile)}
       </div>
       <div>
         ${renderSection('Futures', metals)}
-        ${renderSection('Forex (1 USD = X)', forex)}
+        ${renderSection('Latin America', latam)}
         ${renderSection('Miners', miners)}
       </div>
     </div>`;
