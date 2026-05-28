@@ -29,6 +29,7 @@ YAHOO_MARKETS = [
     {"name": "Banco de Chile",     "ticker": "CHILE.SN",    "region": "CHILE", "flag": "cl"},
     {"name": "POEL",               "ticker": "POEL",        "region": "US",    "flag": "us"},
     {"name": "RVI",                "ticker": "RVI",         "region": "US",    "flag": "us"},
+    {"name": "AAOX",               "ticker": "AAOX",        "region": "US",    "flag": "us"},
     # Metals
     {"name": "Oro",                "ticker": "GC=F",     "region": "METALS", "icon": "🥇"},
     {"name": "Plata",              "ticker": "SI=F",     "region": "METALS", "icon": "🥈"},
