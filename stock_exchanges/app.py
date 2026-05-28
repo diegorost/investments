@@ -35,7 +35,7 @@ YAHOO_MARKETS = [
     {"name": "Silver",             "ticker": "SI=F",     "region": "FUTURES", "icon": "🥈"},
     {"name": "Copper",             "ticker": "HG=F",     "region": "FUTURES", "icon": "🟤", "dec": 4},
     {"name": "Oil (WTI)",          "ticker": "CL=F",     "region": "FUTURES", "icon": "🛢️"},
-    {"name": "DXY",                "ticker": "DX=F",     "region": "FUTURES", "icon": "💵", "dec": 3},
+    {"name": "US Dollar Index",    "ticker": "DX-Y.NYB", "region": "FUTURES", "icon": "💵", "dec": 3},
     # Forex (1 USD = X) — flags: [base, quote]
     {"name": "USD / CLP",          "ticker": "USDCLP=X", "region": "FOREX",  "flags": ["us", "cl"]},
     {"name": "USD / EUR",          "ticker": "USDEUR=X", "region": "FOREX",  "flags": ["us", "eu"], "dec": 4},
