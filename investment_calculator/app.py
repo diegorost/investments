@@ -8,42 +8,42 @@ app = Flask(__name__)
 def index():
     return send_from_directory(BASE_DIR, "index.html")
 
-@app.route("/calcular", methods=["POST"])
-def calcular():
+@app.route("/calculate", methods=["POST"])
+def calculate():
     data = request.json
     capital = float(data.get("capital", 1000))
     pct = float(data.get("pct", 6)) / 100
-    ops_semana = int(data.get("ops_semana", 3))
-    semanas = int(data.get("semanas", 4))
+    ops_per_week = int(data.get("ops_per_week", 3))
+    weeks = int(data.get("weeks", 4))
 
-    total_ops = ops_semana * semanas
+    total_ops = ops_per_week * weeks
     capitals = [capital]
     for _ in range(total_ops):
         capitals.append(capitals[-1] * (1 + pct))
 
-    filas = []
+    rows = []
     for i in range(1, total_ops + 1):
-        semana = (i - 1) // ops_semana + 1
-        cap_antes = capitals[i - 1]
-        cap_despues = capitals[i]
-        ganancia_op = cap_despues - cap_antes
-        filas.append({
+        week = (i - 1) // ops_per_week + 1
+        cap_before = capitals[i - 1]
+        cap_after = capitals[i]
+        profit_op = cap_after - cap_before
+        rows.append({
             "op": i,
-            "semana": semana,
-            "capital": round(cap_despues, 2),
-            "ganancia_op": round(ganancia_op, 2),
+            "week": week,
+            "capital": round(cap_after, 2),
+            "profit_op": round(profit_op, 2),
         })
 
     final = capitals[-1]
-    ganancia_total = final - capital
-    retorno_pct = ((final / capital) - 1) * 100
+    total_profit = final - capital
+    return_pct = ((final / capital) - 1) * 100
 
     return jsonify({
         "capitals": [round(c, 2) for c in capitals],
-        "filas": filas,
+        "rows": rows,
         "final": round(final, 2),
-        "ganancia_total": round(ganancia_total, 2),
-        "retorno_pct": round(retorno_pct, 2),
+        "total_profit": round(total_profit, 2),
+        "return_pct": round(return_pct, 2),
     })
 
 if __name__ == "__main__":

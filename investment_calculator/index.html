@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Simulador de Interés Compuesto</title>
+<title>Compound Interest Calculator</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
@@ -260,68 +260,68 @@
 <div class="container">
 
   <header>
-    <p class="header-label">// simulador financiero</p>
-    <h1>Interés <span>Compuesto</span></h1>
-    <p class="subtitle">Visualiza el crecimiento de tu capital operación a operación</p>
+    <p class="header-label">// financial simulator</p>
+    <h1>Compound <span>Interest</span></h1>
+    <p class="subtitle">Visualize your capital growth operation by operation</p>
   </header>
 
   <div class="inputs-grid">
     <div class="field">
-      <label>Capital inicial ($)</label>
+      <label>Starting Capital ($)</label>
       <input type="number" id="capital" value="1000" min="1">
     </div>
     <div class="field">
-      <label>% por operación</label>
+      <label>% per operation</label>
       <input type="number" id="pct" value="6" min="0.1" max="100" step="0.1">
     </div>
     <div class="field">
-      <label>Operaciones / semana</label>
-      <input type="number" id="ops_semana" value="3" min="1" max="7">
+      <label>Operations / week</label>
+      <input type="number" id="ops_per_week" value="3" min="1" max="7">
     </div>
     <div class="field">
-      <label>Semanas</label>
-      <input type="number" id="semanas" value="4" min="1" max="52">
+      <label>Weeks</label>
+      <input type="number" id="weeks" value="4" min="1" max="52">
     </div>
   </div>
 
   <div class="stats-grid">
     <div class="stat-card">
-      <p class="stat-label">Capital inicial</p>
+      <p class="stat-label">Starting Capital</p>
       <p class="stat-value" id="s-inicio">$1,000.00</p>
     </div>
     <div class="stat-card highlight">
-      <p class="stat-label">Capital final</p>
+      <p class="stat-label">Final Capital</p>
       <p class="stat-value green" id="s-final">—</p>
     </div>
     <div class="stat-card">
-      <p class="stat-label">Ganancia total</p>
+      <p class="stat-label">Total Profit</p>
       <p class="stat-value green" id="s-ganancia">—</p>
     </div>
     <div class="stat-card">
-      <p class="stat-label">Retorno total</p>
+      <p class="stat-label">Total Return</p>
       <p class="stat-value green" id="s-retorno">—</p>
     </div>
   </div>
 
   <div class="chart-wrap">
-    <p class="section-title">// curva de crecimiento</p>
+    <p class="section-title">// growth curve</p>
     <div class="chart-container">
-      <canvas id="chart" role="img" aria-label="Curva de crecimiento del capital"></canvas>
+      <canvas id="chart" role="img" aria-label="Capital growth curve"></canvas>
     </div>
   </div>
 
   <div class="table-wrap">
     <div class="table-header">
-      <p class="section-title" style="margin:0">// detalle por operación</p>
+      <p class="section-title" style="margin:0">// operation detail</p>
     </div>
     <div class="table-scroll">
       <table>
         <thead>
           <tr>
             <th>Op.</th>
-            <th>Semana</th>
+            <th>Week</th>
             <th>Capital</th>
-            <th>Ganancia op.</th>
+            <th>Op. Profit</th>
           </tr>
         </thead>
         <tbody id="tbody"></tbody>
@@ -336,18 +336,18 @@
 let chartInst = null;
 
 function fmt(n) {
-  return '$' + Number(n).toLocaleString('es-CL', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  return '$' + Number(n).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 
-async function actualizar() {
+async function update() {
   const payload = {
     capital: parseFloat(document.getElementById('capital').value) || 1000,
     pct: parseFloat(document.getElementById('pct').value) || 6,
-    ops_semana: parseInt(document.getElementById('ops_semana').value) || 3,
-    semanas: parseInt(document.getElementById('semanas').value) || 4,
+    ops_per_week: parseInt(document.getElementById('ops_per_week').value) || 3,
+    weeks: parseInt(document.getElementById('weeks').value) || 4,
   };
 
-  const res = await fetch('/calcular', {
+  const res = await fetch('/calculate', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(payload)
@@ -356,10 +356,10 @@ async function actualizar() {
 
   document.getElementById('s-inicio').textContent = fmt(payload.capital);
   document.getElementById('s-final').textContent = fmt(d.final);
-  document.getElementById('s-ganancia').textContent = '+' + fmt(d.ganancia_total);
-  document.getElementById('s-retorno').textContent = '+' + d.retorno_pct.toFixed(1) + '%';
+  document.getElementById('s-ganancia').textContent = '+' + fmt(d.total_profit);
+  document.getElementById('s-retorno').textContent = '+' + d.return_pct.toFixed(1) + '%';
 
-  const labels = d.capitals.map((_, i) => i === 0 ? 'Inicio' : 'Op ' + i);
+  const labels = d.capitals.map((_, i) => i === 0 ? 'Start' : 'Op ' + i);
 
   if (chartInst) chartInst.destroy();
   chartInst = new Chart(document.getElementById('chart'), {
@@ -404,7 +404,7 @@ async function actualizar() {
           ticks: {
             color: '#5a6478',
             font: { family: 'Space Mono', size: 10 },
-            callback: v => '$' + Number(v).toLocaleString('es-CL', {maximumFractionDigits: 0})
+            callback: v => '$' + Number(v).toLocaleString('en-US', {maximumFractionDigits: 0})
           },
           grid: { color: 'rgba(31,37,48,0.8)' }
         }
@@ -414,20 +414,20 @@ async function actualizar() {
 
   const tbody = document.getElementById('tbody');
   tbody.innerHTML = '';
-  d.filas.forEach(f => {
+  d.rows.forEach(f => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><span class="badge">#${f.op}</span></td>
-      <td>Sem. ${f.semana}</td>
+      <td>Wk. ${f.week}</td>
       <td>${fmt(f.capital)}</td>
-      <td>+${fmt(f.ganancia_op)}</td>
+      <td>+${fmt(f.profit_op)}</td>
     `;
     tbody.appendChild(tr);
   });
 }
 
-document.querySelectorAll('input').forEach(el => el.addEventListener('input', actualizar));
-actualizar();
+document.querySelectorAll('input').forEach(el => el.addEventListener('input', update));
+update();
 </script>
 </body>
 </html>
