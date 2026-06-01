@@ -27,7 +27,6 @@ YAHOO_MARKETS = [
     {"name": "Itaú Chile",         "ticker": "ITAUCL.SN",   "region": "CHILE", "flag": "cl"},
     {"name": "CFMITNIPSA",         "ticker": "CFMITNIPSA.SN","region": "CHILE", "flag": "cl"},
     {"name": "Banco de Chile",     "ticker": "CHILE.SN",    "region": "CHILE", "flag": "cl"},
-    {"name": "POEL",               "ticker": "POEL",        "region": "US",    "flag": "us"},
     {"name": "SPCE",               "ticker": "SPCE",        "region": "US",    "flag": "us"},
     # Futures
     {"name": "Gold",               "ticker": "GC=F",     "region": "FUTURES", "icon": "🥇"},
