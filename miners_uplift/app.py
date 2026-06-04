@@ -32,12 +32,14 @@ from main import (
 
 app = Flask(__name__)
 
-# ── Hourly auto-refresh ────────────────────────────────────────────────────────
+# ── Midnight auto-refresh ──────────────────────────────────────────────────────
 
-def _hourly_scheduler():
+def _midnight_scheduler():
     while True:
-        time.sleep(3600)
-        print('Hourly auto-refresh triggered')
+        now = datetime.now()
+        next_midnight = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        time.sleep((next_midnight - now).total_seconds())
+        print('Midnight auto-refresh triggered')
         t = threading.Thread(target=_do_update, args=('all',), daemon=True)
         t.start()
 
@@ -429,7 +431,7 @@ def miner_search():
 # ── Entry point ────────────────────────────────────────────────────────────────
 
 # Start hourly scheduler and trigger an immediate update on startup
-threading.Thread(target=_hourly_scheduler, daemon=True).start()
+threading.Thread(target=_midnight_scheduler, daemon=True).start()
 threading.Thread(target=_do_update, args=('all',), daemon=True).start()
 
 if __name__ == '__main__':
