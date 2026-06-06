@@ -608,10 +608,10 @@ function renderIntraday(data, compareData) {{
     type: 'line',
     data: {{
       datasets: [
-        {{ label: 'Close', data: pts.map(d => ({{x: d.date, y: toVal(d.price)}})), borderColor: '#f0c040', backgroundColor: gradient, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: '#f0c040', fill: true, tension: 0.2, order: 1 }},
-        {{ label: 'High',  data: pts.map(d => ({{x: d.date, y: toVal(d.high)}})),  borderColor: '#4ade80', backgroundColor: 'transparent', borderWidth: 1.5, borderDash: [4,3], pointRadius: 0, pointHoverRadius: 4, fill: false, tension: 0.2, order: 2 }},
-        {{ label: 'Open',  data: pts.map(d => ({{x: d.date, y: toVal(d.open)}})),  borderColor: '#a3a3a3', backgroundColor: 'transparent', borderWidth: 1, borderDash: [2,4], pointRadius: 0, pointHoverRadius: 4, fill: false, tension: 0.2, order: 3 }},
-        {{ label: 'Low',   data: pts.map(d => ({{x: d.date, y: toVal(d.low)}})),   borderColor: '#f87171', backgroundColor: 'transparent', borderWidth: 1, borderDash: [3,3], pointRadius: 0, pointHoverRadius: 4, fill: false, tension: 0.2, order: 4 }},
+        {{ label: '{ticker} Close', data: pts.map(d => ({{x: d.date, y: toVal(d.price)}})), borderColor: '#f0c040', backgroundColor: gradient, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: '#f0c040', fill: true, tension: 0.2, order: 1 }},
+        {{ label: '{ticker} High',  data: pts.map(d => ({{x: d.date, y: toVal(d.high)}})),  borderColor: '#4ade80', backgroundColor: 'transparent', borderWidth: 1.5, borderDash: [4,3], pointRadius: 0, pointHoverRadius: 4, fill: false, tension: 0.2, order: 2 }},
+        {{ label: '{ticker} Open',  data: pts.map(d => ({{x: d.date, y: toVal(d.open)}})),  borderColor: '#a3a3a3', backgroundColor: 'transparent', borderWidth: 1, borderDash: [2,4], pointRadius: 0, pointHoverRadius: 4, fill: false, tension: 0.2, order: 3 }},
+        {{ label: '{ticker} Low',   data: pts.map(d => ({{x: d.date, y: toVal(d.low)}})),   borderColor: '#f87171', backgroundColor: 'transparent', borderWidth: 1, borderDash: [3,3], pointRadius: 0, pointHoverRadius: 4, fill: false, tension: 0.2, order: 4 }},
         ...compareDatasets
       ]
     }},
@@ -732,7 +732,7 @@ function render(from, to) {{
       labels,
       datasets: [
         {{
-          label: 'Close',
+          label: '{ticker} Close',
           data: closePrices,
           borderColor: '#f0c040',
           backgroundColor: gradient,
@@ -745,7 +745,7 @@ function render(from, to) {{
           order: 1
         }},
         {{
-          label: 'High',
+          label: '{ticker} High',
           data: data.map(d => toVal(d.high)),
           borderColor: '#4ade80',
           backgroundColor: 'transparent',
@@ -759,7 +759,7 @@ function render(from, to) {{
           order: 2
         }},
         {{
-          label: 'Open',
+          label: '{ticker} Open',
           data: data.map(d => toVal(d.open)),
           borderColor: '#f0c040',
           backgroundColor: 'transparent',
@@ -773,7 +773,7 @@ function render(from, to) {{
           order: 3
         }},
         {{
-          label: 'Low',
+          label: '{ticker} Low',
           data: data.map(d => toVal(d.low)),
           borderColor: '#f87171',
           backgroundColor: 'transparent',
@@ -940,6 +940,31 @@ function render(from, to) {{
     return +((( d.price - peak) / peak) * 100).toFixed(4);
   }});
 
+  const compareDrawdownDatasets = compareItems.map((c, idx) => {{
+    const cData = c.allData.filter(d => d.date >= from && d.date <= to);
+    if (cData.length === 0) return null;
+    let cPeak = -Infinity;
+    const ddByDate = new Map();
+    cData.forEach(d => {{
+      if (d.price > cPeak) cPeak = d.price;
+      ddByDate.set(d.date.toDateString(), +((d.price - cPeak) / cPeak * 100).toFixed(4));
+    }});
+    const clr = COMPARE_COLORS[idx % COMPARE_COLORS.length];
+    return {{
+      label: c.ticker,
+      data: labels.map(lbl => {{ const v = ddByDate.get(lbl.toDateString()); return v !== undefined ? v : null; }}),
+      borderColor: clr,
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: clr,
+      fill: false,
+      tension: 0.2,
+      spanGaps: false
+    }};
+  }}).filter(d => d !== null);
+
   if (drawdownChart) drawdownChart.destroy();
   const ddCtx = document.getElementById('drawdownChart').getContext('2d');
   const ddGrad = ddCtx.createLinearGradient(0, 0, 0, 180);
@@ -950,24 +975,27 @@ function render(from, to) {{
     type: 'line',
     data: {{
       labels,
-      datasets: [{{
-        label: 'Drawdown',
-        data: ddValues,
-        borderColor: '#f87171',
-        backgroundColor: ddGrad,
-        borderWidth: 1.5,
-        pointRadius: 0,
-        pointHoverRadius: 4,
-        pointHoverBackgroundColor: '#f87171',
-        fill: true,
-        tension: 0.2
-      }}]
+      datasets: [
+        {{
+          label: '{ticker}',
+          data: ddValues,
+          borderColor: '#f87171',
+          backgroundColor: ddGrad,
+          borderWidth: 1.5,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: '#f87171',
+          fill: true,
+          tension: 0.2
+        }},
+        ...compareDrawdownDatasets
+      ]
     }},
     options: {{
       responsive: true,
       interaction: {{ mode: 'index', intersect: false }},
       plugins: {{
-        legend: {{ display: false }},
+        legend: {{ display: compareDrawdownDatasets.length > 0, position: 'top', align: 'end', labels: {{ color: '#a8a8c8', font: {{ family: 'Space Mono', size: 10 }}, boxWidth: 24, boxHeight: 2, padding: 16 }} }},
         tooltip: {{
           backgroundColor: '#111118', borderColor: '#1e1e2e', borderWidth: 1,
           titleColor: '#f0c040', bodyColor: '#e8e8f0',
@@ -976,7 +1004,7 @@ function render(from, to) {{
           padding: 12,
           callbacks: {{
             title: (items) => fmtDate(new Date(items[0].parsed.x)),
-            label: (item) => ` Drawdown: ${{item.parsed.y.toFixed(2)}}%`
+            label: (item) => ` ${{item.dataset.label}}: ${{item.parsed.y.toFixed(2)}}%`
           }}
         }}
       }},
