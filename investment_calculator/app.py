@@ -1,7 +1,14 @@
 import os
+import sys
+import threading
+import webbrowser
+import time
 from flask import Flask, send_from_directory, request, jsonify
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if getattr(sys, 'frozen', False):
+    BASE_DIR = sys._MEIPASS
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
 
 @app.route("/")
@@ -48,4 +55,6 @@ def calculate():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
+    if getattr(sys, 'frozen', False):
+        threading.Thread(target=lambda: (time.sleep(1.2), webbrowser.open(f"http://localhost:{port}")), daemon=True).start()
     app.run(host="0.0.0.0", port=port)

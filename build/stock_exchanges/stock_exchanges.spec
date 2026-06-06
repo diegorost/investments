@@ -1,6 +1,6 @@
 import os
 
-src = os.path.normpath(os.path.join(SPECPATH, '..', '..', 'pricedate'))
+src = os.path.normpath(os.path.join(SPECPATH, '..', '..', 'stock_exchanges'))
 
 a = Analysis(
     [os.path.join(src, 'app.py')],
@@ -23,7 +23,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='pricedate',
+    name='stock_exchanges',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

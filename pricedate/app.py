@@ -1,4 +1,8 @@
 import os
+import sys
+import threading
+import webbrowser
+import time
 import json
 from datetime import datetime, timedelta
 
@@ -180,4 +184,6 @@ def price():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5050))
     print(f"Price Lookup running on port {port}")
+    if getattr(sys, 'frozen', False):
+        threading.Thread(target=lambda: (time.sleep(1.2), webbrowser.open(f"http://localhost:{port}")), daemon=True).start()
     app.run(host="0.0.0.0", port=port, debug=False)

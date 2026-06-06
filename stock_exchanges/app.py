@@ -1,4 +1,8 @@
 import os
+import sys
+import threading
+import webbrowser
+import time
 import json
 import concurrent.futures
 from datetime import datetime
@@ -279,4 +283,6 @@ def api_yahoo():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
+    if getattr(sys, 'frozen', False):
+        threading.Thread(target=lambda: (time.sleep(1.2), webbrowser.open(f"http://localhost:{port}")), daemon=True).start()
     app.run(host="0.0.0.0", port=port)

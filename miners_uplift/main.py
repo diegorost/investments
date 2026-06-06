@@ -24,10 +24,19 @@ import yfinance as yf
 from pathlib import Path
 from datetime import datetime
 
-BASE_DIR    = Path(__file__).parent
+BASE_DIR    = Path(sys.executable).parent if getattr(sys, 'frozen', False) else Path(__file__).parent
 GOLD_HTML   = BASE_DIR / 'etf_gold_miners_uplift'  / 'gold_analysisETF.html'
 SILVER_HTML = BASE_DIR / 'etf_silver_miners_uplift' / 'silver_analysisETF.html'
 OUTPUT_HTML = BASE_DIR / 'miners_uplift.html'
+
+if getattr(sys, 'frozen', False):
+    _meipass = Path(sys._MEIPASS)
+    for _rel in ('etf_gold_miners_uplift/gold_analysisETF.html',
+                 'etf_silver_miners_uplift/silver_analysisETF.html'):
+        _dst = BASE_DIR / _rel
+        if not _dst.exists():
+            _dst.parent.mkdir(parents=True, exist_ok=True)
+            import shutil; shutil.copy2(_meipass / _rel, _dst)
 
 #  Ticker maps 
 
