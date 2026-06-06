@@ -254,8 +254,13 @@ async function load() {
 
 function reload() { load(); }
 
+function isMarketHours() {
+  const h = new Date().getHours();
+  return h >= 9 && h < 18;
+}
+
 load();
-setInterval(load, 60000);
+setInterval(() => { if (isMarketHours()) load(); }, 60000);
 </script>
 </body>
 </html>"""
