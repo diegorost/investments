@@ -435,8 +435,11 @@ threading.Thread(target=_midnight_scheduler, daemon=True).start()
 threading.Thread(target=_do_update, args=('all',), daemon=True).start()
 
 if __name__ == '__main__':
+    import sys, threading, time, webbrowser
     port = int(os.environ.get('PORT', 5001))
     print(f'\nMiners Uplift Dashboard running at http://127.0.0.1:{port}')
+    if getattr(sys, 'frozen', False):
+        threading.Thread(target=lambda: (time.sleep(1.5), webbrowser.open(f'http://localhost:{port}')), daemon=True).start()
     # Generate merged HTML on startup if not present
     if not OUTPUT_HTML.exists():
         print('Generating initial merged HTML...')

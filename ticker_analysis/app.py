@@ -13,6 +13,10 @@ Deploy:
 """
 
 import os
+import sys
+import threading
+import webbrowser
+import time
 import json
 from datetime import datetime
 
@@ -1518,6 +1522,8 @@ def api_intraday():
     return Response(json.dumps({"ticker": ticker, "data": rows}), mimetype="application/json")
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 5020))
+    if getattr(sys, 'frozen', False):
+        threading.Thread(target=lambda: (time.sleep(1.2), webbrowser.open(f"http://localhost:{port}")), daemon=True).start()
     print(f"\nTicker Dashboard running on port {port}")
     app.run(host="0.0.0.0", port=port, debug=False)

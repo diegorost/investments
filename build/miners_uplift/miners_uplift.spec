@@ -3,14 +3,14 @@ import os
 src = os.path.normpath(os.path.join(SPECPATH, '..', '..', 'miners_uplift'))
 
 a = Analysis(
-    [os.path.join(src, 'main.py')],
+    [os.path.join(src, 'app.py')],
     pathex=[src],
     binaries=[],
     datas=[
         (os.path.join(src, 'etf_gold_miners_uplift', 'gold_analysisETF.html'),   'etf_gold_miners_uplift'),
         (os.path.join(src, 'etf_silver_miners_uplift', 'silver_analysisETF.html'), 'etf_silver_miners_uplift'),
     ],
-    hiddenimports=['yfinance', 'pandas', 'requests', 'lxml', 'beautifulsoup4'],
+    hiddenimports=['flask', 'werkzeug', 'jinja2', 'click', 'itsdangerous', 'yfinance', 'pandas', 'requests', 'lxml', 'bs4', 'cloudscraper'],
     hookspath=[],
     runtime_hooks=[],
     excludes=[],

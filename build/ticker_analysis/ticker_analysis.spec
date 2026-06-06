@@ -1,12 +1,13 @@
-# -*- mode: python ; coding: utf-8 -*-
+import os
 
+src = os.path.normpath(os.path.join(SPECPATH, '..', '..', 'ticker_analysis'))
 
 a = Analysis(
-    ['ticker_analysis\\ticker_analysis.py'],
-    pathex=[],
+    [os.path.join(src, 'app.py')],
+    pathex=[src],
     binaries=[],
     datas=[],
-    hiddenimports=[],
+    hiddenimports=['flask', 'werkzeug', 'jinja2', 'click', 'itsdangerous', 'yfinance', 'pandas'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

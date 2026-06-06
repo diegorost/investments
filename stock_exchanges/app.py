@@ -31,7 +31,6 @@ YAHOO_MARKETS = [
     {"name": "Itaú Chile",         "ticker": "ITAUCL.SN",   "region": "CHILE", "flag": "cl"},
     {"name": "CFMITNIPSA",         "ticker": "CFMITNIPSA.SN","region": "CHILE", "flag": "cl"},
     {"name": "Banco de Chile",     "ticker": "CHILE.SN",    "region": "CHILE", "flag": "cl"},
-    {"name": "VCX",                "ticker": "VCX",         "region": "US",    "flag": "us"},
     # Futures
     {"name": "Gold",               "ticker": "GC=F",     "region": "FUTURES", "icon": "🥇"},
     {"name": "Silver",             "ticker": "SI=F",     "region": "FUTURES", "icon": "🥈"},
@@ -282,7 +281,7 @@ def api_yahoo():
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 5010))
     if getattr(sys, 'frozen', False):
         threading.Thread(target=lambda: (time.sleep(1.2), webbrowser.open(f"http://localhost:{port}")), daemon=True).start()
     app.run(host="0.0.0.0", port=port)
