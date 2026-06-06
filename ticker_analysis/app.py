@@ -266,6 +266,7 @@ def build_html(ticker, long_name, rows, data_js, period="1y", compare_tickers=No
     <button class="btn" onclick="setPreset('1M')">1M</button>
     <button class="btn" onclick="setPreset('3M')">3M</button>
     <button class="btn" onclick="setPreset('6M')">6M</button>
+    <button class="btn" onclick="setPreset('YTD')">YTD</button>
     <button class="btn" onclick="setPreset('1Y')">1Y</button>
     <button class="btn" onclick="setPreset('3Y')">3Y</button>
     <button class="btn" onclick="setPreset('5Y')">5Y</button>
@@ -492,6 +493,7 @@ function setPreset(p) {{
   else if (p === '1M')  from.setMonth(from.getMonth()-1);
   else if (p === '3M')  from.setMonth(from.getMonth()-3);
   else if (p === '6M')  from.setMonth(from.getMonth()-6);
+  else if (p === 'YTD') {{ from = new Date(from.getFullYear(), 0, 1); }}
   else if (p === '1Y')  from.setFullYear(from.getFullYear()-1);
   else if (p === '3Y')  from.setFullYear(from.getFullYear()-3);
   else if (p === '5Y')  from.setFullYear(from.getFullYear()-5);
