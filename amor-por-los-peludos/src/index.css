@@ -1,0 +1,59 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme {
+  --font-sans: "Quicksand", "Segoe UI", system-ui, sans-serif;
+
+  /* Paleta cálida: crema, dorado, verde salvia, azul cielo */
+  --color-cream: #fdf8f0;
+  --color-cream-dark: #f6ecd9;
+  --color-gold: #f2b84b;
+  --color-gold-dark: #d99a2b;
+  --color-sage: #8fae8b;
+  --color-sage-dark: #6f9268;
+  --color-sky: #8ecae6;
+  --color-sky-dark: #5fa8cf;
+  --color-ink: #4a3f35;
+  --color-ink-light: #7a6f64;
+
+  --radius-card: 1.5rem;
+
+  /* Tokens shadcn mapeados a la paleta cálida */
+  --color-background: var(--color-cream);
+  --color-foreground: var(--color-ink);
+  --color-card: #ffffff;
+  --color-card-foreground: var(--color-ink);
+  --color-popover: #ffffff;
+  --color-popover-foreground: var(--color-ink);
+  --color-primary: var(--color-gold);
+  --color-primary-foreground: var(--color-ink);
+  --color-secondary: var(--color-sage);
+  --color-secondary-foreground: #ffffff;
+  --color-muted: var(--color-cream-dark);
+  --color-muted-foreground: var(--color-ink-light);
+  --color-accent: var(--color-sky);
+  --color-accent-foreground: var(--color-ink);
+  --color-destructive: #e07856;
+  --color-border: var(--color-cream-dark);
+  --color-input: var(--color-cream-dark);
+  --color-ring: var(--color-gold);
+
+  --radius: var(--radius-card);
+  --radius-sm: calc(var(--radius-card) - 0.75rem);
+  --radius-md: calc(var(--radius-card) - 0.5rem);
+  --radius-lg: var(--radius-card);
+  --radius-xl: calc(var(--radius-card) + 0.5rem);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-cream-dark);
+  }
+
+  body {
+    background-color: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+}
