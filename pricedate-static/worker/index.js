@@ -11,50 +11,32 @@ function jsonResponse(body, status = 200) {
   });
 }
 
-function fmtDate(d) {
-  return d.toISOString().slice(0, 10).replace(/-/g, "");
-}
-
-function parseStooqCsv(text) {
-  const lines = text.trim().split("\n");
-  if (lines.length < 2 || lines[0].startsWith("No data")) return [];
-  const header = lines[0].split(",");
-  const idx = {};
-  header.forEach((h, i) => (idx[h.trim()] = i));
-  return lines
-    .slice(1)
-    .map((line) => {
-      const cols = line.split(",");
-      return {
-        date: cols[idx["Date"]],
-        high: parseFloat(cols[idx["High"]]),
-        low: parseFloat(cols[idx["Low"]]),
-      };
-    })
-    .filter((r) => r.date && !isNaN(r.high) && !isNaN(r.low));
-}
-
-async function fetchSeries(symbol, start, end) {
-  const url = `https://stooq.com/q/d/l/?s=${encodeURIComponent(symbol)}&d1=${start}&d2=${end}&i=d`;
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`Failed to fetch data for ${symbol}`);
-  const text = await r.text();
-  return parseStooqCsv(text);
+async function fetchSeries(ticker, period1, period2) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${period1}&period2=${period2}&interval=1d`;
+  const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
+  if (!r.ok) throw new Error(`Failed to fetch data for ${ticker}`);
+  const data = await r.json();
+  const result = data.chart && data.chart.result && data.chart.result[0];
+  if (!result) return [];
+  const timestamps = result.timestamp || [];
+  const quote = result.indicators.quote[0];
+  return timestamps.map((ts, i) => ({
+    date: new Date(ts * 1000).toISOString().slice(0, 10),
+    high: quote.high[i],
+    low: quote.low[i],
+  })).filter((r) => r.high != null && r.low != null);
 }
 
 async function getPrice(ticker, dateStr) {
   const d = new Date(dateStr + "T00:00:00Z");
   const end = new Date(d);
   end.setUTCDate(end.getUTCDate() + 7);
-  const start = fmtDate(d);
-  const endStr = fmtDate(end);
+  const period1 = Math.floor(d.getTime() / 1000);
+  const period2 = Math.floor(end.getTime() / 1000);
 
-  const candidates = [ticker.toLowerCase(), `${ticker.toLowerCase()}.us`];
-  for (const sym of candidates) {
-    const rows = await fetchSeries(sym, start, endStr);
-    const row = rows.find((r) => r.date >= dateStr);
-    if (row) return { price: (row.high + row.low) / 2, date: row.date };
-  }
+  const rows = await fetchSeries(ticker, period1, period2);
+  const row = rows.find((r) => r.date >= dateStr);
+  if (row) return { price: (row.high + row.low) / 2, date: row.date };
   throw new Error(`No data for ${ticker} on or after ${dateStr}`);
 }
 
