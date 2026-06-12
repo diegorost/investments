@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Markets</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0f1117; color: #e0e0e0; min-height: 100vh; padding: 40px 20px; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px; align-items: start; }
+  @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
+  h1 { font-size: 1.5rem; font-weight: 700; color: #fff; letter-spacing: -.01em; }
+  .meta { font-size: 0.78rem; color: #555; display: flex; align-items: center; gap: 12px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; flex-shrink: 0; }
+  .dot.loading { background: #f59e0b; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.25} }
+  .refresh-btn { background: none; border: 1px solid #2a2d3a; border-radius: 6px; color: #666; font-size: 0.78rem; padding: 5px 12px; cursor: pointer; transition: border-color .2s, color .2s; }
+  .refresh-btn:hover { border-color: #4f8ef7; color: #4f8ef7; }
+  .section { margin-bottom: 32px; }
+  .section-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .12em; color: #444; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid #1a1d27; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { font-size: 0.7rem; color: #444; text-transform: uppercase; letter-spacing: .07em; padding: 0 6px 10px; text-align: left; }
+  thead th:not(:first-child) { text-align: right; }
+  tbody tr:hover td { background: #13151f; }
+  tbody td { padding: 11px 6px; border-bottom: 1px solid #13151f; font-size: 0.94rem; transition: background .12s; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+  .market-name { font-weight: 600; color: #ddd; }
+  .value { color: #b0b8c8; }
+  .pos { color: #4ade80; }
+  .neg { color: #f87171; }
+  .na { color: #2a2d3a; }
+  .unavail { color: #333; font-size: 0.8rem; }
+  .empty-msg { padding: 48px 0; text-align: center; color: #333; font-size: 0.88rem; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>World Markets</h1>
+    <div class="meta">
+      <span class="dot loading" id="dot"></span>
+      <span id="updated">Loading…</span>
+      <button class="refresh-btn" onclick="reload()">&#8635; Refresh</button>
+    </div>
+  </header>
+
+  <div id="content"><div class="empty-msg">Loading…</div></div>
+</div>
+
+<script>
+const API_BASE = 'https://stock-exchanges-api.diegointheworks.workers.dev';
+
+const fmt  = (n, d) => n == null ? '<span class="na">—</span>'
+  : n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+const sign = n => n > 0 ? '+' : '';
+const cls  = n => n == null ? '' : n >= 0 ? 'pos' : 'neg';
+
+function renderSection(title, markets) {
+  if (!markets.length) return '';
+  const rows = markets.map(m => {
+    const d = m.dec || 2;
+    const valCell = (m.error && m.value == null)
+      ? `<span class="unavail">${m.error}</span>`
+      : `<span class="value">${fmt(m.value, d)}</span>`;
+    const chgCell = m.change == null ? '<span class="na">—</span>'
+      : `<span class="${cls(m.change)}">${sign(m.change)}${fmt(m.change, d)}</span>`;
+    const pctCell = m.pct == null ? '<span class="na">—</span>'
+      : `<span class="${cls(m.pct)}">${sign(m.pct)}${fmt(m.pct, 2)}%</span>`;
+    const iconHtml = m.icon ? `<span style="margin-right:7px;font-size:1.05em;vertical-align:middle">${m.icon}</span>` : '';
+    const flagList = m.flags || (m.flag ? [m.flag] : []);
+    const flagsHtml = flagList.map((f, i) =>
+      `<img src="https://flagcdn.com/20x15/${f}.png" width="20" height="15" style="vertical-align:middle;border-radius:2px;${i < flagList.length - 1 ? 'margin-right:3px' : 'margin-right:7px'}">`
+    ).join('');
+    return `<tr>
+      <td class="market-name">${iconHtml}${flagsHtml}${m.name}</td>
+      <td>${valCell}</td><td>${chgCell}</td><td>${pctCell}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="section">
+    <div class="section-title">${title}</div>
+    <table>
+      <thead><tr><th>Market</th><th>Value</th><th>Change</th><th>% Change</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+function render(data) {
+  const us     = data.markets.filter(m => m.region === 'US');
+  const latam  = data.markets.filter(m => m.region === 'LATAM');
+  const chile  = data.markets.filter(m => m.region === 'CHILE');
+  const metals = data.markets.filter(m => m.region === 'FUTURES');
+  const forex  = data.markets.filter(m => m.region === 'FOREX');
+  const miners = data.markets.filter(m => m.region === 'MINERS');
+  document.getElementById('content').innerHTML = `
+    <div class="grid">
+      <div>
+        ${renderSection('United States', us)}
+        ${renderSection('Forex (1 USD = X)', forex)}
+        ${renderSection('Chile Stocks', chile)}
+      </div>
+      <div>
+        ${renderSection('Futures', metals)}
+        ${renderSection('Latin America', latam)}
+        ${renderSection('Miners', miners)}
+      </div>
+    </div>`;
+  document.getElementById('updated').textContent = 'Updated: ' + data.updated;
+  document.getElementById('dot').className = 'dot';
+}
+
+async function load() {
+  document.getElementById('dot').className = 'dot loading';
+  try {
+    const res  = await fetch(`${API_BASE}/api/yahoo`);
+    const data = await res.json();
+    render(data);
+  } catch {
+    document.getElementById('updated').textContent = 'Connection error';
+  }
+}
+
+function reload() { load(); }
+
+function isMarketHours() {
+  const h = new Date().getHours();
+  return h >= 9 && h < 18;
+}
+
+load();
+setInterval(() => { if (isMarketHours()) load(); }, 60000);
+</script>
+</body>
+</html>
