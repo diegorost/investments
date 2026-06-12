@@ -1,0 +1,1400 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitle">Ticker Analysis</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #09090f; --panel: #111118; --border: #1e1e2e;
+    --accent: #f0c040; --accent2: #e05a5a; --accent3: #5ab4e0;
+    --text: #e8e8f0; --muted: #a8a8c8; --green: #4ade80; --red: #f87171;
+  }
+  [data-theme="white"] {
+    --bg: #f4f4f8; --panel: #ffffff; --border: #dcdce8;
+    --accent: #7c3aed; --accent2: #e05a5a; --accent3: #0284c7;
+    --text: #1a1a2e; --muted: #8080a0; --green: #16a34a; --red: #dc2626;
+  }
+  [data-theme="classic"] {
+    --bg: #0a0e1a; --panel: #0f1629; --border: #1e2d4a;
+    --accent: #00d4ff; --accent2: #ff6b6b; --accent3: #7dd3fc;
+    --text: #c8d8f0; --muted: #4a6080; --green: #00e676; --red: #ff5252;
+  }
+  .theme-wrap { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+  .theme-label { font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--text); text-transform: uppercase; letter-spacing: 1px; }
+  .theme-btn { font-family: 'Space Mono', monospace; font-size: 0.65rem; font-weight: 700; letter-spacing: 1px; padding: 6px 11px; border: 1px solid var(--border); background: var(--panel); color: var(--muted); cursor: pointer; border-radius: 4px; transition: all 0.15s; text-transform: uppercase; white-space: nowrap; }
+  .theme-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .theme-btn.active { border-color: var(--accent); background: rgba(255,255,255,0.06); color: var(--accent); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; padding: 32px 24px; }
+  .header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+  .header h1 { font-size: 2.8rem; font-weight: 800; letter-spacing: -1px; color: var(--accent); line-height: 1; }
+  .header .sub { font-family: 'Space Mono', monospace; font-size: 0.75rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+  .ticker-search { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; }
+  .ticker-search input[type="text"] {
+    font-family: 'Space Mono', monospace; font-size: 0.85rem; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; padding: 9px 14px; background: var(--panel);
+    border: 1px solid var(--border); color: var(--accent); border-radius: 4px;
+    outline: none; width: 140px; transition: border-color 0.15s;
+  }
+  .ticker-search input[type="text"]:focus { border-color: var(--accent); }
+  .ticker-search select {
+    font-family: 'Space Mono', monospace; font-size: 0.75rem; padding: 9px 12px;
+    background: var(--panel); border: 1px solid var(--border); color: var(--text);
+    border-radius: 4px; outline: none; cursor: pointer; transition: border-color 0.15s;
+  }
+  .ticker-search select:focus { border-color: var(--accent); }
+  .topbar { display: flex; flex-wrap: nowrap; gap: 10px; align-items: center; margin-bottom: 24px; overflow-x: auto; }
+  .preset-btns { display: flex; gap: 6px; }
+  .btn { font-family: 'Space Mono', monospace; font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; padding: 7px 14px; border: 1px solid var(--border); background: var(--panel); color: var(--muted); cursor: pointer; border-radius: 4px; transition: all 0.15s; text-transform: uppercase; }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.active { border-color: var(--accent); background: rgba(240,192,64,0.1); color: var(--accent); }
+  .date-inputs { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+  .date-inputs label { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .date-inputs input[type="date"] { font-family: 'Space Mono', monospace; font-size: 0.75rem; padding: 7px 10px; background: var(--panel); border: 1px solid var(--border); color: var(--text); border-radius: 4px; outline: none; cursor: pointer; transition: border-color 0.15s; }
+  .date-inputs input[type="date"]:focus { border-color: var(--accent); }
+  .apply-btn { font-family: 'Space Mono', monospace; font-size: 0.7rem; font-weight: 700; padding: 7px 16px; background: var(--accent); color: #09090f; border: none; border-radius: 4px; cursor: pointer; letter-spacing: 1px; text-transform: uppercase; transition: opacity 0.15s; }
+  .apply-btn:hover { opacity: 0.85; }
+  .chart-panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 24px; position: relative; }
+  .chart-panel canvas { max-height: 400px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stat-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; transition: border-color 0.15s; }
+  .stat-card:hover { border-color: var(--accent); }
+  .stat-label { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--text); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+  .stat-value { font-size: 1.6rem; font-weight: 800; line-height: 1; }
+  #indicatorsGrid .stat-value { white-space: nowrap; }
+  .ind-toggles { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .ind-toggle { font-family: 'Space Mono', monospace; font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; padding: 5px 14px; border: 1.5px solid var(--tc, #888); background: transparent; color: var(--tc, #888); cursor: pointer; border-radius: 20px; transition: all 0.15s; text-transform: uppercase; }
+  .ind-toggle.active { background: var(--tc, #888); color: #09090f; }
+  .ind-toggle:not(.active) { text-decoration: line-through; opacity: 0.5; }
+  .ind-toggle:hover { opacity: 0.75; text-decoration: none; }
+  .stat-sub { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--text); margin-top: 4px; }
+  .stat-card.high .stat-value { color: var(--green); }
+  .stat-card.low .stat-value { color: var(--red); }
+  .stat-card.range .stat-value { color: var(--accent3); }
+  .stat-card.count .stat-value { color: var(--accent); }
+  .stat-card.change-pos .stat-value { color: var(--green); }
+  .stat-card.change-neg .stat-value { color: var(--red); }
+  .table-section h2 { font-size: 0.8rem; font-family: 'Space Mono', monospace; letter-spacing: 3px; text-transform: uppercase; color: var(--text); margin-bottom: 16px; }
+  .top-tables { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 768px) {
+    body { padding: 16px 12px; }
+    .header { margin-bottom: 14px; }
+    .header h1 { font-size: 1.8rem; }
+    .header .sub { font-size: 0.6rem; letter-spacing: 1px; }
+    .topbar { flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .ticker-search input[type="text"] { width: 100px; font-size: 0.75rem; padding: 7px 10px; }
+    .apply-btn { padding: 7px 12px; font-size: 0.65rem; }
+    .preset-btns { flex-wrap: wrap; gap: 4px; }
+    .btn { font-size: 0.62rem; padding: 5px 9px; letter-spacing: 0; }
+    .mode-toggle { gap: 4px; }
+    .date-inputs { display: none; }
+    #btnReset { display: none !important; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
+    #indicatorsGrid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px; margin-bottom: 16px; }
+    .stat-card { padding: 12px 14px; }
+    .stat-value { font-size: 1.2rem; }
+    .stat-sub { font-size: 0.6rem; }
+    .chart-panel { padding: 12px; margin-bottom: 12px; }
+    .chart-panel canvas { max-height: 260px; }
+    #drawdownChart { max-height: 120px !important; }
+    .divider { margin: 16px 0; }
+    .top-tables { grid-template-columns: 1fr; gap: 12px; }
+    .table-panel { overflow-x: auto; padding: 14px; }
+    table { font-size: 0.65rem; min-width: 320px; }
+    thead th { padding: 8px; font-size: 0.55rem; }
+    tbody td { padding: 6px 8px; }
+    .generated { font-size: 0.55rem; margin-top: 20px; }
+  }
+  table { width: 100%; border-collapse: collapse; font-family: 'Space Mono', monospace; font-size: 0.72rem; }
+  thead th { text-align: left; padding: 10px 12px; font-size: 0.62rem; letter-spacing: 2px; text-transform: uppercase; color: var(--text); border-bottom: 1px solid var(--border); }
+  tbody tr { transition: background 0.1s; }
+  tbody tr:hover { background: rgba(240,192,64,0.04); }
+  tbody td { padding: 9px 12px; border-bottom: 1px solid rgba(30,30,46,0.6); color: var(--text); }
+  .rank { color: var(--muted); font-size: 0.6rem; }
+  .tbl-high { color: var(--green); font-weight: 700; }
+  .tbl-low { color: var(--red); font-weight: 700; }
+  .table-panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+  .table-panel h3 { font-size: 0.7rem; font-family: 'Space Mono', monospace; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 14px; }
+  .table-panel.highs h3 { color: var(--green); }
+  .table-panel.lows h3 { color: var(--red); }
+  .divider { height: 1px; background: var(--border); margin: 28px 0; }
+  .generated { font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--muted); text-align: right; margin-top: 32px; }
+  .error-msg { font-family: 'Space Mono', monospace; font-size: 0.9rem; color: var(--red); background: var(--panel); border: 1px solid var(--red); border-radius: 8px; padding: 20px 24px; margin-bottom: 24px; }
+  .compare-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .compare-label { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; white-space: nowrap; }
+  .compare-input { font-family: 'Space Mono', monospace; font-size: 0.8rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; padding: 6px 12px; background: var(--panel); border: 1px solid var(--border); color: var(--accent); border-radius: 4px; outline: none; width: 110px; transition: border-color 0.15s; }
+  .compare-input:focus { border-color: var(--accent); }
+  .add-ticker-btn { font-family: 'Space Mono', monospace; font-size: 1.1rem; font-weight: 700; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; padding: 0; border: 1px solid var(--border); background: var(--panel); color: var(--muted); cursor: pointer; border-radius: 4px; transition: all 0.15s; flex-shrink: 0; }
+  .add-ticker-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .compare-chip { display: inline-flex; align-items: center; gap: 5px; font-family: 'Space Mono', monospace; font-size: 0.68rem; font-weight: 700; letter-spacing: 1px; padding: 4px 10px 4px 8px; border: 1px solid; border-radius: 20px; }
+  .chip-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .chip-remove { cursor: pointer; opacity: 0.55; margin-left: 3px; font-size: 0.9rem; line-height: 1; }
+  .chip-remove:hover { opacity: 1; }
+  .export-btn { margin-left: auto; font-family: 'Space Mono', monospace; font-size: 0.62rem; font-weight: 700; letter-spacing: 1px; padding: 5px 12px; background: transparent; border: 1px solid var(--border); color: var(--muted); cursor: pointer; border-radius: 4px; transition: all 0.15s; text-transform: uppercase; white-space: nowrap; flex-shrink: 0; }
+  .export-btn:hover { border-color: var(--accent3); color: var(--accent3); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1 id="tickerHeading">…</h1>
+  <div>
+    <div class="sub" id="longNameSub"></div>
+    <div class="sub">Price History Dashboard</div>
+  </div>
+  <div class="theme-wrap">
+    <span class="theme-label">Theme</span>
+    <button class="theme-btn" id="theme-modern" onclick="applyTheme('modern')">Modern</button>
+    <button class="theme-btn" id="theme-white" onclick="applyTheme('white')">White</button>
+    <button class="theme-btn" id="theme-classic" onclick="applyTheme('classic')">Classic</button>
+  </div>
+</div>
+
+<div class="topbar">
+<form class="ticker-search" id="tickerForm">
+  <input type="text" id="tickerInput" name="ticker" placeholder="Ticker symbol…" autocomplete="off" autocapitalize="characters" spellcheck="false">
+  <button type="submit" class="apply-btn">Search</button>
+</form>
+  <div class="preset-btns">
+    <button class="btn" onclick="setPreset('1D')">1D</button>
+    <button class="btn" onclick="setPreset('1W')">1W</button>
+    <button class="btn" onclick="setPreset('2W')">2W</button>
+    <button class="btn" onclick="setPreset('3W')">3W</button>
+    <button class="btn" onclick="setPreset('1M')">1M</button>
+    <button class="btn" onclick="setPreset('3M')">3M</button>
+    <button class="btn" onclick="setPreset('6M')">6M</button>
+    <button class="btn" onclick="setPreset('YTD')">YTD</button>
+    <button class="btn" onclick="setPreset('1Y')">1Y</button>
+    <button class="btn" onclick="setPreset('3Y')">3Y</button>
+    <button class="btn" onclick="setPreset('5Y')">5Y</button>
+    <button class="btn" onclick="setPreset('10Y')">10Y</button>
+    <button class="btn" onclick="setPreset('MAX')">MAX</button>
+  </div>
+  <div class="mode-toggle" style="display:flex;gap:6px;">
+    <button class="btn active" id="btnPrice" onclick="setMode('price')">$ Price</button>
+    <button class="btn" id="btnPct" onclick="setMode('pct')">% Change</button>
+  </div>
+  <button class="btn" id="btnReset" onclick="resetZoom()" style="display:none; border-color:#5ab4e0; color:#5ab4e0;">↩ Reset Zoom</button>
+  <div class="date-inputs">
+    <label>From</label>
+    <input type="date" id="dateFrom">
+    <label>To</label>
+    <input type="date" id="dateTo">
+    <button class="apply-btn" onclick="applyCustomRange()">Apply</button>
+  </div>
+</div>
+
+<div class="stats-grid" id="statsGrid"></div>
+
+<div class="ind-toggles">
+  <button class="ind-toggle active" id="tog-rsi"   onclick="toggleGroup('rsi')"   style="--tc:#f0c040">RSI</button>
+  <button class="ind-toggle active" id="tog-vwap"  onclick="toggleGroup('vwap')"  style="--tc:#34d399">VWAP</button>
+  <button class="ind-toggle active" id="tog-sma"   onclick="toggleGroup('sma')"   style="--tc:#5ab4e0">SMA</button>
+  <button class="ind-toggle active" id="tog-ema"   onclick="toggleGroup('ema')"   style="--tc:#fb923c">EMA</button>
+  <button class="ind-toggle active" id="tog-close" onclick="toggleGroup('close')" style="--tc:#f0c040">Close</button>
+  <button class="ind-toggle active" id="tog-high"  onclick="toggleGroup('high')"  style="--tc:#4ade80">High</button>
+  <button class="ind-toggle active" id="tog-open"  onclick="toggleGroup('open')"  style="--tc:#a3a3a3">Open</button>
+  <button class="ind-toggle active" id="tog-low"   onclick="toggleGroup('low')"   style="--tc:#f87171">Low</button>
+</div>
+<div id="indicatorsGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(50px,1fr));gap:12px;margin-bottom:24px;"></div>
+
+<div class="compare-bar">
+  <span class="compare-label">Compare against a ticker</span>
+  <div id="compareChips"></div>
+  <input class="compare-input" type="text" id="compareInput" placeholder="Ticker…" autocomplete="off" autocapitalize="characters" spellcheck="false" onkeydown="if(event.key==='Enter')addCompare()">
+  <button class="add-ticker-btn" onclick="addCompare()" title="Add ticker">+</button>
+  <button class="export-btn" onclick="exportCSV()" title="Export visible data as CSV">↓ Export CSV</button>
+</div>
+
+<div id="intraday-bar" style="display:none;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
+  <span style="font-family:'Space Mono',monospace;font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-right:4px;">Interval</span>
+  <button class="btn" data-iv="1m"  onclick="setIntradayInterval('1m')">1m</button>
+  <button class="btn" data-iv="2m"  onclick="setIntradayInterval('2m')">2m</button>
+  <button class="btn active" data-iv="5m"  onclick="setIntradayInterval('5m')">5m</button>
+  <button class="btn" data-iv="15m" onclick="setIntradayInterval('15m')">15m</button>
+  <button class="btn" data-iv="30m" onclick="setIntradayInterval('30m')">30m</button>
+  <button class="btn" data-iv="60m" onclick="setIntradayInterval('60m')">60m</button>
+  <button class="btn" data-iv="90m" onclick="setIntradayInterval('90m')">90m</button>
+</div>
+
+<div class="chart-panel">
+  <canvas id="priceChart"></canvas>
+</div>
+
+<div class="chart-panel" style="margin-top:16px;">
+  <div style="font-family:'Space Mono',monospace;font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Drawdown from Period High</div>
+  <canvas id="drawdownChart" style="max-height:180px;"></canvas>
+</div>
+
+<div class="divider"></div>
+
+<div class="table-section">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+    <h2 style="margin-bottom:0">Top Highs &amp; Lows in Selected Period</h2>
+    <div style="display:flex;gap:4px;margin-left:auto;">
+      <button class="btn active" id="topN-10" onclick="setTopN(10)">10</button>
+      <button class="btn" id="topN-15" onclick="setTopN(15)">15</button>
+      <button class="btn" id="topN-20" onclick="setTopN(20)">20</button>
+      <button class="btn" id="topN-30" onclick="setTopN(30)">30</button>
+    </div>
+  </div>
+  <div class="top-tables">
+    <div class="table-panel highs">
+      <h3 id="highsTitle">▲ Top 10 Highest Intraday Highs</h3>
+      <table>
+        <thead><tr><th>#</th><th>Date</th><th>High</th><th>Close</th><th>Open</th></tr></thead>
+        <tbody id="highsTable"></tbody>
+      </table>
+    </div>
+    <div class="table-panel lows">
+      <h3 id="lowsTitle">▼ Top 10 Lowest Intraday Lows</h3>
+      <table>
+        <thead><tr><th>#</th><th>Date</th><th>Low</th><th>Close</th><th>Open</th></tr></thead>
+        <tbody id="lowsTable"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="generated" id="generatedInfo"></div>
+
+<script>
+const API_BASE = 'https://ticker-analysis-api.diegointheworks.workers.dev';
+
+const urlParams = new URLSearchParams(location.search);
+const tickerArg = (urlParams.get('ticker') || 'SPY').toUpperCase().trim();
+const tickerParts = tickerArg.split(/[\s+]+/).filter(Boolean);
+const TICKER = tickerParts[0] || 'SPY';
+const COMPARE_TICKERS = tickerParts.slice(1);
+
+document.getElementById('tickerInput').value = TICKER;
+
+let RAW = [];
+let allData = [];
+let minDate = null, maxDate = null;
+
+function parseDate(str) {
+  const [m,d,y] = str.split('/');
+  return new Date(+y, +m-1, +d);
+}
+
+function computeSMA(arr, period) {
+  return arr.map((_, i) => {
+    if (i < period - 1) return null;
+    return arr.slice(i - period + 1, i + 1).reduce((s, v) => s + v, 0) / period;
+  });
+}
+
+function computeEMA(arr, period) {
+  const k = 2 / (period + 1);
+  const out = new Array(arr.length).fill(null);
+  out[period - 1] = arr.slice(0, period).reduce((s, v) => s + v, 0) / period;
+  for (let i = period; i < arr.length; i++)
+    out[i] = arr[i] * k + out[i - 1] * (1 - k);
+  return out;
+}
+
+function computeVWAP(data, period) {
+  return data.map((_, i) => {
+    if (i < period - 1) return null;
+    const slice = data.slice(i - period + 1, i + 1);
+    const sumTPV = slice.reduce((s, d) => s + ((d.high + d.low + d.price) / 3) * d.volRaw, 0);
+    const sumV   = slice.reduce((s, d) => s + d.volRaw, 0);
+    return sumV === 0 ? null : sumTPV / sumV;
+  });
+}
+
+function computeRSI(arr, period) {
+  const out = new Array(arr.length).fill(null);
+  if (arr.length < period + 1) return out;
+  let ag = 0, al = 0;
+  for (let i = 1; i <= period; i++) {
+    const d = arr[i] - arr[i - 1];
+    if (d > 0) ag += d; else al -= d;
+  }
+  ag /= period; al /= period;
+  out[period] = al === 0 ? 100 : 100 - 100 / (1 + ag / al);
+  for (let i = period + 1; i < arr.length; i++) {
+    const d = arr[i] - arr[i - 1];
+    ag = (ag * (period - 1) + (d > 0 ? d : 0)) / period;
+    al = (al * (period - 1) + (d < 0 ? -d : 0)) / period;
+    out[i] = al === 0 ? 100 : 100 - 100 / (1 + ag / al);
+  }
+  return out;
+}
+
+function computeIndicators() {
+  const cls = allData.map(d => d.price);
+  const s20 = computeSMA(cls, 20), s50 = computeSMA(cls, 50), s200 = computeSMA(cls, 200);
+  const e20  = computeEMA(cls, 20), e50 = computeEMA(cls, 50), e200 = computeEMA(cls, 200);
+  const r14  = computeRSI(cls, 14);
+  const vwap = computeVWAP(allData, 20);
+  allData.forEach((d, i) => {
+    d.sma20 = s20[i]; d.sma50 = s50[i]; d.sma200 = s200[i];
+    d.ema20 = e20[i]; d.ema50 = e50[i]; d.ema200 = e200[i];
+    d.rsi14 = r14[i]; d.vwap  = vwap[i];
+  });
+}
+
+function toInputDate(d) { return d.toISOString().split('T')[0]; }
+
+let chart = null;
+let drawdownChart = null;
+let chartMode = 'price';
+let lastFrom = null, lastTo = null;
+let intradayMode = false;
+let currentInterval = '5m';
+let lastIntradayData = null;
+let lastIntradayCompareData = {};
+
+function setMode(mode) {
+  chartMode = mode;
+  document.getElementById('btnPrice').classList.toggle('active', mode === 'price');
+  document.getElementById('btnPct').classList.toggle('active', mode === 'pct');
+  if (intradayMode) {
+    if (lastIntradayData) renderIntraday(lastIntradayData, lastIntradayCompareData);
+  } else {
+    if (lastFrom && lastTo) render(lastFrom, lastTo);
+  }
+}
+
+function getFilteredData(from, to) {
+  return allData.filter(r => r.date >= from && r.date <= to);
+}
+
+function setPreset(p) {
+  document.querySelectorAll('.preset-btns .btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  if (p === '1D') {
+    intradayMode = true;
+    document.getElementById('intraday-bar').style.display = 'flex';
+    loadIntraday(currentInterval);
+    return;
+  }
+  intradayMode = false;
+  document.getElementById('intraday-bar').style.display = 'none';
+  const to = maxDate;
+  let from = new Date(maxDate);
+  if      (p === '1W')  from.setDate(from.getDate()-7);
+  else if (p === '2W')  from.setDate(from.getDate()-14);
+  else if (p === '3W')  from.setDate(from.getDate()-21);
+  else if (p === '1M')  from.setMonth(from.getMonth()-1);
+  else if (p === '3M')  from.setMonth(from.getMonth()-3);
+  else if (p === '6M')  from.setMonth(from.getMonth()-6);
+  else if (p === 'YTD') { from = new Date(from.getFullYear(), 0, 1); }
+  else if (p === '1Y')  from.setFullYear(from.getFullYear()-1);
+  else if (p === '3Y')  from.setFullYear(from.getFullYear()-3);
+  else if (p === '5Y')  from.setFullYear(from.getFullYear()-5);
+  else if (p === '10Y') from.setFullYear(from.getFullYear()-10);
+  else                  { from = minDate; }
+  document.getElementById('dateFrom').value = toInputDate(from);
+  document.getElementById('dateTo').value   = toInputDate(to);
+  render(from, to);
+}
+
+function applyCustomRange() {
+  document.querySelectorAll('.preset-btns .btn').forEach(b => b.classList.remove('active'));
+  intradayMode = false;
+  document.getElementById('intraday-bar').style.display = 'none';
+  const from = new Date(document.getElementById('dateFrom').value + 'T00:00:00');
+  const to   = new Date(document.getElementById('dateTo').value   + 'T00:00:00');
+  render(from, to);
+}
+
+function setIntradayInterval(iv) {
+  currentInterval = iv;
+  document.querySelectorAll('#intraday-bar .btn').forEach(b => b.classList.toggle('active', b.dataset.iv === iv));
+  loadIntraday(iv);
+}
+
+async function loadIntraday(iv) {
+  try {
+    const [mainRes, ...compareRes] = await Promise.all([
+      fetch(`${API_BASE}/api/intraday?ticker=${encodeURIComponent(TICKER)}&interval=${iv}`),
+      ...compareItems.map(c => fetch(API_BASE + '/api/intraday?ticker=' + encodeURIComponent(c.ticker) + '&interval=' + iv).catch(() => null))
+    ]);
+    if (!mainRes.ok) { alert('No intraday data available'); return; }
+    const mainJson = await mainRes.json();
+    lastIntradayData = mainJson.data;
+    lastIntradayCompareData = {};
+    for (let i = 0; i < compareItems.length; i++) {
+      if (compareRes[i] && compareRes[i].ok) {
+        const j = await compareRes[i].json();
+        lastIntradayCompareData[compareItems[i].ticker] = j.data;
+      }
+    }
+    renderIntraday(lastIntradayData, lastIntradayCompareData);
+  } catch(e) { alert('Error loading intraday data'); }
+}
+
+function renderIntraday(data, compareData) {
+  if (!data || data.length === 0) return;
+  compareData = compareData || {};
+  const pts   = data.map(d => ({ date: new Date(d.ts), price: d.price, high: d.high, low: d.low, open: d.open }));
+  const last  = pts[pts.length - 1].price;
+  const open  = pts[0].open;
+  const high  = Math.max(...pts.map(d => d.high));
+  const low   = Math.min(...pts.map(d => d.low));
+  const pct   = (last - open) / open * 100;
+  const isPos = pct >= 0;
+  const fmtT  = d => d.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+  const isPct = chartMode === 'pct';
+  const base  = pts[0].price;
+  const toVal = v => isPct ? ((v - base) / base * 100) : v;
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Last Price</div>
+      <div class="stat-value" style="color:var(--accent)">$${last.toFixed(2)}</div>
+      <div class="stat-sub">${fmtT(pts[pts.length-1].date)}</div>
+    </div>
+    <div class="stat-card high">
+      <div class="stat-label">Day High</div>
+      <div class="stat-value">$${high.toFixed(2)}</div>
+    </div>
+    <div class="stat-card low">
+      <div class="stat-label">Day Low</div>
+      <div class="stat-value">$${low.toFixed(2)}</div>
+    </div>
+    <div class="stat-card range">
+      <div class="stat-label">Open</div>
+      <div class="stat-value">$${open.toFixed(2)}</div>
+    </div>
+    <div class="stat-card ${isPos ? 'change-pos' : 'change-neg'}">
+      <div class="stat-label">Day Return</div>
+      <div class="stat-value">${isPos?'+':''}${pct.toFixed(2)}%</div>
+      <div class="stat-sub">$${open.toFixed(2)} → $${last.toFixed(2)}</div>
+    </div>
+    <div class="stat-card count">
+      <div class="stat-label">Bars</div>
+      <div class="stat-value">${pts.length}</div>
+      <div class="stat-sub">${fmtT(pts[0].date)} – ${fmtT(pts[pts.length-1].date)}</div>
+    </div>
+  `;
+
+  const compareDatasets = compareItems.flatMap((c, idx) => {
+    const raw = compareData[c.ticker];
+    if (!raw || raw.length === 0) return [];
+    const cPts = raw.map(d => ({ date: new Date(d.ts), price: d.price, high: d.high, low: d.low, open: d.open }));
+    const clr  = COMPARE_COLORS[idx % COMPARE_COLORS.length];
+    const cBase = cPts[0].price;
+    const toC   = v => isPct ? ((v - cBase) / cBase * 100) : v;
+    return [
+      { label: c.ticker + ' Close', data: cPts.map(d => ({x: d.date, y: toC(d.price)})), borderColor: clr, backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: clr, fill: false, tension: 0.2, order: 0 },
+      { label: c.ticker + ' High',  data: cPts.map(d => ({x: d.date, y: toC(d.high)})),  borderColor: clr, backgroundColor: 'transparent', borderWidth: 1, borderDash: [4,3], pointRadius: 0, pointHoverRadius: 3, fill: false, tension: 0.2, order: 0 },
+      { label: c.ticker + ' Open',  data: cPts.map(d => ({x: d.date, y: toC(d.open)})),  borderColor: clr, backgroundColor: 'transparent', borderWidth: 1, borderDash: [2,4], pointRadius: 0, pointHoverRadius: 3, fill: false, tension: 0.2, order: 0 },
+      { label: c.ticker + ' Low',   data: cPts.map(d => ({x: d.date, y: toC(d.low)})),   borderColor: clr, backgroundColor: 'transparent', borderWidth: 1, borderDash: [3,3], pointRadius: 0, pointHoverRadius: 3, fill: false, tension: 0.2, order: 0 }
+    ];
+  });
+
+  if (chart) chart.destroy();
+  const ctx = document.getElementById('priceChart').getContext('2d');
+  const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+  gradient.addColorStop(0, 'rgba(240,192,64,0.25)');
+  gradient.addColorStop(1, 'rgba(240,192,64,0.01)');
+  const timeUnit = ['60m','90m'].includes(currentInterval) ? 'hour' : 'minute';
+
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      datasets: [
+        { label: `${TICKER} Close`, data: pts.map(d => ({x: d.date, y: toVal(d.price)})), borderColor: '#f0c040', backgroundColor: gradient, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: '#f0c040', fill: true, tension: 0.2, order: 1 },
+        { label: `${TICKER} High`,  data: pts.map(d => ({x: d.date, y: toVal(d.high)})),  borderColor: '#4ade80', backgroundColor: 'transparent', borderWidth: 1.5, borderDash: [4,3], pointRadius: 0, pointHoverRadius: 4, fill: false, tension: 0.2, order: 2 },
+        { label: `${TICKER} Open`,  data: pts.map(d => ({x: d.date, y: toVal(d.open)})),  borderColor: '#a3a3a3', backgroundColor: 'transparent', borderWidth: 1, borderDash: [2,4], pointRadius: 0, pointHoverRadius: 4, fill: false, tension: 0.2, order: 3 },
+        { label: `${TICKER} Low`,   data: pts.map(d => ({x: d.date, y: toVal(d.low)})),   borderColor: '#f87171', backgroundColor: 'transparent', borderWidth: 1, borderDash: [3,3], pointRadius: 0, pointHoverRadius: 4, fill: false, tension: 0.2, order: 4 },
+        ...compareDatasets
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, position: 'top', align: 'end', labels: { color: '#a8a8c8', font: { family: 'Space Mono', size: 10 }, boxWidth: 24, boxHeight: 2, padding: 16 } },
+        tooltip: {
+          backgroundColor: '#111118', borderColor: '#1e1e2e', borderWidth: 1,
+          titleColor: '#f0c040', bodyColor: '#e8e8f0',
+          titleFont: { family: 'Space Mono', size: 11 }, bodyFont: { family: 'Space Mono', size: 11 }, padding: 12,
+          callbacks: {
+            title: (items) => fmtT(new Date(items[0].parsed.x)),
+            label: (item) => isPct
+              ? ` ${item.dataset.label}: ${item.parsed.y >= 0 ? '+' : ''}${item.parsed.y.toFixed(2)}%`
+              : ` ${item.dataset.label}: $${item.parsed.y.toFixed(2)}`
+          }
+        }
+      },
+      scales: {
+        x: { type: 'time', time: { unit: timeUnit, displayFormats: { minute: 'HH:mm', hour: 'HH:mm' } }, grid: { color: '#1e1e2e' }, ticks: { color: '#a8a8c8', font: { family: 'Space Mono', size: 10 } } },
+        y: { grid: { color: '#1e1e2e' }, ticks: { color: '#a8a8c8', font: { family: 'Space Mono', size: 10 }, callback: v => isPct ? (v >= 0 ? '+' : '') + v.toFixed(1) + '%' : '$' + v.toFixed(2) } }
+      }
+    }
+  });
+  applyActiveGroups();
+  if (drawdownChart) { drawdownChart.destroy(); drawdownChart = null; }
+}
+
+function resetZoom() {
+  document.getElementById('dateFrom').value = toInputDate(minDate);
+  document.getElementById('dateTo').value   = toInputDate(maxDate);
+  document.querySelectorAll('.preset-btns .btn').forEach((b,i) => b.classList.toggle('active', i===5));
+  document.getElementById('btnReset').style.display = 'none';
+  render(minDate, maxDate);
+}
+
+function fmtPrice(v) { return '$' + v.toFixed(2); }
+function fmtDate(d)  { return d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}); }
+
+function render(from, to) {
+  lastFrom = from; lastTo = to;
+  const isFullRange = from <= minDate && to >= maxDate;
+  document.getElementById('btnReset').style.display = isFullRange ? 'none' : 'inline-block';
+
+  const data = getFilteredData(from, to);
+  if (data.length === 0) return;
+
+  const topHighRow = data.reduce((a,b) => b.high > a.high ? b : a);
+  const topLowRow  = data.reduce((a,b) => b.low  < a.low  ? b : a);
+  const first = data[0].price, last = data[data.length-1].price;
+  const pctChange = (last - first) / first * 100;
+  const isPos = pctChange >= 0;
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Current Price</div>
+      <div class="stat-value" style="color:var(--accent)">$${last.toFixed(2)}</div>
+      <div class="stat-sub">${fmtDate(data[data.length-1].date)}</div>
+    </div>
+    <div class="stat-card high">
+      <div class="stat-label">Period High</div>
+      <div class="stat-value">$${topHighRow.high.toFixed(2)}</div>
+      <div class="stat-sub">${fmtDate(topHighRow.date)}</div>
+    </div>
+    <div class="stat-card low">
+      <div class="stat-label">Period Low</div>
+      <div class="stat-value">$${topLowRow.low.toFixed(2)}</div>
+      <div class="stat-sub">${fmtDate(topLowRow.date)}</div>
+    </div>
+    <div class="stat-card range">
+      <div class="stat-label">High / Low Range</div>
+      <div class="stat-value">$${(topHighRow.high - topLowRow.low).toFixed(2)}</div>
+      <div class="stat-sub">${((topHighRow.high - topLowRow.low) / topLowRow.low * 100).toFixed(1)}% spread</div>
+    </div>
+    <div class="stat-card ${isPos ? 'change-pos' : 'change-neg'}">
+      <div class="stat-label">Period Return</div>
+      <div class="stat-value">${isPos?'+':''}${pctChange.toFixed(1)}%</div>
+      <div class="stat-sub">${fmtPrice(first)} → ${fmtPrice(last)}</div>
+    </div>
+    <div class="stat-card count">
+      <div class="stat-label">Trading Days</div>
+      <div class="stat-value">${data.length}</div>
+      <div class="stat-sub">${fmtDate(data[0].date)} – ${fmtDate(data[data.length-1].date)}</div>
+    </div>
+  `;
+
+  const labels = data.map(d => d.date);
+  const base = data[0].price;
+  const isPct = chartMode === 'pct';
+  const toVal = (v) => isPct ? ((v - base) / base * 100) : v;
+  const closePrices = data.map(d => toVal(d.price));
+
+  const compareDatasets = compareItems.flatMap((c, idx) => {
+    const clr = COMPARE_COLORS[idx % COMPARE_COLORS.length];
+    const cData = c.allData.filter(d => d.date >= from && d.date <= to);
+    if (cData.length === 0) return [];
+    const cBase = cData[0].price;
+    const toC = (v) => isPct ? ((v - cBase) / cBase * 100) : v;
+    return [
+      { label: c.ticker + ' Close', data: cData.map(d => ({ x: d.date, y: toC(d.price) })), borderColor: clr, backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: clr, fill: false, tension: 0.2, order: 0 },
+      { label: c.ticker + ' High',  data: cData.map(d => ({ x: d.date, y: toC(d.high)  })), borderColor: clr, backgroundColor: 'transparent', borderWidth: 1, borderDash: [4,3], pointRadius: 0, pointHoverRadius: 3, fill: false, tension: 0.2, order: 0 },
+      { label: c.ticker + ' Open',  data: cData.map(d => ({ x: d.date, y: toC(d.open)  })), borderColor: clr, backgroundColor: 'transparent', borderWidth: 1, borderDash: [2,4], pointRadius: 0, pointHoverRadius: 3, fill: false, tension: 0.2, order: 0 },
+      { label: c.ticker + ' Low',   data: cData.map(d => ({ x: d.date, y: toC(d.low)   })), borderColor: clr, backgroundColor: 'transparent', borderWidth: 1, borderDash: [3,3], pointRadius: 0, pointHoverRadius: 3, fill: false, tension: 0.2, order: 0 }
+    ];
+  });
+
+  if (chart) chart.destroy();
+  const ctx = document.getElementById('priceChart').getContext('2d');
+  const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+  gradient.addColorStop(0, 'rgba(240,192,64,0.25)');
+  gradient.addColorStop(1, 'rgba(240,192,64,0.01)');
+
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: `${TICKER} Close`,
+          data: closePrices,
+          borderColor: '#f0c040',
+          backgroundColor: gradient,
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          pointHoverBackgroundColor: '#f0c040',
+          fill: true,
+          tension: 0.2,
+          order: 1
+        },
+        {
+          label: `${TICKER} High`,
+          data: data.map(d => toVal(d.high)),
+          borderColor: '#4ade80',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          borderDash: [4, 3],
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: '#4ade80',
+          fill: false,
+          tension: 0.2,
+          order: 2
+        },
+        {
+          label: `${TICKER} Open`,
+          data: data.map(d => toVal(d.open)),
+          borderColor: '#f0c040',
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          borderDash: [2, 4],
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: '#f0c040',
+          fill: false,
+          tension: 0.2,
+          order: 3
+        },
+        {
+          label: `${TICKER} Low`,
+          data: data.map(d => toVal(d.low)),
+          borderColor: '#f87171',
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          borderDash: [3, 3],
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: '#f87171',
+          fill: false,
+          tension: 0.2,
+          order: 4
+        },
+        {
+          label: 'SMA 20',
+          data: data.map(d => d.sma20 != null ? toVal(d.sma20) : null),
+          borderColor: '#5ab4e0',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: '#5ab4e0',
+          fill: false,
+          tension: 0.2,
+          spanGaps: false,
+          order: 5
+        },
+        {
+          label: 'SMA 50',
+          data: data.map(d => d.sma50 != null ? toVal(d.sma50) : null),
+          borderColor: '#c084fc',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: '#c084fc',
+          fill: false,
+          tension: 0.2,
+          spanGaps: false,
+          order: 6
+        },
+        {
+          label: 'SMA 200',
+          data: data.map(d => d.sma200 != null ? toVal(d.sma200) : null),
+          borderColor: '#f59e0b',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: '#f59e0b',
+          fill: false,
+          tension: 0.2,
+          spanGaps: false,
+          order: 7
+        },
+        {
+          label: 'EMA 20',
+          data: data.map(d => d.ema20 != null ? toVal(d.ema20) : null),
+          borderColor: '#fb923c',
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          borderDash: [5, 2],
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: '#fb923c',
+          fill: false,
+          tension: 0.2,
+          spanGaps: false,
+          order: 8
+        },
+        {
+          label: 'EMA 50',
+          data: data.map(d => d.ema50 != null ? toVal(d.ema50) : null),
+          borderColor: '#e879f9',
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          borderDash: [5, 2],
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: '#e879f9',
+          fill: false,
+          tension: 0.2,
+          spanGaps: false,
+          order: 9
+        },
+        {
+          label: 'EMA 200',
+          data: data.map(d => d.ema200 != null ? toVal(d.ema200) : null),
+          borderColor: '#a78bfa',
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          borderDash: [5, 2],
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: '#a78bfa',
+          fill: false,
+          tension: 0.2,
+          spanGaps: false,
+          order: 10
+        },
+        {
+          label: 'VWAP 20',
+          data: data.map(d => d.vwap != null ? toVal(d.vwap) : null),
+          borderColor: '#34d399',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          borderDash: [3, 2],
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: '#34d399',
+          fill: false,
+          tension: 0.2,
+          spanGaps: false,
+          order: 11
+        },
+        ...compareDatasets
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: true, position: 'top', align: 'end',
+          labels: { color: '#a8a8c8', font: { family: 'Space Mono', size: 10 }, boxWidth: 24, boxHeight: 2, padding: 16 }
+        },
+        tooltip: {
+          backgroundColor: '#111118', borderColor: '#1e1e2e', borderWidth: 1,
+          titleColor: '#f0c040', bodyColor: '#e8e8f0',
+          titleFont: { family: 'Space Mono', size: 11 },
+          bodyFont:  { family: 'Space Mono', size: 11 },
+          padding: 12,
+          callbacks: {
+            title: (items) => fmtDate(new Date(items[0].parsed.x)),
+            label: (item) => isPct
+              ? ` ${item.dataset.label}: ${item.parsed.y >= 0 ? '+' : ''}${item.parsed.y.toFixed(2)}%`
+              : ` ${item.dataset.label}: $${item.parsed.y.toFixed(2)}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: data.length > 500 ? 'year' : data.length > 120 ? 'month' : 'week' },
+          grid: { color: '#1e1e2e' },
+          ticks: { color: '#a8a8c8', font: { family: 'Space Mono', size: 10 } }
+        },
+        y: {
+          grid: { color: '#1e1e2e' },
+          ticks: {
+            color: '#a8a8c8',
+            font: { family: 'Space Mono', size: 10 },
+            callback: v => isPct ? (v >= 0 ? '+' : '') + v.toFixed(1) + '%' : '$' + v.toFixed(0)
+          }
+        }
+      }
+    }
+  });
+  applyActiveGroups();
+
+  // Drawdown chart
+  let peak = data[0].price;
+  const ddValues = data.map(d => {
+    if (d.price > peak) peak = d.price;
+    return +((( d.price - peak) / peak) * 100).toFixed(4);
+  });
+
+  const compareDrawdownDatasets = compareItems.map((c, idx) => {
+    const cData = c.allData.filter(d => d.date >= from && d.date <= to);
+    if (cData.length === 0) return null;
+    let cPeak = -Infinity;
+    const ddByDate = new Map();
+    cData.forEach(d => {
+      if (d.price > cPeak) cPeak = d.price;
+      ddByDate.set(d.date.toDateString(), +((d.price - cPeak) / cPeak * 100).toFixed(4));
+    });
+    const clr = COMPARE_COLORS[idx % COMPARE_COLORS.length];
+    return {
+      label: c.ticker,
+      data: labels.map(lbl => { const v = ddByDate.get(lbl.toDateString()); return v !== undefined ? v : null; }),
+      borderColor: clr,
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: clr,
+      fill: false,
+      tension: 0.2,
+      spanGaps: false
+    };
+  }).filter(d => d !== null);
+
+  if (drawdownChart) drawdownChart.destroy();
+  const ddCtx = document.getElementById('drawdownChart').getContext('2d');
+  const ddGrad = ddCtx.createLinearGradient(0, 0, 0, 180);
+  ddGrad.addColorStop(0, 'rgba(248,113,113,0.0)');
+  ddGrad.addColorStop(1, 'rgba(248,113,113,0.28)');
+
+  drawdownChart = new Chart(ddCtx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: TICKER,
+          data: ddValues,
+          borderColor: '#f87171',
+          backgroundColor: ddGrad,
+          borderWidth: 1.5,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: '#f87171',
+          fill: true,
+          tension: 0.2
+        },
+        ...compareDrawdownDatasets
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: compareDrawdownDatasets.length > 0, position: 'top', align: 'end', labels: { color: '#a8a8c8', font: { family: 'Space Mono', size: 10 }, boxWidth: 24, boxHeight: 2, padding: 16 } },
+        tooltip: {
+          backgroundColor: '#111118', borderColor: '#1e1e2e', borderWidth: 1,
+          titleColor: '#f0c040', bodyColor: '#e8e8f0',
+          titleFont: { family: 'Space Mono', size: 11 },
+          bodyFont:  { family: 'Space Mono', size: 11 },
+          padding: 12,
+          callbacks: {
+            title: (items) => fmtDate(new Date(items[0].parsed.x)),
+            label: (item) => ` ${item.dataset.label}: ${item.parsed.y.toFixed(2)}%`
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: data.length > 500 ? 'year' : data.length > 120 ? 'month' : 'week' },
+          grid: { color: '#1e1e2e' },
+          ticks: { color: '#a8a8c8', font: { family: 'Space Mono', size: 10 } }
+        },
+        y: {
+          max: 0,
+          grid: { color: '#1e1e2e' },
+          ticks: {
+            color: '#a8a8c8',
+            font: { family: 'Space Mono', size: 10 },
+            callback: v => v.toFixed(0) + '%'
+          }
+        }
+      }
+    }
+  });
+
+  // Indicator cards
+  const lastD = [...data].reverse().find(d => d.rsi14 != null) || data[data.length - 1];
+  const curP  = data[data.length - 1].price;
+  const iRsi  = lastD ? lastD.rsi14  : null;
+  const iS20  = lastD ? lastD.sma20  : null;
+  const iS50  = lastD ? lastD.sma50  : null;
+  const iS200 = lastD ? lastD.sma200 : null;
+  const iE20  = lastD ? lastD.ema20  : null;
+  const iE50  = lastD ? lastD.ema50  : null;
+  const iE200 = lastD ? lastD.ema200 : null;
+  const iVwap = lastD ? lastD.vwap   : null;
+  const vsVwap = iVwap != null ? (curP - iVwap) / iVwap * 100 : null;
+  const vsS20  = iS20  != null ? (curP - iS20)  / iS20  * 100 : null;
+  const vsS50  = iS50  != null ? (curP - iS50)  / iS50  * 100 : null;
+  const vsS200 = iS200 != null ? (curP - iS200) / iS200 * 100 : null;
+  const rsiClr = iRsi == null ? '#a8a8c8' : iRsi >= 70 ? '#f87171' : iRsi <= 30 ? '#4ade80' : '#f0c040';
+  const signClr = (v) => v == null ? '#a8a8c8' : v >= 0 ? '#4ade80' : '#f87171';
+  const fmtPct  = (v) => v != null ? (v >= 0 ? '+' : '') + v.toFixed(2) + '%' : '—';
+
+  document.getElementById('indicatorsGrid').innerHTML = `
+    <div class="stat-card" data-group="rsi">
+      <div class="stat-label">RSI (14)</div>
+      <div class="stat-value" style="color:${rsiClr};font-size:1.35rem">${iRsi != null ? iRsi.toFixed(1) : '—'}</div>
+      <div class="stat-sub">${iRsi != null ? (iRsi >= 70 ? 'Overbought' : iRsi <= 30 ? 'Oversold' : 'Neutral') : 'N/A'}</div>
+    </div>
+    <div class="stat-card" data-group="vwap">
+      <div class="stat-label">VWAP 20</div>
+      <div class="stat-value" style="color:#34d399;font-size:1.25rem">${iVwap != null ? '$' + iVwap.toFixed(2) : '—'}</div>
+      <div class="stat-sub" style="color:${signClr(vsVwap)}">${vsVwap != null ? fmtPct(vsVwap) + ' vs price' : ''}</div>
+    </div>
+    <div class="stat-card" data-group="sma">
+      <div class="stat-label">SMA 20</div>
+      <div class="stat-value" style="color:#5ab4e0;font-size:1.25rem">${iS20 != null ? '$' + iS20.toFixed(2) : '—'}</div>
+      <div class="stat-sub" style="color:${signClr(vsS20)}">${vsS20 != null ? fmtPct(vsS20) + ' vs price' : ''}</div>
+    </div>
+    <div class="stat-card" data-group="sma">
+      <div class="stat-label">SMA 50</div>
+      <div class="stat-value" style="color:#c084fc;font-size:1.25rem">${iS50 != null ? '$' + iS50.toFixed(2) : '—'}</div>
+      <div class="stat-sub" style="color:${signClr(vsS50)}">${vsS50 != null ? fmtPct(vsS50) + ' vs price' : ''}</div>
+    </div>
+    <div class="stat-card" data-group="sma">
+      <div class="stat-label">SMA 200</div>
+      <div class="stat-value" style="color:#f59e0b;font-size:1.25rem">${iS200 != null ? '$' + iS200.toFixed(2) : '—'}</div>
+      <div class="stat-sub" style="color:${signClr(vsS200)}">${vsS200 != null ? fmtPct(vsS200) + ' vs price' : ''}</div>
+    </div>
+    <div class="stat-card" data-group="ema">
+      <div class="stat-label">EMA 20</div>
+      <div class="stat-value" style="color:#fb923c;font-size:1.25rem">${iE20 != null ? '$' + iE20.toFixed(2) : '—'}</div>
+    </div>
+    <div class="stat-card" data-group="ema">
+      <div class="stat-label">EMA 50</div>
+      <div class="stat-value" style="color:#e879f9;font-size:1.25rem">${iE50 != null ? '$' + iE50.toFixed(2) : '—'}</div>
+    </div>
+    <div class="stat-card" data-group="ema">
+      <div class="stat-label">EMA 200</div>
+      <div class="stat-value" style="color:#a78bfa;font-size:1.25rem">${iE200 != null ? '$' + iE200.toFixed(2) : '—'}</div>
+    </div>
+    <div class="stat-card" data-group="sma">
+      <div class="stat-label">vs SMA 20</div>
+      <div class="stat-value" style="font-size:1.35rem;color:${signClr(vsS20)}">${fmtPct(vsS20)}</div>
+      <div class="stat-sub">price vs SMA 20</div>
+    </div>
+    <div class="stat-card" data-group="sma">
+      <div class="stat-label">vs SMA 50</div>
+      <div class="stat-value" style="font-size:1.35rem;color:${signClr(vsS50)}">${fmtPct(vsS50)}</div>
+      <div class="stat-sub">price vs SMA 50</div>
+    </div>
+    <div class="stat-card" data-group="sma">
+      <div class="stat-label">vs SMA 200</div>
+      <div class="stat-value" style="font-size:1.35rem;color:${signClr(vsS200)}">${fmtPct(vsS200)}</div>
+      <div class="stat-sub">price vs SMA 200</div>
+    </div>
+  `;
+  requestAnimationFrame(fitIndicatorText);
+
+  if (chart) {
+    chart.data.datasets.forEach(ds => {
+      Object.entries(groupDatasets).forEach(([g, labels]) => {
+        if (labels.includes(ds.label)) ds.hidden = !activeGroups[g];
+      });
+    });
+    chart.update();
+  }
+
+  Object.entries(activeGroups).forEach(([g, on]) => {
+    document.querySelectorAll('#indicatorsGrid .stat-card[data-group="' + g + '"]').forEach(el => {
+      el.style.display = on ? '' : 'none';
+    });
+  });
+
+  const crosshairPlugin = {
+    id: 'crosshair',
+    afterDraw(chart) {
+      if (chart._crosshairX == null) return;
+      const { ctx, chartArea: { top, bottom, left, right }, scales } = chart;
+      const x = chart._crosshairX, y = chart._crosshairY;
+      ctx.save();
+      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(240,192,64,0.45)';
+      ctx.beginPath(); ctx.moveTo(x, top);  ctx.lineTo(x, bottom); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(right, y);  ctx.stroke();
+      const price = scales.y.getValueForPixel(y);
+      const priceLabel = chartMode === 'pct'
+        ? (price >= 0 ? '+' : '') + price.toFixed(2) + '%'
+        : '$' + price.toFixed(2);
+      const labelW = 72, labelH = 18;
+      ctx.fillStyle = 'rgba(240,192,64,0.9)';
+      ctx.fillRect(left - labelW - 4, y - labelH / 2, labelW, labelH);
+      ctx.fillStyle = '#09090f';
+      ctx.font = '10px Space Mono, monospace';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(priceLabel, left - 8, y);
+      ctx.restore();
+    }
+  };
+  Chart.register(crosshairPlugin);
+
+  const canvas = document.getElementById('priceChart');
+  let drag = { active: false, startX: null, endX: null };
+
+  function getChartDate(px) { return chart.scales.x.getValueForPixel(px); }
+  function clampToChart(x) {
+    const ca = chart.chartArea;
+    return Math.max(ca.left, Math.min(ca.right, x));
+  }
+
+  const selPlugin = {
+    id: 'selectionOverlay',
+    afterDraw(c) {
+      if (!drag.active || drag.startX == null || drag.endX == null) return;
+      const { ctx, chartArea: { top, bottom } } = c;
+      const x1 = Math.min(drag.startX, drag.endX);
+      const x2 = Math.max(drag.startX, drag.endX);
+      ctx.save();
+      ctx.fillStyle = 'rgba(90, 180, 224, 0.12)';
+      ctx.fillRect(x1, top, x2 - x1, bottom - top);
+      ctx.strokeStyle = 'rgba(90, 180, 224, 0.6)';
+      ctx.lineWidth = 1; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(x1, top); ctx.lineTo(x1, bottom); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x2, top); ctx.lineTo(x2, bottom); ctx.stroke();
+      const fmt = (ms) => new Date(ms).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+      ctx.font = '10px Space Mono, monospace';
+      ctx.fillStyle = 'rgba(90,180,224,0.9)';
+      ctx.textAlign = 'center';
+      ctx.fillText(fmt(getChartDate(x1)), x1, top - 6);
+      ctx.fillText(fmt(getChartDate(x2)), x2, top - 6);
+      ctx.restore();
+    }
+  };
+  Chart.register(selPlugin);
+
+  canvas.onmousedown = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const ca = chart.chartArea;
+    if (x >= ca.left && x <= ca.right) {
+      drag.active = true;
+      drag.startX = clampToChart(x);
+      drag.endX = drag.startX;
+      canvas.style.cursor = 'crosshair';
+    }
+  };
+
+  canvas.onmousemove = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    const ca = chart.chartArea;
+    if (drag.active) {
+      drag.endX = clampToChart(x);
+      chart._crosshairX = null; chart._crosshairY = null;
+    } else {
+      if (x >= ca.left && x <= ca.right && y >= ca.top && y <= ca.bottom) {
+        chart._crosshairX = x; chart._crosshairY = y;
+        canvas.style.cursor = 'crosshair';
+      } else {
+        chart._crosshairX = null; chart._crosshairY = null;
+        canvas.style.cursor = 'default';
+      }
+    }
+    chart.draw();
+  };
+
+  canvas.onmouseup = (e) => {
+    if (!drag.active) return;
+    drag.active = false;
+    canvas.style.cursor = 'default';
+    const x1 = Math.min(drag.startX, drag.endX);
+    const x2 = Math.max(drag.startX, drag.endX);
+    drag.startX = null; drag.endX = null;
+    chart.draw();
+    if (x2 - x1 < 10) return;
+    const from = new Date(getChartDate(x1));
+    const to   = new Date(getChartDate(x2));
+    document.getElementById('dateFrom').value = toInputDate(from);
+    document.getElementById('dateTo').value   = toInputDate(to);
+    document.querySelectorAll('.preset-btns .btn').forEach(b => b.classList.remove('active'));
+    render(from, to);
+  };
+
+  canvas.onmouseleave = () => {
+    if (drag.active) { drag.active = false; drag.startX = null; drag.endX = null; }
+    chart._crosshairX = null; chart._crosshairY = null;
+    chart.draw();
+  };
+
+  renderTables(data);
+}
+
+const activeGroups = { rsi: true, vwap: true, sma: true, ema: true, close: true, high: true, open: true, low: true };
+const groupDatasets = {
+  vwap:  ['VWAP 20'],
+  sma:   ['SMA 20', 'SMA 50', 'SMA 200'],
+  ema:   ['EMA 20', 'EMA 50', 'EMA 200']
+};
+const ohlcGroups = new Set(['close', 'high', 'open', 'low']);
+
+function dsMatchesGroup(label, group) {
+  if (groupDatasets[group]) return groupDatasets[group].includes(label);
+  if (ohlcGroups.has(group)) {
+    const cap = group[0].toUpperCase() + group.slice(1);
+    return label === cap || label.endsWith(' ' + cap);
+  }
+  return false;
+}
+
+function applyActiveGroups() {
+  if (!chart) return;
+  chart.data.datasets.forEach(ds => {
+    for (const group of Object.keys(activeGroups)) {
+      if (dsMatchesGroup(ds.label, group)) {
+        ds.hidden = !activeGroups[group];
+        break;
+      }
+    }
+  });
+  chart.update();
+}
+
+function toggleGroup(group) {
+  activeGroups[group] = !activeGroups[group];
+  document.getElementById('tog-' + group).classList.toggle('active', activeGroups[group]);
+  document.querySelectorAll('#indicatorsGrid .stat-card[data-group="' + group + '"]').forEach(el => {
+    el.style.display = activeGroups[group] ? '' : 'none';
+  });
+  applyActiveGroups();
+  requestAnimationFrame(fitIndicatorText);
+}
+
+function fitIndicatorText() {
+  document.querySelectorAll('#indicatorsGrid .stat-value').forEach(el => {
+    el.style.fontSize = '';
+    const card = el.closest('.stat-card');
+    if (!card || card.style.display === 'none') return;
+    const cs   = getComputedStyle(card);
+    const maxW = card.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    el.style.display = 'inline-block';
+    let size = parseFloat(getComputedStyle(el).fontSize);
+    while (el.getBoundingClientRect().width > maxW && size > 7) {
+      size -= 0.5;
+      el.style.fontSize = size + 'px';
+    }
+    el.style.display = '';
+  });
+}
+
+const COMPARE_COLORS = ['#60a5fa','#a78bfa','#34d399','#f97316','#e879f9','#2dd4bf'];
+let compareItems = [];
+
+function renderCompareChips() {
+  const el = document.getElementById('compareChips');
+  el.innerHTML = compareItems.map((c, i) => {
+    const clr = COMPARE_COLORS[i % COMPARE_COLORS.length];
+    return `<span class="compare-chip" style="border-color:${clr};color:${clr}"><span class="chip-dot" style="background:${clr}"></span>${c.ticker}<span class="chip-remove" onclick="removeCompare('${c.ticker}')">×</span></span>`;
+  }).join('');
+}
+
+async function addCompare() {
+  const input = document.getElementById('compareInput');
+  const t = input.value.trim().toUpperCase();
+  if (!t || compareItems.find(c => c.ticker === t)) { input.value = ''; return; }
+  try {
+    const res = await fetch(API_BASE + '/api/ticker?ticker=' + encodeURIComponent(t));
+    if (!res.ok) { alert('Ticker not found: ' + t); return; }
+    const json = await res.json();
+    const parsed = json.data.map(r => {
+      const [m,d,y] = r.date.split('/');
+      return { date: new Date(+y, +m-1, +d), price: parseFloat(r.price), high: parseFloat(r.high), low: parseFloat(r.low), open: parseFloat(r.open) };
+    }).sort((a,b) => a.date - b.date);
+    compareItems.push({ ticker: json.ticker, name: json.name, allData: parsed });
+    input.value = '';
+    updateURL();
+    renderCompareChips();
+    if (lastFrom && lastTo) render(lastFrom, lastTo);
+  } catch(e) { alert('Error fetching ' + t); }
+}
+
+function updateURL() {
+  const parts = [TICKER, ...compareItems.map(c => c.ticker)];
+  history.replaceState(null, '', location.pathname + '?ticker=' + parts.map(t => encodeURIComponent(t)).join('+'));
+}
+
+async function loadCompare(t) {
+  if (!t || compareItems.find(c => c.ticker === t)) return;
+  try {
+    const res = await fetch(API_BASE + '/api/ticker?ticker=' + encodeURIComponent(t));
+    if (!res.ok) return;
+    const json = await res.json();
+    const parsed = json.data.map(r => {
+      const [m,d,y] = r.date.split('/');
+      return { date: new Date(+y, +m-1, +d), price: parseFloat(r.price), high: parseFloat(r.high), low: parseFloat(r.low), open: parseFloat(r.open) };
+    }).sort((a,b) => a.date - b.date);
+    compareItems.push({ ticker: json.ticker, name: json.name, allData: parsed });
+  } catch(e) {}
+}
+
+function removeCompare(ticker) {
+  compareItems = compareItems.filter(c => c.ticker !== ticker);
+  updateURL();
+  renderCompareChips();
+  if (lastFrom && lastTo) render(lastFrom, lastTo);
+}
+
+function exportCSV() {
+  if (!lastFrom || !lastTo) return;
+  const data = getFilteredData(lastFrom, lastTo);
+  if (data.length === 0) return;
+
+  const hdrs = ['Date', 'Close', 'High', 'Open', 'Low'];
+  if (activeGroups.rsi)  hdrs.push('RSI 14');
+  if (activeGroups.vwap) hdrs.push('VWAP 20');
+  if (activeGroups.sma)  hdrs.push('SMA 20', 'SMA 50', 'SMA 200');
+  if (activeGroups.ema)  hdrs.push('EMA 20', 'EMA 50', 'EMA 200');
+  compareItems.forEach(c => hdrs.push(c.ticker + ' Close', c.ticker + ' High', c.ticker + ' Open', c.ticker + ' Low'));
+
+  const csvRows = data.map(d => {
+    const row = [
+      d.date.toLocaleDateString('en-US', {month:'2-digit', day:'2-digit', year:'numeric'}),
+      d.price.toFixed(4), d.high.toFixed(4), d.open.toFixed(4), d.low.toFixed(4)
+    ];
+    if (activeGroups.rsi)  row.push(d.rsi14  != null ? d.rsi14.toFixed(2)  : '');
+    if (activeGroups.vwap) row.push(d.vwap   != null ? d.vwap.toFixed(4)   : '');
+    if (activeGroups.sma)  {
+      row.push(d.sma20  != null ? d.sma20.toFixed(4)  : '');
+      row.push(d.sma50  != null ? d.sma50.toFixed(4)  : '');
+      row.push(d.sma200 != null ? d.sma200.toFixed(4) : '');
+    }
+    if (activeGroups.ema)  {
+      row.push(d.ema20  != null ? d.ema20.toFixed(4)  : '');
+      row.push(d.ema50  != null ? d.ema50.toFixed(4)  : '');
+      row.push(d.ema200 != null ? d.ema200.toFixed(4) : '');
+    }
+    compareItems.forEach(c => {
+      const m = c.allData.find(cd => Math.abs(cd.date - d.date) < 86400000);
+      row.push(m ? m.price.toFixed(4) : '', m ? m.high.toFixed(4) : '', m ? m.open.toFixed(4) : '', m ? m.low.toFixed(4) : '');
+    });
+    return row;
+  });
+
+  const csv = [hdrs, ...csvRows].map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${TICKER}_export.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+let topN = 10;
+let lastTableData = null;
+
+function setTopN(n) {
+  topN = n;
+  [10,15,20,30].forEach(v => document.getElementById('topN-' + v).classList.toggle('active', v === n));
+  document.getElementById('highsTitle').textContent = '▲ Top ' + n + ' Highest Intraday Highs';
+  document.getElementById('lowsTitle').textContent  = '▼ Top ' + n + ' Lowest Intraday Lows';
+  if (lastTableData) renderTables(lastTableData);
+}
+
+function renderTables(data) {
+  lastTableData = data;
+  const topHighs = [...data].sort((a,b) => b.high - a.high).slice(0, topN);
+  const topLows  = [...data].sort((a,b) => a.low  - b.low ).slice(0, topN);
+
+  document.getElementById('highsTable').innerHTML = topHighs.map((r,i) => `
+    <tr>
+      <td class="rank">#${i+1}</td>
+      <td>${fmtDate(r.date)}</td>
+      <td class="tbl-high">$${r.high.toFixed(2)}</td>
+      <td>$${r.price.toFixed(2)}</td>
+      <td style="color:var(--accent3)">$${r.open.toFixed(2)}</td>
+    </tr>`).join('');
+
+  document.getElementById('lowsTable').innerHTML = topLows.map((r,i) => `
+    <tr>
+      <td class="rank">#${i+1}</td>
+      <td>${fmtDate(r.date)}</td>
+      <td class="tbl-low">$${r.low.toFixed(2)}</td>
+      <td>$${r.price.toFixed(2)}</td>
+      <td style="color:var(--accent3)">$${r.open.toFixed(2)}</td>
+    </tr>`).join('');
+}
+
+let currentTheme = localStorage.getItem('dashTheme') || 'modern';
+
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t === 'modern' ? '' : t);
+  localStorage.setItem('dashTheme', t);
+  currentTheme = t;
+  ['modern','white','classic'].forEach(name => {
+    document.getElementById('theme-' + name).classList.toggle('active', name === t);
+  });
+}
+
+applyTheme(currentTheme);
+
+function showError() {
+  document.body.innerHTML = `
+    <div class="error-msg">No data found for ticker: <strong>${TICKER}</strong><br>Check the symbol and try again.</div>
+    <a href="?ticker=SPY" style="color:var(--accent);font-family:'Space Mono',monospace;font-size:0.8rem;">← Back to SPY</a>`;
+}
+
+async function boot() {
+  try {
+    const res = await fetch(`${API_BASE}/api/ticker?ticker=${encodeURIComponent(TICKER)}`);
+    if (!res.ok) { showError(); return; }
+    const json = await res.json();
+    RAW = json.data;
+    const longName = json.name || TICKER;
+
+    allData = RAW.map(r => ({
+      date: parseDate(r.date),
+      dateStr: r.date,
+      price: parseFloat(r.price),
+      high:  parseFloat(r.high),
+      low:   parseFloat(r.low),
+      open:   parseFloat(r.open),
+      vol:    r.vol,
+      volRaw: r.volRaw
+    })).sort((a,b) => a.date - b.date);
+
+    computeIndicators();
+
+    minDate = allData[0].date;
+    maxDate = allData[allData.length-1].date;
+
+    document.title = `${TICKER} · ${longName}`;
+    document.getElementById('tickerHeading').textContent = TICKER;
+    document.getElementById('longNameSub').textContent = longName;
+    const now = new Date().toISOString().slice(0,16).replace('T',' ');
+    document.getElementById('generatedInfo').textContent = `Generated ${now} · yfinance · ${allData.length} trading days`;
+
+    document.getElementById('dateFrom').min = toInputDate(minDate);
+    document.getElementById('dateFrom').max = toInputDate(maxDate);
+    document.getElementById('dateTo').min   = toInputDate(minDate);
+    document.getElementById('dateTo').max   = toInputDate(maxDate);
+
+    const initFrom = new Date(maxDate);
+    initFrom.setFullYear(initFrom.getFullYear() - 1);
+    document.getElementById('dateFrom').value = toInputDate(initFrom);
+    document.getElementById('dateTo').value   = toInputDate(maxDate);
+
+    for (const t of COMPARE_TICKERS) await loadCompare(t);
+    renderCompareChips();
+    render(initFrom, maxDate);
+  } catch (e) {
+    showError();
+  }
+}
+
+boot();
+</script>
+</body>
+</html>
