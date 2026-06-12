@@ -41,14 +41,13 @@ async function fetchName(ticker) {
   }
 }
 
-async function fetchDaily(ticker) {
-  const [result, name] = await Promise.all([
-    fetchChart(ticker, "range=max&interval=1d"),
-    fetchName(ticker),
-  ]);
-  if (!result) return null;
+function dayKey(ts) {
+  const d = new Date(ts * 1000);
+  return `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`;
+}
 
-  const meta = result.meta || {};
+function extractRows(result) {
+  if (!result) return [];
   const timestamps = result.timestamp || [];
   const quote = (result.indicators && result.indicators.quote && result.indicators.quote[0]) || {};
 
@@ -60,19 +59,41 @@ async function fetchDaily(ticker) {
     const open = quote.open && quote.open[i];
     const volume = (quote.volume && quote.volume[i]) || 0;
     if (close == null || high == null || low == null || open == null) continue;
-
-    const d = new Date(timestamps[i] * 1000);
-    rows.push({
-      date: `${pad2(d.getUTCMonth() + 1)}/${pad2(d.getUTCDate())}/${d.getUTCFullYear()}`,
-      price: round(close, 4),
-      high: round(high, 4),
-      low: round(low, 4),
-      open: round(open, 4),
-      vol: volume.toLocaleString("en-US"),
-      volRaw: Math.round(volume),
-      change: "",
-    });
+    rows.push({ ts: timestamps[i], close, high, low, open, volume });
   }
+  return rows;
+}
+
+async function fetchDaily(ticker) {
+  const [maxResult, recentResult, name] = await Promise.all([
+    fetchChart(ticker, "range=max&interval=1d").catch(() => null),
+    fetchChart(ticker, "range=2y&interval=1d").catch(() => null),
+    fetchName(ticker),
+  ]);
+  const meta = (maxResult && maxResult.meta) || (recentResult && recentResult.meta) || {};
+
+  // range=max returns coarse (monthly) candles for older history on Yahoo's
+  // chart API, so merge in range=2y daily candles, which take precedence
+  // for any overlapping dates.
+  const merged = new Map();
+  for (const r of extractRows(maxResult)) merged.set(dayKey(r.ts), r);
+  for (const r of extractRows(recentResult)) merged.set(dayKey(r.ts), r);
+
+  const sorted = [...merged.values()].sort((a, b) => a.ts - b.ts);
+
+  const rows = sorted.map((r) => {
+    const d = new Date(r.ts * 1000);
+    return {
+      date: `${pad2(d.getUTCMonth() + 1)}/${pad2(d.getUTCDate())}/${d.getUTCFullYear()}`,
+      price: round(r.close, 4),
+      high: round(r.high, 4),
+      low: round(r.low, 4),
+      open: round(r.open, 4),
+      vol: r.volume.toLocaleString("en-US"),
+      volRaw: Math.round(r.volume),
+      change: "",
+    };
+  });
 
   if (rows.length === 0) return null;
 
