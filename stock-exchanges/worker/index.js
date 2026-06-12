@@ -68,7 +68,8 @@ async function fetchOne(market) {
     const result = data.chart && data.chart.result && data.chart.result[0];
     const meta = result && result.meta;
     const current = meta && meta.regularMarketPrice;
-    const prev = meta && meta.chartPreviousClose;
+    const closes = result && result.indicators && result.indicators.quote[0].close;
+    const prev = closes && closes.length > 1 ? closes[closes.length - 2] : meta && meta.chartPreviousClose;
     if (current == null) {
       return { name: market.name, value: null, prev: null, change: null, pct: null, error: "No data", ...base };
     }
