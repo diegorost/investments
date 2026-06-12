@@ -21,7 +21,7 @@ export function Layout() {
             <span className="flex size-9 items-center justify-center rounded-full bg-gold text-ink">
               <PawPrint className="size-5" />
             </span>
-            <span className="text-lg">Amor por los Peludos</span>
+            <span className="text-lg">Comunidad Amor por los Peludos</span>
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex">
