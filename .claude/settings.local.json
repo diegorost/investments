@@ -95,7 +95,13 @@
       "Bash(curl -s -X POST https://comunidad-amor-por-los-peludos.pages.dev/api/dogs -H \"Content-Type: application/json\" -d '{\"name\":\"Firulais\",\"breed\":\"Mestizo\",\"owner_name\":\"Diego\"}')",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://comunidad-amor-por-los-peludos.pages.dev/)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://comunidad-amor-por-los-peludos.pages.dev/recursos/anadir)",
-      "Bash(curl -s -X POST https://comunidad-amor-por-los-peludos.pages.dev/api/dogs -H \"Content-Type: application/json\" -d '{\"name\":\"Test\",\"breed\":\"Mestizo\",\"owner_name\":\"Diego\",\"birthdate\":\"2020-06-13\"}')"
+      "Bash(curl -s -X POST https://comunidad-amor-por-los-peludos.pages.dev/api/dogs -H \"Content-Type: application/json\" -d '{\"name\":\"Test\",\"breed\":\"Mestizo\",\"owner_name\":\"Diego\",\"birthdate\":\"2020-06-13\"}')",
+      "Bash(curl -s https://comunidad-amor-por-los-peludos.pages.dev/api/tips)",
+      "Bash(find . -iname \"*backup*\" -not -path \"./node_modules/*\")",
+      "Bash(ls .github/workflows)",
+      "Bash(gh run *)",
+      "Bash(gh --version)",
+      "Bash(gh secret *)"
     ]
   }
 }
