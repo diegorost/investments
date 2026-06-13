@@ -76,7 +76,26 @@
       "Bash(git -C \"c:\\\\Users\\\\diego\\\\Downloads\\\\stocks\" add .claude/settings.local.json)",
       "Bash(git -C \"c:\\\\Users\\\\diego\\\\Downloads\\\\stocks\" diff --stat)",
       "Bash(git -C \"c:\\\\Users\\\\diego\\\\Downloads\\\\stocks\" status --short)",
-      "Bash(git -C \"c:\\\\Users\\\\diego\\\\Downloads\\\\stocks\" ls-files --others --exclude-standard)"
+      "Bash(git -C \"c:\\\\Users\\\\diego\\\\Downloads\\\\stocks\" ls-files --others --exclude-standard)",
+      "Bash(curl -sI https://comunidad-amor-por-los-peludos.pages.dev/)",
+      "Bash(curl -sI https://7b0bddd6.comunidad-amor-por-los-peludos.pages.dev/)",
+      "Bash(cat .env.example)",
+      "Bash(grep -r \"VITE_SUPABASE\" src --include=*.ts* -l)",
+      "Bash(cat wrangler.toml)",
+      "Bash(curl -s https://comunidad-amor-por-los-peludos.pages.dev/)",
+      "Bash(find src *)",
+      "Bash(find . -path ./node_modules -prune -o -iname \"*.sql\" -print)",
+      "Bash(env)",
+      "Bash(ls node_modules/@cloudflare)",
+      "Bash(cat tsconfig.json)",
+      "Bash(cat tsconfig.app.json)",
+      "Bash(npm uninstall *)",
+      "Bash(curl -s https://comunidad-amor-por-los-peludos.pages.dev/api/dogs)",
+      "Bash(curl -s https://comunidad-amor-por-los-peludos.pages.dev/api/resources)",
+      "Bash(curl -s -X POST https://comunidad-amor-por-los-peludos.pages.dev/api/dogs -H \"Content-Type: application/json\" -d '{\"name\":\"Firulais\",\"breed\":\"Mestizo\",\"owner_name\":\"Diego\"}')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://comunidad-amor-por-los-peludos.pages.dev/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://comunidad-amor-por-los-peludos.pages.dev/recursos/anadir)",
+      "Bash(curl -s -X POST https://comunidad-amor-por-los-peludos.pages.dev/api/dogs -H \"Content-Type: application/json\" -d '{\"name\":\"Test\",\"breed\":\"Mestizo\",\"owner_name\":\"Diego\",\"birthdate\":\"2020-06-13\"}')"
     ]
   }
 }
