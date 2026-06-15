@@ -52,35 +52,6 @@ function round(n, d) {
   return Math.round(n * f) / f;
 }
 
-async function fetchRobinhoodAfterHours(ticker, regularPrice, d) {
-  try {
-    const url = `https://robinhood.com/us/en/stocks/${encodeURIComponent(ticker)}/`;
-    const r = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      },
-    });
-    const html = await r.text();
-    const m = html.match(/"quote":(\{"ask_price":"[^{}]*\})/);
-    if (!m) return null;
-    const quote = JSON.parse(m[1]);
-    const last = parseFloat(quote.last_trade_price);
-    const ext = parseFloat(quote.last_non_reg_trade_price);
-    if (!ext || !last || ext === last) return null;
-    const base = regularPrice != null ? regularPrice : last;
-    const change = ext - base;
-    const pct = base ? (change / base) * 100 : null;
-    return {
-      value: round(ext, d),
-      change: round(change, d),
-      pct: pct != null ? round(pct, 2) : null,
-      time: quote.updated_at,
-    };
-  } catch {
-    return null;
-  }
-}
-
 async function fetchOne(market) {
   const d = market.dec || 2;
   const base = {
@@ -104,7 +75,7 @@ async function fetchOne(market) {
     }
     const change = prev != null ? current - prev : null;
     const pct = prev ? (change / prev) * 100 : null;
-    const entry = {
+    return {
       name: market.name,
       value: round(current, d),
       prev: prev != null ? round(prev, d) : null,
@@ -113,10 +84,6 @@ async function fetchOne(market) {
       error: null,
       ...base,
     };
-    if (market.region === "MINERS") {
-      entry.afterHours = await fetchRobinhoodAfterHours(market.ticker, current, d);
-    }
-    return entry;
   } catch {
     return { name: market.name, value: null, prev: null, change: null, pct: null, error: "Error fetching data", ...base };
   }
