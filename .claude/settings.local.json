@@ -138,7 +138,12 @@
       "Bash(curl -s -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0.0.0 Safari/537.36\" \"https://robinhood.com/us/en/stocks/GDXU/\" -o gdxu2.html -w \"%{http_code}\\\\n\")",
       "Bash(curl -s \"https://stock-exchanges-api.diegointheworks.workers.dev/api/debug?ticker=GDXU\")",
       "Bash(curl -s -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0.0.0 Safari/537.36\" \"https://robinhood.com/us/en/stocks/GDXU/\" -o gdxu3.html -w \"http:%{http_code}\\\\n\")",
-      "Bash(curl -s -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0.0.0 Safari/537.36\" \"https://robinhood.com/us/en/stocks/GDXU/\" -o gdxu4.html -w \"http:%{http_code}\\\\n\")"
+      "Bash(curl -s -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0.0.0 Safari/537.36\" \"https://robinhood.com/us/en/stocks/GDXU/\" -o gdxu4.html -w \"http:%{http_code}\\\\n\")",
+      "Skill(update-config)",
+      "Skill(update-config:*)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\diego\\.claude"
     ]
   }
 }
