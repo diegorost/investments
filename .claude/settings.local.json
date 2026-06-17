@@ -140,7 +140,10 @@
       "Bash(curl -s -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0.0.0 Safari/537.36\" \"https://robinhood.com/us/en/stocks/GDXU/\" -o gdxu3.html -w \"http:%{http_code}\\\\n\")",
       "Bash(curl -s -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0.0.0 Safari/537.36\" \"https://robinhood.com/us/en/stocks/GDXU/\" -o gdxu4.html -w \"http:%{http_code}\\\\n\")",
       "Skill(update-config)",
-      "Skill(update-config:*)"
+      "Skill(update-config:*)",
+      "Bash(python renombrar-pdfs.py)",
+      "Bash(pyinstaller --onefile --distpath \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\dist\" --workpath \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\build\\\\renombrar-pdfs\" --specpath \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\build\\\\renombrar-pdfs\" \"renombrar-pdfs.py\")",
+      "Bash(python -m PyInstaller --onefile --distpath \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\dist\" --workpath \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\build\\\\renombrar-pdfs\" --specpath \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\build\\\\renombrar-pdfs\" \"renombrar-pdfs.py\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\diego\\.claude"
