@@ -270,6 +270,8 @@ const tickerArg = (urlParams.get('ticker') || 'SPY').toUpperCase().trim();
 const tickerParts = tickerArg.split(/[\s+]+/).filter(Boolean);
 const TICKER = tickerParts[0] || 'SPY';
 const COMPARE_TICKERS = tickerParts.slice(1);
+const FROM_ARG = urlParams.get('from');
+const TO_ARG = urlParams.get('to');
 
 document.getElementById('tickerInput').value = TICKER;
 
@@ -372,6 +374,7 @@ function setPreset(p) {
   if (p === '1D') {
     intradayMode = true;
     document.getElementById('intraday-bar').style.display = 'flex';
+    updateURL();
     loadIntraday(currentInterval);
     return;
   }
@@ -549,6 +552,7 @@ function fmtDate(d)  { return d.toLocaleDateString('en-US', {month:'short', day:
 
 function render(from, to) {
   lastFrom = from; lastTo = to;
+  updateURL();
   const isFullRange = from <= minDate && to >= maxDate;
   document.getElementById('btnReset').style.display = isFullRange ? 'none' : 'inline-block';
 
@@ -1229,7 +1233,11 @@ async function addCompare() {
 
 function updateURL() {
   const parts = [TICKER, ...compareItems.map(c => c.ticker)];
-  history.replaceState(null, '', location.pathname + '?ticker=' + parts.map(t => encodeURIComponent(t)).join('+'));
+  let qs = 'ticker=' + parts.map(t => encodeURIComponent(t)).join('+');
+  if (!intradayMode && lastFrom && lastTo) {
+    qs += '&from=' + toInputDate(lastFrom) + '&to=' + toInputDate(lastTo);
+  }
+  history.replaceState(null, '', location.pathname + '?' + qs);
 }
 
 async function loadCompare(t) {
@@ -1388,14 +1396,24 @@ async function boot() {
     document.getElementById('dateTo').min   = toInputDate(minDate);
     document.getElementById('dateTo').max   = toInputDate(maxDate);
 
-    const initFrom = new Date(maxDate);
+    let initFrom = new Date(maxDate);
     initFrom.setFullYear(initFrom.getFullYear() - 1);
+    let initTo = maxDate;
+    if (FROM_ARG) {
+      const parsed = new Date(FROM_ARG + 'T00:00:00');
+      if (!isNaN(parsed)) initFrom = parsed < minDate ? minDate : parsed;
+    }
+    if (TO_ARG) {
+      const parsed = new Date(TO_ARG + 'T00:00:00');
+      if (!isNaN(parsed)) initTo = parsed > maxDate ? maxDate : parsed;
+    }
     document.getElementById('dateFrom').value = toInputDate(initFrom);
-    document.getElementById('dateTo').value   = toInputDate(maxDate);
+    document.getElementById('dateTo').value   = toInputDate(initTo);
+    document.querySelectorAll('.preset-btns .btn').forEach(b => b.classList.remove('active'));
 
     for (const t of COMPARE_TICKERS) await loadCompare(t);
     renderCompareChips();
-    render(initFrom, maxDate);
+    render(initFrom, initTo);
   } catch (e) {
     showError();
   }
