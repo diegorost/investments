@@ -157,8 +157,8 @@ h1 { color: #1a1a1a; font-size: 2.6em; margin: 0; text-align: center; flex: 1; }
 <div class="container">
 
   <div class="page-header">
-    <h1> Miners ETF Dashboard</h1>
-    <span class="page-date">Updated 2026-06-05 23:34</span>
+    <h1> Precious Metals Miners ETF Dashboard</h1>
+    <span class="page-date" id="page-date-updated">Updated 2026-06-05 23:34</span>
   </div>
 
   <div class="metal-tab-bar">
@@ -548,7 +548,7 @@ h1 { color: #1a1a1a; font-size: 2.6em; margin: 0; text-align: center; flex: 1; }
 
   <div class="footer">
     <p><strong>Tier Classification:</strong> Mega Cap (&gt;$20B) &middot; Senior ($5B-$20B) &middot; Mid-Tier ($1B-$5B) &middot; Junior-Mid ($500M-$1B) &middot; Junior ($100M-$500M) &middot; Micro (&lt;$100M)</p>
-    <p style="margin-top:6px;"><strong>Data:</strong> Yahoo Finance &middot; investing.com &middot; Updated 2026-06-05 23:34</p>
+    <p style="margin-top:6px;"><strong>Data:</strong> Yahoo Finance &middot; investing.com &middot; Updated <span id="footer-date-updated">2026-06-05 23:34</span></p>
   </div>
 
 </div>
@@ -1598,6 +1598,11 @@ function updateEtfHero(cls, data) {
 const GOLD_CLASSES   = ['ring', 'auau', 'gdx', 'gdxj'];
 const SILVER_CLASSES = ['slvp', 'sil', 'silj'];
 
+function formatUpdatedDate(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function refreshEtfs(mode) {
   const progress = document.getElementById('progress-text');
   const status   = document.getElementById('status-text');
@@ -1610,7 +1615,12 @@ function refreshEtfs(mode) {
       else if (mode === 'silver') classes = SILVER_CLASSES;
       classes.forEach(cls => { if (d.etfs[cls]) updateEtfHero(cls, d.etfs[cls]); });
       progress.textContent = '';
-      status.textContent = 'Last updated: ' + new Date().toLocaleString();
+      const now = new Date();
+      status.textContent = 'Last updated: ' + now.toLocaleString();
+      const pageDateEl = document.getElementById('page-date-updated');
+      if (pageDateEl) pageDateEl.textContent = 'Updated ' + formatUpdatedDate(now);
+      const footerDateEl = document.getElementById('footer-date-updated');
+      if (footerDateEl) footerDateEl.textContent = formatUpdatedDate(now);
     })
     .catch(() => { progress.textContent = 'Error refreshing prices'; });
 }
