@@ -111,6 +111,10 @@
   }
   table { width: 100%; border-collapse: collapse; font-family: 'Space Mono', monospace; font-size: 0.72rem; }
   thead th { text-align: left; padding: 10px 12px; font-size: 0.62rem; letter-spacing: 2px; text-transform: uppercase; color: var(--text); border-bottom: 1px solid var(--border); }
+  thead th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+  thead th.sortable:hover { color: var(--accent3); }
+  thead th.sortable .sort-arrow { opacity: 0.4; font-size: 0.6em; margin-left: 3px; }
+  thead th.sortable.sorted .sort-arrow { opacity: 1; }
   tbody tr { transition: background 0.1s; }
   tbody tr:hover { background: rgba(240,192,64,0.04); }
   tbody td { padding: 9px 12px; border-bottom: 1px solid rgba(30,30,46,0.6); color: var(--text); }
@@ -246,14 +250,28 @@
     <div class="table-panel highs">
       <h3 id="highsTitle">▲ Top 10 Highest Intraday Highs</h3>
       <table>
-        <thead><tr><th>#</th><th>Date</th><th>High</th><th>Close</th><th>Open</th></tr></thead>
+        <thead><tr id="highsHead">
+          <th>#</th>
+          <th class="sortable" data-col="date">Date<span class="sort-arrow"></span></th>
+          <th class="sortable" data-col="high">High<span class="sort-arrow"></span></th>
+          <th class="sortable" data-col="low">Low<span class="sort-arrow"></span></th>
+          <th class="sortable" data-col="price">Close<span class="sort-arrow"></span></th>
+          <th class="sortable" data-col="open">Open<span class="sort-arrow"></span></th>
+        </tr></thead>
         <tbody id="highsTable"></tbody>
       </table>
     </div>
     <div class="table-panel lows">
       <h3 id="lowsTitle">▼ Top 10 Lowest Intraday Lows</h3>
       <table>
-        <thead><tr><th>#</th><th>Date</th><th>Low</th><th>Close</th><th>Open</th></tr></thead>
+        <thead><tr id="lowsHead">
+          <th>#</th>
+          <th class="sortable" data-col="date">Date<span class="sort-arrow"></span></th>
+          <th class="sortable" data-col="low">Low<span class="sort-arrow"></span></th>
+          <th class="sortable" data-col="high">High<span class="sort-arrow"></span></th>
+          <th class="sortable" data-col="price">Close<span class="sort-arrow"></span></th>
+          <th class="sortable" data-col="open">Open<span class="sort-arrow"></span></th>
+        </tr></thead>
         <tbody id="lowsTable"></tbody>
       </table>
     </div>
@@ -1309,6 +1327,10 @@ function exportCSV() {
 
 let topN = 10;
 let lastTableData = null;
+const tableSort = {
+  highs: { col: 'high', dir: 'desc' },
+  lows:  { col: 'low',  dir: 'asc'  }
+};
 
 function setTopN(n) {
   topN = n;
@@ -1318,16 +1340,57 @@ function setTopN(n) {
   if (lastTableData) renderTables(lastTableData);
 }
 
+function sortTopTable(panel, col) {
+  const s = tableSort[panel];
+  if (s.col === col) {
+    s.dir = s.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    s.col = col;
+    s.dir = col === 'date' ? 'desc' : (panel === 'highs' ? 'desc' : 'asc');
+  }
+  if (lastTableData) renderTables(lastTableData);
+}
+
+document.querySelectorAll('#highsHead th.sortable').forEach(th =>
+  th.addEventListener('click', () => sortTopTable('highs', th.dataset.col)));
+document.querySelectorAll('#lowsHead th.sortable').forEach(th =>
+  th.addEventListener('click', () => sortTopTable('lows', th.dataset.col)));
+
+function updateSortHeaders(panel) {
+  const s = tableSort[panel];
+  document.querySelectorAll('#' + panel + 'Head th.sortable').forEach(th => {
+    const active = th.dataset.col === s.col;
+    th.classList.toggle('sorted', active);
+    th.querySelector('.sort-arrow').textContent = active ? (s.dir === 'asc' ? '▲' : '▼') : '';
+  });
+}
+
+function sortRows(rows, col, dir) {
+  const mul = dir === 'asc' ? 1 : -1;
+  return [...rows].sort((a, b) => {
+    const av = col === 'date' ? a.date.getTime() : a[col];
+    const bv = col === 'date' ? b.date.getTime() : b[col];
+    return (av - bv) * mul;
+  });
+}
+
 function renderTables(data) {
   lastTableData = data;
-  const topHighs = [...data].sort((a,b) => b.high - a.high).slice(0, topN);
-  const topLows  = [...data].sort((a,b) => a.low  - b.low ).slice(0, topN);
+  const baseHighs = [...data].sort((a,b) => b.high - a.high).slice(0, topN);
+  const baseLows  = [...data].sort((a,b) => a.low  - b.low ).slice(0, topN);
+
+  const topHighs = sortRows(baseHighs, tableSort.highs.col, tableSort.highs.dir);
+  const topLows  = sortRows(baseLows,  tableSort.lows.col,  tableSort.lows.dir);
+
+  updateSortHeaders('highs');
+  updateSortHeaders('lows');
 
   document.getElementById('highsTable').innerHTML = topHighs.map((r,i) => `
     <tr>
       <td class="rank">#${i+1}</td>
       <td>${fmtDate(r.date)}</td>
       <td class="tbl-high">$${r.high.toFixed(2)}</td>
+      <td class="tbl-low">$${r.low.toFixed(2)}</td>
       <td>$${r.price.toFixed(2)}</td>
       <td style="color:var(--accent3)">$${r.open.toFixed(2)}</td>
     </tr>`).join('');
@@ -1337,6 +1400,7 @@ function renderTables(data) {
       <td class="rank">#${i+1}</td>
       <td>${fmtDate(r.date)}</td>
       <td class="tbl-low">$${r.low.toFixed(2)}</td>
+      <td class="tbl-high">$${r.high.toFixed(2)}</td>
       <td>$${r.price.toFixed(2)}</td>
       <td style="color:var(--accent3)">$${r.open.toFixed(2)}</td>
     </tr>`).join('');
