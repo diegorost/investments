@@ -22,4 +22,4 @@ Análisis detallado de un ticker individual: precio, nombre del instrumento y m�
 ## Otras carpetas
 
 - **archive**: Versiones anteriores en Python de los proyectos anteriores (`investing-calculator-py`, `miners-uplift-py`, `price-date-py`, `stock-exchanges-py`, `ticker-analysis-py`), reemplazadas por las versiones actuales basadas en Cloudflare Workers.
-- **build** / **dist**: Carpetas de salida generadas automáticamente por procesos de build/empaquetado, no contienen código fuente propio.
+- **build**: Carpeta de salida generada automáticamente por procesos de build/empaquetado, no contiene código fuente propio.
