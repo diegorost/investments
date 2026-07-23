@@ -45,7 +45,6 @@ const YAHOO_MARKETS = [
   { name: "GDXU",  ticker: "GDXU", region: "MINERS", icon: "🥇" },
 ];
 
-
 const HIDDEN_TICKERS = new Set(["CHILE", "CHILE.SN", "BSANTANDER", "BSANTANDER.SN"]);
 const HIDDEN_NAMES = new Set(["CHILE", "BANCO DE CHILE", "BSANTANDER", "SANTANDER CHILE"]);
 
