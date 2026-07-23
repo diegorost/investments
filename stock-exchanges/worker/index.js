@@ -55,6 +55,7 @@ function round(n, d) {
 
 async function fetchOne(market) {
   const d = market.dec || 2;
+  const needsIntradayPreviousClose = market.ticker.endsWith(".SN");
   const base = {
     region: market.region,
     ticker: market.ticker,
@@ -64,14 +65,22 @@ async function fetchOne(market) {
     dec: d,
   };
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(market.ticker)}?range=5d&interval=1d`;
+    const range = needsIntradayPreviousClose ? "1d" : "5d";
+    const interval = needsIntradayPreviousClose ? "1m" : "1d";
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(market.ticker)}?range=${range}&interval=${interval}`;
     const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
     const data = await r.json();
     const result = data.chart && data.chart.result && data.chart.result[0];
     const meta = result && result.meta;
     const current = meta && meta.regularMarketPrice;
     const closes = result && result.indicators && result.indicators.quote[0].close;
-    const prev = closes && closes.length > 1 ? closes[closes.length - 2] : meta && meta.chartPreviousClose;
+    const prev = meta && meta.previousClose != null
+      ? meta.previousClose
+      : meta && meta.chartPreviousClose != null
+        ? meta.chartPreviousClose
+      : closes && closes.length > 1
+        ? closes[closes.length - 2]
+        : null;
     if (current == null) {
       return { name: market.name, value: null, prev: null, change: null, pct: null, error: "No data", ...base };
     }

@@ -51,7 +51,9 @@
 </div>
 
 <script>
-const API_BASE = 'https://stock-exchanges-api.diegointheworks.workers.dev';
+const API_BASE = ['localhost', '127.0.0.1'].includes(location.hostname)
+  ? 'http://localhost:8787'
+  : 'https://stock-exchanges-api.diegointheworks.workers.dev';
 
 const fmt  = (n, d) => n == null ? '<span class="na">—</span>'
   : n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
