@@ -45,6 +45,9 @@ const YAHOO_MARKETS = [
   { name: "GDXU",  ticker: "GDXU", region: "MINERS", icon: "🥇" },
 ];
 
+const HIDDEN_TICKERS = new Set(["CHILE", "CHILE.SN", "BSANTANDER", "BSANTANDER.SN"]);
+const HIDDEN_NAMES = new Set(["CHILE", "BANCO DE CHILE", "BSANTANDER", "SANTANDER CHILE"]);
+
 function round(n, d) {
   const f = Math.pow(10, d);
   return Math.round(n * f) / f;
@@ -54,6 +57,7 @@ async function fetchOne(market) {
   const d = market.dec || 2;
   const base = {
     region: market.region,
+    ticker: market.ticker,
     flag: market.flag,
     flags: market.flags,
     icon: market.icon,
@@ -89,9 +93,14 @@ async function fetchOne(market) {
 
 async function fetchYahoo() {
   const markets = await Promise.all(YAHOO_MARKETS.map(fetchOne));
+  const visibleMarkets = markets.filter((m) => {
+    const ticker = (m.ticker || "").toUpperCase();
+    const name = (m.name || "").toUpperCase();
+    return !HIDDEN_TICKERS.has(ticker) && !HIDDEN_NAMES.has(name);
+  });
 
-  const gold = markets.find((m) => m.name === "Gold");
-  const silver = markets.find((m) => m.name === "Silver");
+  const gold = visibleMarkets.find((m) => m.name === "Gold");
+  const silver = visibleMarkets.find((m) => m.name === "Silver");
   if (gold && silver && gold.value && silver.value) {
     const gsrVal = gold.value / silver.value;
     const gsrPrev = gold.prev && silver.prev ? gold.prev / silver.prev : null;
@@ -107,12 +116,12 @@ async function fetchYahoo() {
       region: "FUTURES",
       dec: 2,
     };
-    const silverIdx = markets.findIndex((m) => m.name === "Silver");
-    markets.splice(silverIdx + 1, 0, gsrEntry);
+    const silverIdx = visibleMarkets.findIndex((m) => m.name === "Silver");
+    visibleMarkets.splice(silverIdx + 1, 0, gsrEntry);
   }
 
   return {
-    markets,
+    markets: visibleMarkets,
     updated: new Date().toISOString().slice(0, 16).replace("T", " ") + " UTC",
   };
 }

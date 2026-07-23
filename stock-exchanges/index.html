@@ -88,12 +88,24 @@ function renderSection(title, markets) {
 }
 
 function render(data) {
-  const us     = data.markets.filter(m => m.region === 'US');
-  const latam  = data.markets.filter(m => m.region === 'LATAM');
-  const chile  = data.markets.filter(m => m.region === 'CHILE');
-  const metals = data.markets.filter(m => m.region === 'FUTURES');
-  const forex  = data.markets.filter(m => m.region === 'FOREX');
-  const miners = data.markets.filter(m => m.region === 'MINERS');
+  const markets = data.markets.filter(m => {
+    const ticker = (m.ticker || '').toUpperCase();
+    const name = (m.name || '').toUpperCase();
+    return ticker !== 'CHILE'
+      && ticker !== 'CHILE.SN'
+      && ticker !== 'BSANTANDER.SN'
+      && ticker !== 'BSANTANDER'
+      && name !== 'CHILE'
+      && name !== 'BANCO DE CHILE'
+      && name !== 'BSANTANDER'
+      && name !== 'SANTANDER CHILE';
+  });
+  const us     = markets.filter(m => m.region === 'US');
+  const latam  = markets.filter(m => m.region === 'LATAM');
+  const chile  = markets.filter(m => m.region === 'CHILE');
+  const metals = markets.filter(m => m.region === 'FUTURES');
+  const forex  = markets.filter(m => m.region === 'FOREX');
+  const miners = markets.filter(m => m.region === 'MINERS');
   document.getElementById('content').innerHTML = `
     <div class="grid">
       <div>
