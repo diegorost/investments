@@ -17,10 +17,8 @@ const YAHOO_MARKETS = [
   { name: "Argentina (MERVAL)",  ticker: "^MERV",     region: "LATAM",   flag: "ar" },
   // Chile stocks
   { name: "LATAM Airlines",      ticker: "LTM.SN",        region: "CHILE", flag: "cl" },
-  { name: "Santander Chile",     ticker: "BSANTANDER.SN", region: "CHILE", flag: "cl" },
   { name: "Itaú Chile",          ticker: "ITAUCL.SN",     region: "CHILE", flag: "cl" },
   { name: "CFMITNIPSA",          ticker: "CFMITNIPSA.SN", region: "CHILE", flag: "cl" },
-  { name: "Banco de Chile",      ticker: "CHILE.SN",      region: "CHILE", flag: "cl" },
   // Futures
   { name: "Gold",                ticker: "GC=F",      region: "FUTURES", icon: "🥇" },
   { name: "Silver",              ticker: "SI=F",      region: "FUTURES", icon: "🥈" },
