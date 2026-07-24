@@ -86,13 +86,21 @@ async function fetchOne(market) {
       : closes && closes.length
         ? closes[closes.length - 1]
         : null;
-    const prev = closes && closes.length > 1
-      ? closes[closes.length - 2]
-      : meta && meta.previousClose != null
+    const prev = needsIntradayPreviousClose
+      ? ((meta && meta.previousClose != null)
         ? meta.previousClose
-        : meta && meta.chartPreviousClose != null
+        : (meta && meta.chartPreviousClose != null)
           ? meta.chartPreviousClose
-          : null;
+          : (closes && closes.length > 1 && closes[closes.length - 2] != null)
+            ? closes[closes.length - 2]
+            : null)
+      : ((closes && closes.length > 1 && closes[closes.length - 2] != null)
+        ? closes[closes.length - 2]
+        : (meta && meta.previousClose != null)
+          ? meta.previousClose
+          : (meta && meta.chartPreviousClose != null)
+            ? meta.chartPreviousClose
+            : null);
     if (current == null) {
       return { name: market.name, value: null, prev: null, change: null, pct: null, error: "No data", ...base };
     }
