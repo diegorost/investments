@@ -103,8 +103,9 @@ function render(data) {
       && name !== 'SANTANDER CHILE';
   });
   const us     = markets.filter(m => m.region === 'US');
-  const latam  = markets.filter(m => m.region === 'LATAM');
-  const chile  = markets.filter(m => m.region === 'CHILE');
+  const latamBase = markets.filter(m => m.region === 'LATAM');
+  const chile = markets.filter(m => m.region === 'CHILE');
+  const latam = [...latamBase, ...chile];
   const metals = markets.filter(m => m.region === 'FUTURES');
   const forex  = markets.filter(m => m.region === 'FOREX');
   const miners = markets.filter(m => m.region === 'MINERS');
@@ -113,11 +114,10 @@ function render(data) {
       <div>
         ${renderSection('United States', us)}
         ${renderSection('Forex (1 USD = X)', forex)}
-        ${renderSection('Chile Stocks', chile)}
+        ${renderSection('Latin America', latam)}
       </div>
       <div>
         ${renderSection('Futures', metals)}
-        ${renderSection('Latin America', latam)}
         ${renderSection('Miners', miners)}
       </div>
     </div>`;
