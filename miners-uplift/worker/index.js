@@ -15,7 +15,14 @@ const ETFS = {
 };
 
 function round2(n) {
+  if (n == null || !Number.isFinite(n)) return null;
   return Math.round(n * 100) / 100;
+}
+
+function safePercentChange(change, base) {
+  if (change == null || base == null || base === 0) return null;
+  const pct = (change / base) * 100;
+  return Number.isFinite(pct) ? pct : null;
 }
 
 async function fetchEtf(ticker) {
@@ -29,7 +36,7 @@ async function fetchEtf(ticker) {
     const highs = (result.indicators.quote[0].high || []).filter((h) => h != null);
     const ath = highs.length ? Math.max(...highs) : null;
     if (current == null || ath == null) return { current: null, ath: null, pct: null };
-    const pct = ((ath - current) / ath) * 100;
+    const pct = safePercentChange(ath - current, ath);
     return { current: round2(current), ath: round2(ath), pct: round2(pct) };
   } catch {
     return { current: null, ath: null, pct: null };

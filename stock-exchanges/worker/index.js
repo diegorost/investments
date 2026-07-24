@@ -50,8 +50,15 @@ const HIDDEN_TICKERS = new Set(["CHILE", "CHILE.SN", "BSANTANDER", "BSANTANDER.S
 const HIDDEN_NAMES = new Set(["CHILE", "BANCO DE CHILE", "BSANTANDER", "SANTANDER CHILE"]);
 
 function round(n, d) {
+  if (n == null || !Number.isFinite(n)) return null;
   const f = Math.pow(10, d);
   return Math.round(n * f) / f;
+}
+
+function safePercentChange(change, base) {
+  if (change == null || base == null || base === 0) return null;
+  const pct = (change / base) * 100;
+  return Number.isFinite(pct) ? pct : null;
 }
 
 async function fetchOne(market) {
@@ -73,20 +80,24 @@ async function fetchOne(market) {
     const data = await r.json();
     const result = data.chart && data.chart.result && data.chart.result[0];
     const meta = result && result.meta;
-    const current = meta && meta.regularMarketPrice;
     const closes = result && result.indicators && result.indicators.quote[0].close;
-    const prev = meta && meta.previousClose != null
-      ? meta.previousClose
-      : meta && meta.chartPreviousClose != null
-        ? meta.chartPreviousClose
-      : closes && closes.length > 1
-        ? closes[closes.length - 2]
+    const current = meta && meta.regularMarketPrice != null
+      ? meta.regularMarketPrice
+      : closes && closes.length
+        ? closes[closes.length - 1]
         : null;
+    const prev = closes && closes.length > 1
+      ? closes[closes.length - 2]
+      : meta && meta.previousClose != null
+        ? meta.previousClose
+        : meta && meta.chartPreviousClose != null
+          ? meta.chartPreviousClose
+          : null;
     if (current == null) {
       return { name: market.name, value: null, prev: null, change: null, pct: null, error: "No data", ...base };
     }
     const change = prev != null ? current - prev : null;
-    const pct = prev ? (change / prev) * 100 : null;
+    const pct = safePercentChange(change, prev);
     return {
       name: market.name,
       value: round(current, d),
@@ -115,7 +126,7 @@ async function fetchYahoo() {
     const gsrVal = gold.value / silver.value;
     const gsrPrev = gold.prev && silver.prev ? gold.prev / silver.prev : null;
     const gsrChange = gsrPrev != null ? gsrVal - gsrPrev : null;
-    const gsrPct = gsrChange != null ? (gsrChange / gsrPrev) * 100 : null;
+    const gsrPct = safePercentChange(gsrChange, gsrPrev);
     const gsrEntry = {
       name: "Gold/Silver Ratio (GSR)",
       icon: "📊",
