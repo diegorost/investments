@@ -11,10 +11,6 @@ const YAHOO_MARKETS = [
   { name: "Dow Jones",           ticker: "^DJI",      region: "US",      flag: "us" },
   { name: "Russell 2000",        ticker: "^RUT",      region: "US",      flag: "us" },
   { name: "VIX",                 ticker: "^VIX",      region: "US",      flag: "us" },
-  // LATAM
-  { name: "Chile (IPSA)",        ticker: "^IPSA",     region: "LATAM",   flag: "cl" },
-  { name: "Brasil (IBOVESPA)",   ticker: "^BVSP",     region: "LATAM",   flag: "br" },
-  { name: "Argentina (MERVAL)",  ticker: "^MERV",     region: "LATAM",   flag: "ar" },
   // Chile stocks
   { name: "LATAM Airlines",      ticker: "LTM.SN",        region: "CHILE", flag: "cl" },
   { name: "Itaú Chile",          ticker: "ITAUCL.SN",     region: "CHILE", flag: "cl" },
