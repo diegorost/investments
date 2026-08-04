@@ -95,9 +95,15 @@ function render(data) {
     const name = (m.name || '').toUpperCase();
     return ticker !== 'CHILE'
       && ticker !== 'CHILE.SN'
+      && ticker !== '^IPSA'
+      && ticker !== '^BVSP'
+      && ticker !== '^MERV'
       && ticker !== 'BSANTANDER.SN'
       && ticker !== 'BSANTANDER'
       && name !== 'CHILE'
+      && name !== 'CHILE (IPSA)'
+      && name !== 'BRASIL (IBOVESPA)'
+      && name !== 'ARGENTINA (MERVAL)'
       && name !== 'BANCO DE CHILE'
       && name !== 'BSANTANDER'
       && name !== 'SANTANDER CHILE';
