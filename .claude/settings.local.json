@@ -145,7 +145,8 @@
       "Bash(pyinstaller --onefile --distpath \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\dist\" --workpath \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\build\\\\renombrar-pdfs\" --specpath \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\build\\\\renombrar-pdfs\" \"renombrar-pdfs.py\")",
       "Bash(python -m PyInstaller --onefile --distpath \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\dist\" --workpath \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\build\\\\renombrar-pdfs\" --specpath \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\build\\\\renombrar-pdfs\" \"renombrar-pdfs.py\")",
       "Bash(node -c worker/index.js)",
-      "Bash(node -e \"new Function\\(require\\('fs'\\).readFileSync\\('index.html','utf8'\\).match\\(/<script>\\([\\\\s\\\\S]*\\)<\\\\/script>/\\)[1]\\)\")"
+      "Bash(node -e \"new Function\\(require\\('fs'\\).readFileSync\\('index.html','utf8'\\).match\\(/<script>\\([\\\\s\\\\S]*\\)<\\\\/script>/\\)[1]\\)\")",
+      "Bash(git commit -m ' *)"
     ],
     "defaultMode": "bypassPermissions",
     "additionalDirectories": [
