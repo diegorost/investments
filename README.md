@@ -14,7 +14,7 @@ Dashboard de ETFs de empresas mineras de metales preciosos (oro y plata), como R
 Herramienta de consulta de precios históricos de un ticker en una fecha determinada. El Worker obtiene la serie de precios diarios desde Yahoo Finance para un rango de fechas y la devuelve en formato JSON para que el frontend la muestre.
 
 ### stock-exchanges
-Visualización del estado de los principales mercados/índices bursátiles del mundo ("World Markets"): S&P 500, NASDAQ, Dow Jones, Russell 2000, VIX, índices de Latinoamérica (IPSA, IBOVESPA, MERVAL) y acciones individuales. El Worker trae las cotizaciones desde Yahoo Finance.
+Visualización del estado de los principales mercados/índices bursátiles del mundo ("World Markets"): S&P 500, NASDAQ, Dow Jones, Russell 2000, VIX, forex, futuros/metales, mineras y acciones chilenas seleccionadas. El Worker trae las cotizaciones desde Yahoo Finance.
 
 ### ticker-analysis
 Análisis detallado de un ticker individual: precio, nombre del instrumento y métricas calculadas a partir de la serie histórica obtenida de Yahoo Finance.
@@ -22,4 +22,3 @@ Análisis detallado de un ticker individual: precio, nombre del instrumento y m�
 ## Otras carpetas
 
 - **archive**: Versiones anteriores en Python de los proyectos anteriores (`investing-calculator-py`, `miners-uplift-py`, `price-date-py`, `stock-exchanges-py`, `ticker-analysis-py`), reemplazadas por las versiones actuales basadas en Cloudflare Workers.
-- **build**: Carpeta de salida generada automáticamente por procesos de build/empaquetado, no contiene código fuente propio.
