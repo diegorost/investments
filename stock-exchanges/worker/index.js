@@ -42,9 +42,6 @@ const YAHOO_MARKETS = [
 ];
 
 
-const HIDDEN_TICKERS = new Set(["CHILE", "CHILE.SN", "BSANTANDER", "BSANTANDER.SN"]);
-const HIDDEN_NAMES = new Set(["CHILE", "BANCO DE CHILE", "BSANTANDER", "SANTANDER CHILE"]);
-
 function round(n, d) {
   if (n == null || !Number.isFinite(n)) return null;
   const f = Math.pow(10, d);
@@ -117,12 +114,7 @@ async function fetchOne(market) {
 }
 
 async function fetchYahoo() {
-  const markets = await Promise.all(YAHOO_MARKETS.map(fetchOne));
-  const visibleMarkets = markets.filter((m) => {
-    const ticker = (m.ticker || "").toUpperCase();
-    const name = (m.name || "").toUpperCase();
-    return !HIDDEN_TICKERS.has(ticker) && !HIDDEN_NAMES.has(name);
-  });
+  const visibleMarkets = await Promise.all(YAHOO_MARKETS.map(fetchOne));
 
   const gold = visibleMarkets.find((m) => m.name === "Gold");
   const silver = visibleMarkets.find((m) => m.name === "Silver");

@@ -90,24 +90,7 @@ function renderSection(title, markets) {
 }
 
 function render(data) {
-  const markets = data.markets.filter(m => {
-    const ticker = (m.ticker || '').toUpperCase();
-    const name = (m.name || '').toUpperCase();
-    return ticker !== 'CHILE'
-      && ticker !== 'CHILE.SN'
-      && ticker !== '^IPSA'
-      && ticker !== '^BVSP'
-      && ticker !== '^MERV'
-      && ticker !== 'BSANTANDER.SN'
-      && ticker !== 'BSANTANDER'
-      && name !== 'CHILE'
-      && name !== 'CHILE (IPSA)'
-      && name !== 'BRASIL (IBOVESPA)'
-      && name !== 'ARGENTINA (MERVAL)'
-      && name !== 'BANCO DE CHILE'
-      && name !== 'BSANTANDER'
-      && name !== 'SANTANDER CHILE';
-  });
+  const markets = data.markets;
   const us     = markets.filter(m => m.region === 'US');
   const latamBase = markets.filter(m => m.region === 'LATAM');
   const chile = markets.filter(m => m.region === 'CHILE');
