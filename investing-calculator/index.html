@@ -23,6 +23,18 @@
     --sans: 'DM Sans', sans-serif;
   }
 
+  body.theme-light {
+    --bg: #f7f9fc;
+    --surface: #ffffff;
+    --surface2: #eef2f7;
+    --border: #d7deea;
+    --accent: #0b6b57;
+    --accent2: #0f5bd6;
+    --text: #0f172a;
+    --muted: #5b677a;
+    --gain: #0b6b57;
+  }
+
   body {
     background: var(--bg);
     color: var(--text);
@@ -43,6 +55,14 @@
     margin-bottom: 2.5rem;
     border-bottom: 1px solid var(--border);
     padding-bottom: 1.5rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .header-copy {
+    min-width: 0;
   }
 
   .header-label {
@@ -68,6 +88,26 @@
     margin-top: 0.4rem;
     font-size: 14px;
     color: var(--muted);
+  }
+
+  .theme-toggle {
+    flex: 0 0 auto;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.7rem 1rem;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.2s ease, background 0.2s ease;
+  }
+
+  .theme-toggle:hover {
+    transform: translateY(-1px);
+    border-color: var(--accent);
   }
 
   /* INPUTS */
@@ -260,9 +300,12 @@
 <div class="container">
 
   <header>
-    <p class="header-label">// financial simulator</p>
-    <h1>Compound <span>Interest</span></h1>
-    <p class="subtitle">Visualize your capital growth operation by operation</p>
+    <div class="header-copy">
+      <p class="header-label">// financial simulator</p>
+      <h1>Compound <span>Interest</span></h1>
+      <p class="subtitle">Visualize your capital growth operation by operation</p>
+    </div>
+    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme">Light theme</button>
   </header>
 
   <div class="inputs-grid">
@@ -334,9 +377,42 @@
 
 <script>
 let chartInst = null;
+const themeToggle = document.getElementById('theme-toggle');
 
 function fmt(n) {
   return '$' + Number(n).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+function hexToRgba(hex, alpha) {
+  const m = hex.replace('#', '');
+  const r = parseInt(m.substring(0, 2), 16);
+  const g = parseInt(m.substring(2, 4), 16);
+  const b = parseInt(m.substring(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function getThemeColors() {
+  const styles = getComputedStyle(document.documentElement);
+  const gain = styles.getPropertyValue('--gain').trim();
+  return {
+    grid: styles.getPropertyValue('--border').trim(),
+    axis: styles.getPropertyValue('--muted').trim(),
+    line: styles.getPropertyValue('--accent').trim(),
+    fill: hexToRgba(gain, 0.08),
+    surface: styles.getPropertyValue('--surface2').trim(),
+    text: styles.getPropertyValue('--text').trim(),
+  };
+}
+
+function setTheme(theme) {
+  document.body.classList.toggle('theme-light', theme === 'light');
+  localStorage.setItem('investing-calculator-theme', theme);
+  themeToggle.textContent = theme === 'light' ? 'Dark theme' : 'Light theme';
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('investing-calculator-theme');
+  setTheme(saved === 'light' ? 'light' : 'dark');
 }
 
 function calculate(payload) {
@@ -391,6 +467,7 @@ function update() {
   document.getElementById('s-retorno').textContent = '+' + d.return_pct.toFixed(1) + '%';
 
   const labels = d.capitals.map((_, i) => i === 0 ? 'Start' : 'Op ' + i);
+  const colors = getThemeColors();
 
   if (chartInst) chartInst.destroy();
   chartInst = new Chart(document.getElementById('chart'), {
@@ -399,11 +476,11 @@ function update() {
       labels,
       datasets: [{
         data: d.capitals,
-        borderColor: '#00d4aa',
-        backgroundColor: 'rgba(0,212,170,0.07)',
+        borderColor: colors.line,
+        backgroundColor: colors.fill,
         borderWidth: 2,
         pointRadius: d.capitals.length <= 25 ? 4 : 1,
-        pointBackgroundColor: '#00d4aa',
+        pointBackgroundColor: colors.line,
         fill: true,
         tension: 0.35
       }]
@@ -417,27 +494,27 @@ function update() {
           callbacks: {
             label: ctx => ' ' + fmt(ctx.raw)
           },
-          backgroundColor: '#181c22',
-          borderColor: '#1f2530',
+          backgroundColor: colors.surface,
+          borderColor: colors.grid,
           borderWidth: 1,
-          titleColor: '#5a6478',
-          bodyColor: '#e8edf4',
+          titleColor: colors.axis,
+          bodyColor: colors.text,
           titleFont: { family: 'Space Mono', size: 10 },
           bodyFont: { family: 'Space Mono', size: 12 },
         }
       },
       scales: {
         x: {
-          ticks: { color: '#5a6478', font: { family: 'Space Mono', size: 10 }, autoSkip: true, maxTicksLimit: 12 },
-          grid: { color: 'rgba(31,37,48,0.8)' }
+          ticks: { color: colors.axis, font: { family: 'Space Mono', size: 10 }, autoSkip: true, maxTicksLimit: 12 },
+          grid: { color: colors.grid }
         },
         y: {
           ticks: {
-            color: '#5a6478',
+            color: colors.axis,
             font: { family: 'Space Mono', size: 10 },
             callback: v => '$' + Number(v).toLocaleString('en-US', {maximumFractionDigits: 0})
           },
-          grid: { color: 'rgba(31,37,48,0.8)' }
+          grid: { color: colors.grid }
         }
       }
     }
@@ -457,7 +534,14 @@ function update() {
   });
 }
 
+themeToggle.addEventListener('click', () => {
+  const nextTheme = document.body.classList.contains('theme-light') ? 'dark' : 'light';
+  setTheme(nextTheme);
+  update();
+});
+
 document.querySelectorAll('input').forEach(el => el.addEventListener('input', update));
+initTheme();
 update();
 </script>
 </body>

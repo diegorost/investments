@@ -147,7 +147,8 @@
       "Bash(node -c worker/index.js)",
       "Bash(node -e \"new Function\\(require\\('fs'\\).readFileSync\\('index.html','utf8'\\).match\\(/<script>\\([\\\\s\\\\S]*\\)<\\\\/script>/\\)[1]\\)\")",
       "Bash(git commit -m ' *)",
-      "Bash(xargs -I{} git log -1 --format=\"%ci %s\" -- {})"
+      "Bash(xargs -I{} git log -1 --format=\"%ci %s\" -- {})",
+      "Bash(grep -rlP '[Ã¢â€]{2,}' .)"
     ],
     "defaultMode": "bypassPermissions",
     "additionalDirectories": [
