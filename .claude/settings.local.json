@@ -148,7 +148,8 @@
       "Bash(node -e \"new Function\\(require\\('fs'\\).readFileSync\\('index.html','utf8'\\).match\\(/<script>\\([\\\\s\\\\S]*\\)<\\\\/script>/\\)[1]\\)\")",
       "Bash(git commit -m ' *)",
       "Bash(xargs -I{} git log -1 --format=\"%ci %s\" -- {})",
-      "Bash(grep -rlP '[Ã¢â€]{2,}' .)"
+      "Bash(grep -rlP '[Ã¢â€]{2,}' .)",
+      "Bash(timeout 25 python tax-return.py --no-serve --rescan)"
     ],
     "defaultMode": "bypassPermissions",
     "additionalDirectories": [
