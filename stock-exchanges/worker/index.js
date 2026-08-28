@@ -49,10 +49,14 @@ const YAHOO_MARKETS = [
   { name: "TSMX",  ticker: "TSMX",  region: "TECH" },
   { name: "SKHX",  ticker: "SKHX",  region: "TECH" },
   { name: "SOXL",  ticker: "SOXL",  region: "TECH" },
-  { name: "DRAM",  ticker: "DRAM",  region: "TECH" },
   { name: "RAM",   ticker: "RAM",   region: "TECH" },
+  { name: "DRAM",  ticker: "DRAM",  region: "TECH" },
   { name: "KORU",  ticker: "KORU",  region: "TECH", flag: "kr" },
   { name: "EWY",   ticker: "EWY",   region: "TECH", flag: "kr" },
+  { name: "TQQQ",  ticker: "TQQQ",  region: "TECH", flag: "us" },
+  { name: "QLD",   ticker: "QLD",   region: "TECH", flag: "us" },
+  { name: "UPRO",  ticker: "UPRO",  region: "TECH", flag: "us" },
+  { name: "SSO",   ticker: "SSO",   region: "TECH", flag: "us" },
 ];
 
 

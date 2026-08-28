@@ -139,7 +139,7 @@ const SECTIONS = [
   { id: 'tech',    title: 'Tech' },
 ];
 const SECTION_TITLES = Object.fromEntries(SECTIONS.map(s => [s.id, s.title]));
-const DEFAULT_COLUMNS = [['us', 'forex'], ['latam', 'futures'], ['miners', 'tech']];
+const DEFAULT_COLUMNS = [['us', 'forex', 'latam'], ['miners', 'futures'], ['tech']];
 const REGION_TO_SECTION = { US: 'us', FOREX: 'forex', LATAM: 'latam', CHILE: 'latam', FUTURES: 'futures', MINERS: 'miners', TECH: 'tech' };
 
 const idOf = m => m.ticker || m.name;
