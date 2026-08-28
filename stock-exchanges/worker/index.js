@@ -39,6 +39,18 @@ const YAHOO_MARKETS = [
   { name: "JNUG",  ticker: "JNUG", region: "MINERS", icon: "🥇" },
   { name: "NUGT",  ticker: "NUGT", region: "MINERS", icon: "🥇" },
   { name: "GDXU",  ticker: "GDXU", region: "MINERS", icon: "🥇" },
+
+  { name: "MUU",   ticker: "MUU",   region: "TECH" },
+  { name: "MU",    ticker: "MU",    region: "TECH" },
+  { name: "SNXX",  ticker: "SNXX",  region: "TECH" },
+  { name: "SNDK",  ticker: "SNDK",  region: "TECH" },
+  { name: "WDCX",  ticker: "WDCX",  region: "TECH" },
+  { name: "STXX",  ticker: "STXX",  region: "TECH" },
+  { name: "TSMX",  ticker: "TSMX",  region: "TECH" },
+  { name: "SKHX",  ticker: "SKHX",  region: "TECH" },
+  { name: "SOXL",  ticker: "SOXL",  region: "TECH" },
+  { name: "DRAM",  ticker: "DRAM",  region: "TECH" },
+  { name: "RAM",   ticker: "RAM",   region: "TECH" },
 ];
 
 

@@ -149,7 +149,8 @@
       "Bash(git commit -m ' *)",
       "Bash(xargs -I{} git log -1 --format=\"%ci %s\" -- {})",
       "Bash(grep -rlP '[Ã¢â€]{2,}' .)",
-      "Bash(timeout 25 python tax-return.py --no-serve --rescan)"
+      "Bash(timeout 25 python tax-return.py --no-serve --rescan)",
+      "Bash(git commit -m 'Update tax-cache.json *)"
     ],
     "defaultMode": "bypassPermissions",
     "additionalDirectories": [
