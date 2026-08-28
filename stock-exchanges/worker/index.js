@@ -51,6 +51,8 @@ const YAHOO_MARKETS = [
   { name: "SOXL",  ticker: "SOXL",  region: "TECH" },
   { name: "DRAM",  ticker: "DRAM",  region: "TECH" },
   { name: "RAM",   ticker: "RAM",   region: "TECH" },
+  { name: "KORU",  ticker: "KORU",  region: "TECH", flag: "kr" },
+  { name: "EWY",   ticker: "EWY",   region: "TECH", flag: "kr" },
 ];
 
 

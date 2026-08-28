@@ -44,8 +44,9 @@
     transition: background-color .2s ease, color .2s ease;
   }
 
-  .container { max-width: 1100px; margin: 0 auto; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px; align-items: start; }
+  .container { max-width: 1500px; margin: 0 auto; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 40px; align-items: start; }
+  @media (max-width: 1100px) { .grid { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
   header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
   h1 { font-size: 1.5rem; font-weight: 700; color: var(--text); letter-spacing: -.01em; }
@@ -80,6 +81,13 @@
   .na { color: var(--na); }
   .unavail { color: var(--muted-2); font-size: 0.8rem; }
   .empty-msg { padding: 48px 0; text-align: center; color: var(--muted-2); font-size: 0.88rem; line-height: 1.6; }
+  .col { display: flex; flex-direction: column; min-height: 40px; }
+  .grip { cursor: grab; color: var(--muted-2); margin-right: 8px; user-select: none; font-size: 0.9em; }
+  .grip:active { cursor: grabbing; }
+  .section-title { cursor: grab; }
+  .section-rows:empty::after { content: "Drop a market here"; display: block; padding: 16px 6px; color: var(--muted-2); font-size: 0.8rem; }
+  .sortable-ghost { opacity: 0.35; }
+  .sortable-chosen { background: var(--surface-2); }
 </style>
 </head>
 <body>
@@ -90,6 +98,7 @@
       <span class="dot loading" id="dot"></span>
       <span id="updated">Loading...</span>
       <button class="theme-btn" id="themeBtn" type="button">Light theme</button>
+      <button class="refresh-btn" onclick="resetLayout()">Reset layout</button>
       <button class="refresh-btn" onclick="reload()">&#8635; Refresh</button>
     </div>
   </header>
@@ -97,6 +106,7 @@
   <div id="content"><div class="empty-msg">Loading...</div></div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.6/Sortable.min.js"></script>
 <script>
 const API_BASE = ['localhost', '127.0.0.1'].includes(location.hostname)
   ? 'http://localhost:8787'
@@ -119,60 +129,132 @@ function initTheme() {
   setTheme(saved === 'light' ? 'light' : 'dark');
 }
 
-function renderSection(title, markets) {
-  if (!markets.length) return '';
-  const rows = markets.map(m => {
-    const d = m.dec || 2;
-    const valCell = (m.error && m.value == null)
-      ? `<span class="unavail">${m.error}</span>`
-      : `<span class="value">${fmt(m.value, d)}</span>`;
-    const chgCell = m.change == null ? '<span class="na">—</span>'
-      : `<span class="${cls(m.change)}">${sign(m.change)}${fmt(m.change, d)}</span>`;
-    const pctCell = m.pct == null ? '<span class="na">—</span>'
-      : `<span class="${cls(m.pct)}">${sign(m.pct)}${fmt(m.pct, 2)}%</span>`;
-    const iconHtml = m.icon ? `<span style="margin-right:7px;font-size:1.05em;vertical-align:middle">${m.icon}</span>` : '';
-    const flagList = m.flags || (m.flag ? [m.flag] : []);
-    const flagsHtml = flagList.map((f, i) =>
-      `<img src="https://flagcdn.com/20x15/${f}.png" width="20" height="15" style="vertical-align:middle;border-radius:2px;${i < flagList.length - 1 ? 'margin-right:3px' : 'margin-right:7px'}">`
-    ).join('');
-    return `<tr>
-      <td class="market-name">${iconHtml}${flagsHtml}${m.name}</td>
-      <td>${valCell}</td><td>${chgCell}</td><td>${pctCell}</td>
-    </tr>`;
-  }).join('');
-  return `<div class="section">
-    <div class="section-title">${title}</div>
+const LAYOUT_KEY = 'stock-exchanges-layout';
+const SECTIONS = [
+  { id: 'us',      title: 'United States' },
+  { id: 'forex',   title: 'Forex (1 USD = X)' },
+  { id: 'latam',   title: 'Latin America' },
+  { id: 'futures', title: 'Futures' },
+  { id: 'miners',  title: 'Miners' },
+  { id: 'tech',    title: 'Tech' },
+];
+const SECTION_TITLES = Object.fromEntries(SECTIONS.map(s => [s.id, s.title]));
+const DEFAULT_COLUMNS = [['us', 'forex'], ['latam', 'futures'], ['miners', 'tech']];
+const REGION_TO_SECTION = { US: 'us', FOREX: 'forex', LATAM: 'latam', CHILE: 'latam', FUTURES: 'futures', MINERS: 'miners', TECH: 'tech' };
+
+const idOf = m => m.ticker || m.name;
+let layout = null;
+let marketMap = {};
+
+function loadLayout() {
+  try { return JSON.parse(localStorage.getItem(LAYOUT_KEY)); } catch { return null; }
+}
+function saveLayout() {
+  try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(layout)); } catch {}
+}
+
+function defaultLayout(markets) {
+  const sections = {};
+  SECTIONS.forEach(s => { sections[s.id] = []; });
+  markets.forEach(m => { sections[REGION_TO_SECTION[m.region] || 'tech'].push(idOf(m)); });
+  return { columns: DEFAULT_COLUMNS.map(c => [...c]), sections };
+}
+
+function mergeLayout(saved, def) {
+  const ids = SECTIONS.map(s => s.id);
+  if (!saved || !Array.isArray(saved.columns) || saved.columns.length !== 3) return def;
+  const columns = saved.columns.map(c => (Array.isArray(c) ? c : []).filter(id => ids.includes(id)));
+  const placed = new Set(columns.flat());
+  ids.forEach(id => {
+    if (!placed.has(id)) columns.reduce((a, b) => (a.length <= b.length ? a : b)).push(id);
+  });
+  const present = new Set(Object.values(def.sections).flat());
+  const seen = new Set();
+  const sections = {};
+  ids.forEach(id => {
+    sections[id] = (((saved.sections || {})[id]) || []).filter(t => {
+      if (!present.has(t) || seen.has(t)) return false;
+      seen.add(t);
+      return true;
+    });
+  });
+  Object.entries(def.sections).forEach(([secId, list]) => {
+    list.forEach(t => { if (!seen.has(t)) { sections[secId].push(t); seen.add(t); } });
+  });
+  return { columns, sections };
+}
+
+function rowHtml(m) {
+  const d = m.dec || 2;
+  const valCell = (m.error && m.value == null)
+    ? `<span class="unavail">${m.error}</span>`
+    : `<span class="value">${fmt(m.value, d)}</span>`;
+  const chgCell = m.change == null ? '<span class="na">—</span>'
+    : `<span class="${cls(m.change)}">${sign(m.change)}${fmt(m.change, d)}</span>`;
+  const pctCell = m.pct == null ? '<span class="na">—</span>'
+    : `<span class="${cls(m.pct)}">${sign(m.pct)}${fmt(m.pct, 2)}%</span>`;
+  const iconHtml = m.icon ? `<span style="margin-right:7px;font-size:1.05em;vertical-align:middle">${m.icon}</span>` : '';
+  const flagList = m.flags || (m.flag ? [m.flag] : []);
+  const flagsHtml = flagList.map((f, i) =>
+    `<img src="https://flagcdn.com/20x15/${f}.png" width="20" height="15" style="vertical-align:middle;border-radius:2px;${i < flagList.length - 1 ? 'margin-right:3px' : 'margin-right:7px'}">`
+  ).join('');
+  return `<tr data-ticker="${idOf(m)}">
+    <td class="market-name"><span class="grip">&#10287;</span>${iconHtml}${flagsHtml}${m.name}</td>
+    <td>${valCell}</td><td>${chgCell}</td><td>${pctCell}</td>
+  </tr>`;
+}
+
+function sectionHtml(secId) {
+  const rows = (layout.sections[secId] || [])
+    .map(t => marketMap[t]).filter(Boolean).map(rowHtml).join('');
+  return `<div class="section" data-section="${secId}">
+    <div class="section-title">${SECTION_TITLES[secId]}</div>
     <table>
       <thead><tr><th>Market</th><th>Value</th><th>Change</th><th>% Change</th></tr></thead>
-      <tbody>${rows}</tbody>
+      <tbody class="section-rows">${rows}</tbody>
     </table></div>`;
 }
 
 function render(data) {
-  const markets = data.markets;
-  const us = markets.filter(m => m.region === 'US');
-  const latamBase = markets.filter(m => m.region === 'LATAM');
-  const chile = markets.filter(m => m.region === 'CHILE');
-  const latam = [...latamBase, ...chile];
-  const metals = markets.filter(m => m.region === 'FUTURES');
-  const forex = markets.filter(m => m.region === 'FOREX');
-  const miners = markets.filter(m => m.region === 'MINERS');
-  const tech = markets.filter(m => m.region === 'TECH');
-  document.getElementById('content').innerHTML = `
-    <div class="grid">
-      <div>
-        ${renderSection('United States', us)}
-        ${renderSection('Forex (1 USD = X)', forex)}
-        ${renderSection('Latin America', latam)}
-      </div>
-      <div>
-        ${renderSection('Futures', metals)}
-        ${renderSection('Miners', miners)}
-        ${renderSection('Tech', tech)}
-      </div>
-    </div>`;
+  marketMap = {};
+  data.markets.forEach(m => { marketMap[idOf(m)] = m; });
+  layout = mergeLayout(loadLayout(), defaultLayout(data.markets));
+  saveLayout();
+  document.getElementById('content').innerHTML =
+    `<div class="grid">${layout.columns.map((col, ci) =>
+      `<div class="col" data-col="${ci}">${col.map(sectionHtml).join('')}</div>`
+    ).join('')}</div>`;
+  initDnD();
   document.getElementById('updated').textContent = 'Updated: ' + data.updated;
   document.getElementById('dot').className = 'dot';
+}
+
+function persist() {
+  const columns = [...document.querySelectorAll('.col')].map(col =>
+    [...col.querySelectorAll('.section')].map(s => s.dataset.section));
+  const sections = {};
+  document.querySelectorAll('.section').forEach(s => {
+    sections[s.dataset.section] =
+      [...s.querySelectorAll('tr[data-ticker]')].map(tr => tr.dataset.ticker);
+  });
+  layout = { columns, sections };
+  saveLayout();
+}
+
+function initDnD() {
+  if (typeof Sortable === 'undefined') return;
+  document.querySelectorAll('.col').forEach(col => {
+    new Sortable(col, { group: 'sections', handle: '.section-title', animation: 150, onEnd: persist });
+  });
+  document.querySelectorAll('.section-rows').forEach(tb => {
+    new Sortable(tb, { group: 'rows', handle: '.grip', animation: 150, onEnd: persist });
+  });
+}
+
+function resetLayout() {
+  try { localStorage.removeItem(LAYOUT_KEY); } catch {}
+  layout = null;
+  load();
 }
 
 async function load() {
