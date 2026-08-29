@@ -65,19 +65,35 @@ function extractRows(result) {
 }
 
 async function fetchDaily(ticker) {
-  const [maxResult, recentResult, name] = await Promise.all([
-    fetchChart(ticker, "range=max&interval=1d").catch(() => null),
-    fetchChart(ticker, "range=2y&interval=1d").catch(() => null),
-    fetchName(ticker),
-  ]);
-  const meta = (maxResult && maxResult.meta) || (recentResult && recentResult.meta) || {};
+  // Yahoo's chart API only returns true daily candles when the span is bounded
+  // by explicit period1/period2. `range=max&interval=1d` silently switches to
+  // weekly/monthly aggregate candles for older history, which then leak in as
+  // bogus rows (a whole month's high/low stamped on the 1st, a market holiday).
+  // So we always request daily data in bounded time windows and merge them.
+  const now = Math.floor(Date.now() / 1000);
+  const start = Math.floor(Date.UTC(1985, 0, 1) / 1000);
+  const CHUNK = 8 * 365 * 24 * 3600; // ~8 years per request keeps 1d granularity
 
-  // range=max returns coarse (monthly) candles for older history on Yahoo's
-  // chart API, so merge in range=2y daily candles, which take precedence
-  // for any overlapping dates.
+  const windows = [];
+  for (let p1 = start; p1 < now; p1 += CHUNK) {
+    windows.push([p1, Math.min(p1 + CHUNK, now)]);
+  }
+
+  const [name, ...results] = await Promise.all([
+    fetchName(ticker),
+    ...windows.map(([p1, p2]) =>
+      fetchChart(ticker, `period1=${p1}&period2=${p2}&interval=1d`).catch(() => null)
+    ),
+    // freshest few sessions, fetched last so they win on any overlap
+    fetchChart(ticker, "range=5d&interval=1d").catch(() => null),
+  ]);
+
+  const meta = (results.find((r) => r && r.meta) || {}).meta || {};
+
   const merged = new Map();
-  for (const r of extractRows(maxResult)) merged.set(dayKey(r.ts), r);
-  for (const r of extractRows(recentResult)) merged.set(dayKey(r.ts), r);
+  for (const res of results) {
+    for (const r of extractRows(res)) merged.set(dayKey(r.ts), r);
+  }
 
   const sorted = [...merged.values()].sort((a, b) => a.ts - b.ts);
 
