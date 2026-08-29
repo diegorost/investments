@@ -25,7 +25,7 @@ function safePercentChange(change, base) {
   return Number.isFinite(pct) ? pct : null;
 }
 
-async function fetchEtf(ticker) {
+async function fetchQuote(ticker) {
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?range=1y&interval=1d`;
     const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
@@ -50,18 +50,30 @@ export default {
     }
 
     const url = new URL(request.url);
-    if (url.pathname !== "/api/etf-prices") {
-      return new Response(JSON.stringify({ error: "Not found" }), {
-        status: 404,
+
+    if (url.pathname === "/api/etf-prices") {
+      const entries = await Promise.all(
+        Object.entries(ETFS).map(async ([cls, ticker]) => [cls, await fetchQuote(ticker)])
+      );
+      return new Response(JSON.stringify({ etfs: Object.fromEntries(entries) }), {
         headers: { "Content-Type": "application/json", ...CORS_HEADERS },
       });
     }
 
-    const entries = await Promise.all(
-      Object.entries(ETFS).map(async ([cls, ticker]) => [cls, await fetchEtf(ticker)])
-    );
+    // Batch quotes for individual ETF holdings: /api/stock-prices?tickers=NEM,AEM,B
+    if (url.pathname === "/api/stock-prices") {
+      const raw = url.searchParams.get("tickers") || "";
+      const tickers = [...new Set(raw.split(",").map((t) => t.trim()).filter(Boolean))].slice(0, 50);
+      const entries = await Promise.all(
+        tickers.map(async (t) => [t, await fetchQuote(t)])
+      );
+      return new Response(JSON.stringify({ prices: Object.fromEntries(entries) }), {
+        headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      });
+    }
 
-    return new Response(JSON.stringify({ etfs: Object.fromEntries(entries) }), {
+    return new Response(JSON.stringify({ error: "Not found" }), {
+      status: 404,
       headers: { "Content-Type": "application/json", ...CORS_HEADERS },
     });
   },
