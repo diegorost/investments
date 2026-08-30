@@ -162,7 +162,8 @@
       "Bash(python -c \"import markdown; print\\('markdown ok'\\)\")",
       "Bash('/c/Program Files \\(x86\\)/Microsoft/Edge/Application/msedge.exe' --headless --disable-gpu --no-pdf-header-footer --print-to-pdf=C:/Users/diego/AppData/Local/Temp/claude/c--Users-diego-OneDrive-Developments-investments/2693d9ee-106a-481d-ba64-e605ca9a251e/scratchpad/nugt-gdxu-conversation-recap.pdf file:///c:/Users/diego/OneDrive/Developments/private/tradingview-scripts/nugt-gdxu-conversation-recap.html)",
       "Bash(pyinstaller --onefile --distpath \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\dist\" --workpath \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\build\\\\tax-return\" --specpath \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\build\\\\tax-return\" \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\impuestos\\\\tax-return.py\")",
-      "Bash(python -m PyInstaller --onefile --distpath \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\dist\" --workpath \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\build\\\\tax-return\" --specpath \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\build\\\\tax-return\" \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\impuestos\\\\tax-return.py\")"
+      "Bash(python -m PyInstaller --onefile --distpath \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\dist\" --workpath \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\build\\\\tax-return\" --specpath \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\build\\\\tax-return\" \"C:\\\\Users\\\\diego\\\\OneDrive\\\\Developments\\\\private\\\\impuestos\\\\tax-return.py\")",
+      "Bash(echo \"exit:$?\")"
     ],
     "defaultMode": "bypassPermissions",
     "additionalDirectories": [
