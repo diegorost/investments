@@ -17,7 +17,13 @@ Herramienta de consulta de precios históricos de un ticker en una fecha determi
 Visualización del estado de los principales mercados/índices bursátiles del mundo ("World Markets"): S&P 500, NASDAQ, Dow Jones, Russell 2000, VIX, forex, futuros/metales, mineras, una sección Tech (ETFs tecnológicos y apalancados) y acciones chilenas seleccionadas. El Worker trae las cotizaciones desde Yahoo Finance. El frontend organiza las secciones en un layout de 3 columnas con drag-and-drop, cuyo orden se persiste en `localStorage`, e incluye toggle de tema claro/oscuro.
 
 ### ticker-analysis
-Análisis detallado de un ticker individual: precio, nombre del instrumento y métricas calculadas a partir de la serie histórica obtenida de Yahoo Finance.
+Análisis detallado de un ticker individual, con datos diarios e intradía desde Yahoo Finance (`/api/ticker` y `/api/intraday`). Incluye:
+- Gráfico de precio (o % de cambio) con rango de fechas por presets o personalizado, zoom/pan y reset de zoom.
+- Indicadores calculados en el cliente: SMA, EMA, RSI y VWAP, además de toggles para mostrar/ocultar Open/High/Low/Close.
+- Gráfico de drawdown y grid de estadísticas del período seleccionado.
+- Comparación con otros tickers superpuestos en el mismo gráfico.
+- Tablas de Top Highs & Lows intradía (10/15/20/30) ordenables por columna.
+- Exportación a CSV y toggle de tema claro/oscuro/clásico.
 
 ## Otras carpetas
 
