@@ -54,7 +54,6 @@ const YAHOO_MARKETS = [
   { name: "QBTX",  ticker: "QBTX",  region: "TECH" },
   { name: "VRTL",  ticker: "VRTL",  region: "TECH" },
   { name: "AVGX",  ticker: "AVGX",  region: "TECH" },
-  { name: "COHH",  ticker: "COHH",  region: "TECH" },
   { name: "RAM",   ticker: "RAM",   region: "TECH" },
   { name: "DRAM",  ticker: "DRAM",  region: "TECH" },
   { name: "KORU",  ticker: "KORU",  region: "TECH", flag: "kr" },
