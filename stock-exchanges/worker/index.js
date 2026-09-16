@@ -13,7 +13,6 @@ const YAHOO_MARKETS = [
   { name: "VIX",                 ticker: "^VIX",      region: "US",      flag: "us" },
   // Chile stocks
   { name: "LATAM Airlines",      ticker: "LTM.SN",        region: "CHILE", flag: "cl" },
-  { name: "Itaú Chile",          ticker: "ITAUCL.SN",     region: "CHILE", flag: "cl" },
   { name: "CFMITNIPSA",          ticker: "CFMITNIPSA.SN", region: "CHILE", flag: "cl" },
   // Futures
   { name: "Gold",                ticker: "GC=F",      region: "FUTURES", icon: "🥇" },
