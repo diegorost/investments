@@ -29,7 +29,6 @@ const YAHOO_MARKETS = [
   { name: "USD / BRL",           ticker: "USDBRL=X",  region: "FOREX", flags: ["us", "br"], dec: 4 },
   { name: "USD / ARS",           ticker: "USDARS=X",  region: "FOREX", flags: ["us", "ar"] },
   // Miners
-  { name: "AEM",   ticker: "AEM",  region: "MINERS", icon: "🥇" },
   { name: "BTG",   ticker: "BTG",  region: "MINERS", icon: "🥇" },
   { name: "AG",    ticker: "AG",   region: "MINERS", icon: "🥈" },
   { name: "SILJ",  ticker: "SILJ", region: "MINERS", icon: "🥈" },
