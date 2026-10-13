@@ -88,6 +88,9 @@
   .section-rows:empty::after { content: "Drop a market here"; display: block; padding: 16px 6px; color: var(--muted-2); font-size: 0.8rem; }
   .sortable-ghost { opacity: 0.35; }
   .sortable-chosen { background: var(--surface-2); }
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable:hover { color: var(--accent); }
+  .sort-ind { font-size: 0.6em; margin-left: 4px; vertical-align: middle; }
 </style>
 </head>
 <body>
@@ -145,6 +148,9 @@ const REGION_TO_SECTION = { US: 'us', FOREX: 'forex', LATAM: 'latam', CHILE: 'la
 const idOf = m => m.ticker || m.name;
 let layout = null;
 let marketMap = {};
+let lastData = null;
+// secId -> { col: 'value' | 'change' | 'pct', dir: 'asc' | 'desc' }; missing = no sort (layout order)
+let sortState = {};
 
 function loadLayout() {
   try { return JSON.parse(localStorage.getItem(LAYOUT_KEY)); } catch { return null; }
@@ -204,18 +210,37 @@ function rowHtml(m) {
   </tr>`;
 }
 
+function sortRows(rows, st) {
+  const dir = st.dir === 'asc' ? 1 : -1;
+  return [...rows].sort((a, b) => {
+    const x = a[st.col], y = b[st.col];
+    if (x == null && y == null) return 0;
+    if (x == null) return 1;   // sin datos siempre al final
+    if (y == null) return -1;
+    return (x - y) * dir;
+  });
+}
+
+function thHtml(secId, col, label) {
+  const st = sortState[secId];
+  const ind = st && st.col === col ? `<span class="sort-ind">${st.dir === 'asc' ? '▲' : '▼'}</span>` : '';
+  return `<th class="sortable" data-sort="${col}">${label}${ind}</th>`;
+}
+
 function sectionHtml(secId) {
-  const rows = (layout.sections[secId] || [])
-    .map(t => marketMap[t]).filter(Boolean).map(rowHtml).join('');
+  let markets = (layout.sections[secId] || []).map(t => marketMap[t]).filter(Boolean);
+  if (sortState[secId]) markets = sortRows(markets, sortState[secId]);
+  const rows = markets.map(rowHtml).join('');
   return `<div class="section" data-section="${secId}">
     <div class="section-title">${SECTION_TITLES[secId]}</div>
     <table>
-      <thead><tr><th>Market</th><th>Value</th><th>Change</th><th>% Change</th></tr></thead>
+      <thead><tr><th>Market</th>${thHtml(secId, 'value', 'Value')}${thHtml(secId, 'change', 'Change')}${thHtml(secId, 'pct', '% Change')}</tr></thead>
       <tbody class="section-rows">${rows}</tbody>
     </table></div>`;
 }
 
 function render(data) {
+  lastData = data;
   marketMap = {};
   data.markets.forEach(m => { marketMap[idOf(m)] = m; });
   layout = mergeLayout(loadLayout(), defaultLayout(data.markets));
@@ -254,8 +279,22 @@ function initDnD() {
 function resetLayout() {
   try { localStorage.removeItem(LAYOUT_KEY); } catch {}
   layout = null;
+  sortState = {};
   load();
 }
+
+// Click en encabezado: asc -> desc -> reset (orden del layout)
+document.getElementById('content').addEventListener('click', e => {
+  const th = e.target.closest('th[data-sort]');
+  if (!th) return;
+  const secId = th.closest('.section').dataset.section;
+  const col = th.dataset.sort;
+  const cur = sortState[secId];
+  if (!cur || cur.col !== col) sortState[secId] = { col, dir: 'asc' };
+  else if (cur.dir === 'asc') sortState[secId] = { col, dir: 'desc' };
+  else delete sortState[secId];
+  if (lastData) render(lastData);
+});
 
 async function load() {
   document.getElementById('dot').className = 'dot loading';
