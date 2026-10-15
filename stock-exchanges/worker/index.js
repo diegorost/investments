@@ -48,6 +48,7 @@ const YAHOO_MARKETS = [
   { name: "DRAM",  ticker: "DRAM",  region: "TECH", icon: "💾" },
   { name: "SOXL",  ticker: "SOXL",  region: "TECH", icon: "⚙️" },
   { name: "AVGX",  ticker: "AVGX",  region: "TECH", icon: "⚙️" },
+  { name: "MVLL",  ticker: "MVLL",  region: "TECH", icon: "⚙️" },
   { name: "KORU",  ticker: "KORU",  region: "TECH", flag: "kr" },
   { name: "EWY",   ticker: "EWY",   region: "TECH", flag: "kr" },
   { name: "TQQQ",  ticker: "TQQQ",  region: "TECH", flag: "us" },
