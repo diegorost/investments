@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strategy A Tracker</title>
+<link rel="stylesheet" href="shared/tracker.css">
+<script>
+/* ===== STRATEGY CONFIG (this block is the only thing that differs between the two pages) ===== */
+window.TRACKER_CONFIG = {
+  key: 'A',
+  name: 'Strategy A — sell at the previous ATH',
+  sellRule: 'ath',   // underlying daily close >= the all-time high from before the latest session
+  sellLabel: 'Previous ATH (before the latest session)',
+  pairs: [
+    { etf: 'TQQQ', und: 'QQQ',   tier1: 10, enabled: true },
+    { etf: 'UPRO', und: 'SPY',   tier1: 5,  enabled: true },
+    { etf: 'MUU',  und: 'MU',    tier1: 20, enabled: false, note: 'Strategy B' },
+    { etf: 'SNXX', und: 'SNDK',  tier1: 20, enabled: false, note: 'Strategy B' },
+    { etf: 'LITX', und: 'LITE',  tier1: 20, enabled: false, note: 'Strategy B' },
+    { etf: 'NVDL', und: 'NVDA',  tier1: 15, enabled: false, note: 'Strategy B' },
+    { etf: 'AMDL', und: 'AMD',   tier1: 20, enabled: false, note: 'Strategy B' },
+    { etf: 'GGLL', und: 'GOOGL', tier1: 20, enabled: false, note: 'Strategy B' },
+    { etf: 'AMZU', und: 'AMZN',  tier1: 20, enabled: false, note: 'Strategy B' },
+    { etf: 'MSFU', und: 'MSFT',  tier1: 20, enabled: false, note: 'Strategy B' },
+    { etf: 'GDXU', und: 'GDX',   tier1: 35, enabled: false, note: 'Strategy B' },
+    { etf: 'NBIG', und: 'NBIS',  tier1: 20, enabled: false, note: 'Strategy B' },
+    { etf: 'CRWL', und: 'CRWD',  tier1: 20, enabled: false, note: 'Strategy B' },
+    { etf: 'METU', und: 'META',  tier1: 20, enabled: false, note: 'Strategy B' },
+    { etf: 'AAPX', und: 'AAPL',  tier1: 20, enabled: false, note: 'Strategy B' },
+    { etf: 'PLTU', und: 'PLTR',  tier1: 20, enabled: false, note: 'Strategy B' },
+    { etf: 'NOWL', und: 'NOW',   tier1: 20, enabled: false, note: 'Strategy B' },
+  ],
+  seedTrades: [],   // the handover's Strategy A TRADES sheet was blank
+};
+/* ===== END STRATEGY CONFIG ===== */
+</script>
+</head>
+<body>
+<header class="top">
+  <h1 id="title">Strategy Tracker</h1>
+  <span class="sub" id="subtitle"></span>
+  <div class="tools">
+    <button class="btn ghost" id="btn-refresh" title="Fetch live prices from Yahoo now">Refresh prices</button>
+    <button class="btn ghost" id="btn-export" title="Download everything recorded in this browser as JSON">Export backup</button>
+    <button class="btn ghost" id="btn-export-xlsx" title="Download trades, pairs and cash flows as an Excel workbook">Export XLSX</button>
+    <label class="btn ghost file" title="Restore a backup JSON">Import backup<input type="file" id="btn-import" accept="application/json,.json"></label>
+    <button class="btn ghost" id="btn-print">Print</button>
+  </div>
+</header>
+<div class="feedbar ok" id="feedbar"></div>
+<nav class="tabs">
+  <button class="tab" data-tab="start">START HERE</button>
+  <button class="tab" data-tab="dashboard">DASHBOARD</button>
+  <button class="tab" data-tab="trades">TRADES</button>
+  <button class="tab" data-tab="levels">BUY LEVELS</button>
+  <button class="tab" data-tab="settings">SETTINGS</button>
+  <button class="tab" data-tab="feed">FEED CHECK</button>
+  <button class="tab" data-tab="rules">RULES</button>
+</nav>
+<main>
+
+<section class="panel" id="panel-start">
+  <div class="card guide">
+    <b>Three normal actions.</b> <b>CONSIDER BUYING</b> = the underlying is inside this ETF's buying zone and no sell is pending; it does not mean a fresh unused rung appeared. Buy any amount ($200, $500, $2,000, other) or nothing, and buy again at the same rung if you choose. <b>SELL ALL</b> = the underlying's daily close reached the sell reference and tracked shares are positive; it takes priority. <b>WAIT</b> = no actionable normal signal. <b>CHECK DATA</b> is a data warning, never a trade signal.
+    <ul>
+      <li><b>DROP FROM ATH</b> is the <i>underlying's</i> drawdown (close vs its intraday all-time high), not the leveraged ETF's performance.</li>
+      <li><b>LEVEL REACHED</b>, <b>LOWEST UNUSED LEVEL</b> and <b>NEW LEVELS READY</b> are information about where price sits in the ladder, not purchase gates. New levels ready = 0 does not prohibit buying.</li>
+      <li>Shares, cash and sale value come only from what you record in TRADES after a confirmed broker fill.</li>
+    </ul>
+  </div>
+  <div class="summary"><span>Tracked cash: <b id="start-cash"></b></span><span class="muted">Reference lot is a planning amount, not an order.</span></div>
+  <div class="tablewrap"><table>
+    <thead><tr>
+      <th>ETF</th><th>Underlying</th><th class="n">Last underlying close</th><th class="n" id="th-sellref">Sell reference</th><th class="n">Tracked ETF shares</th><th class="n">ETF close</th>
+      <th>WHAT TO DO</th><th class="n">DROP FROM ATH</th><th class="n">LEVEL REACHED</th><th class="n">LOWEST UNUSED LEVEL</th><th class="n">Est. sale value</th><th>Data / entry status</th><th>Quote date</th><th class="n">NEW LEVELS READY</th><th class="n">Reference lot</th>
+    </tr></thead>
+    <tbody id="start-body"></tbody>
+  </table></div>
+</section>
+
+<section class="panel" id="panel-dashboard">
+  <div class="tiles" id="tiles"></div>
+  <h2>Drawdown ladders</h2>
+  <div class="legend"><span class="l-fill">underlying drawdown from ATH (dark blue once inside the buying zone)</span><span class="l-hit">rung reached</span><span class="l-used">rung used this cycle (repeat buys still allowed)</span><span class="l-sell">sell reference, as a drawdown from ATH</span></div>
+  <div id="ladders"></div>
+</section>
+
+<section class="panel" id="panel-trades">
+  <div class="card">
+    <h2>Record a completed broker transaction</h2>
+    <p>Only actual fills. A BUY needs the applicable rung (repeat entries at the same rung are permitted); a SELL leaves it blank. Cycle key, cash change, share change and gross are computed. There is no duplicate-level warning.</p>
+    <form id="tr-form" class="form">
+      <input type="hidden" id="tr-id">
+      <label>Execution date<input type="date" id="tr-date" required></label>
+      <label>ETF<select id="tr-etf"></select></label>
+      <label>Side<select id="tr-side"><option>BUY</option><option>SELL</option></select></label>
+      <label>Buy level %<select id="tr-level"></select></label>
+      <label>ETF fill price<input type="number" id="tr-price" step="any" min="0" required></label>
+      <label>Shares<input type="number" id="tr-shares" step="any" min="0" required></label>
+      <label>Fees<input type="number" id="tr-fees" step="any" min="0" value="0"></label>
+      <label class="wide">Broker note<input type="text" id="tr-note" placeholder="optional"></label>
+      <div class="actions"><button class="btn primary" type="submit" id="tr-submit">Record trade</button><button class="btn" type="button" id="tr-cancel" style="display:none">Cancel edit</button></div>
+    </form>
+    <div class="hint" id="tr-hint"></div>
+  </div>
+  <div class="summary"><span>Tracked cash: <b id="tr-cash"></b></span><span>Tracked shares: <b id="tr-held"></b></span></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Date</th><th>ETF</th><th>Side</th><th>Cycle key</th><th class="n">Buy level</th><th class="n">Fill price</th><th class="n">Shares</th><th class="n">Fees</th><th class="n">Cash change</th><th class="n">Share change</th><th class="n">Gross</th><th>Note</th><th>Entry check</th><th></th></tr></thead>
+    <tbody id="trades-body"></tbody>
+  </table></div>
+</section>
+
+<section class="panel" id="panel-levels">
+  <p class="lead">Each rung is a percentage below the underlying's ATH, with the underlying price that would trigger it. <b>BUY</b> = reached and not yet used this cycle. <b>USED</b> = a recorded BUY at that rung in the current cycle; it counts history and does not block another discretionary buy. <b>WAIT</b> = not reached. A cycle restarts only when a SELL takes tracked shares to zero; a new month or a new monthly sell reference does not reset the ladder.</p>
+  <div id="levels-body"></div>
+</section>
+
+<section class="panel" id="panel-settings">
+  <div class="card">
+    <h2>Strategy settings</h2>
+    <form id="settings-form" class="form" onsubmit="return false">
+      <label>Starting cash allocated to this strategy<input type="number" class="edit" id="set-startcash" step="any"></label>
+      <label>Reference lot (planning only)<input type="number" class="edit" id="set-lot" step="any"></label>
+      <label>Allocation cap per ETF (optional, blank = none)<input type="number" class="edit" id="set-cap" step="any" placeholder="none"></label>
+      <label>Rungs per ladder (max 16)<input type="number" class="edit" id="set-rungs" min="1" max="16"></label>
+    </form>
+    <p class="small">Enter only cash genuinely allocated to <i>this</i> strategy; never double-count between the two trackers. The allocation cap only marks reached rungs OVER CAP when the open position's cost plus one reference lot would exceed it; it is informational like the rest of the ladder.</p>
+  </div>
+  <div class="card">
+    <h2>ETF / underlying pairs</h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>ETF</th><th>Underlying</th><th>Enabled?</th><th>Paused?</th><th>First tier</th><th>Ladder (5-point steps)</th><th>Note</th></tr></thead>
+      <tbody id="pairs-body"></tbody>
+    </table></div>
+  </div>
+  <div class="card">
+    <h2>Cash flows</h2>
+    <p>Deposits to or withdrawals from this strategy's allocation, beyond the starting cash. Trades adjust cash automatically.</p>
+    <form id="flow-form" class="form">
+      <label>Date<input type="date" id="fl-date"></label>
+      <label>Amount (negative = withdrawal)<input type="number" id="fl-amount" step="any"></label>
+      <label class="wide">Note<input type="text" id="fl-note"></label>
+      <div class="actions"><button class="btn primary" type="submit">Add cash flow</button></div>
+    </form>
+    <div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Date</th><th class="n">Amount</th><th>Note</th><th></th></tr></thead><tbody id="flows-body"></tbody></table></div>
+  </div>
+  <div class="card">
+    <h2>This browser's stored data</h2>
+    <p>Everything you enter is saved in this browser's local storage for this page. Export a backup regularly; opening the page from a different folder, browser or profile starts from the handover state.</p>
+    <button class="btn danger" id="btn-reset">Reset to handover state</button>
+  </div>
+</section>
+
+<section class="panel" id="panel-feed">
+  <div class="card">
+    <h2>Yahoo data file</h2>
+    <p id="feed-meta"></p>
+    <p>Prices load automatically from a small Cloudflare Worker that reads Yahoo Finance directly (full daily history per underlying, latest close per ETF). Click <b>Refresh prices</b> in the header any time to re-fetch live, e.g. right after the US close.</p>
+    <p>Manual values typed below override the file for that field only (highlighted on START HERE as "manual") and survive refreshes until cleared. Use them when the feed is wrong or down, and clear them once it is back.</p>
+  </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>ETF</th><th>Underlying</th><th>Feed status</th><th>Quote date</th><th>Underlying close</th><th>ATH (intraday)</th><th>ATH date</th><th>ATH before latest session</th><th>Prev. month high</th><th>ETF close</th><th>ETF quote date</th><th>Feed note</th><th></th></tr></thead>
+    <tbody id="feed-body"></tbody>
+  </table></div>
+</section>
+
+<section class="panel" id="panel-rules">
+  <div class="card">
+    <h2>How this tracker decides</h2>
+    <ol>
+      <li><b>Drawdown</b> = underlying daily close / underlying intraday all-time high (split-adjusted, dividends not adjusted) − 1. Shown negative when below the ATH.</li>
+      <li><b>Buying zone</b> is active while the drawdown is at least the ETF's first tier. Rungs step 5 points deeper (up to 16 rungs, below 100%). Reaching a rung is information; repeat purchases at any reached rung, in any size including zero, are allowed.</li>
+      <li><b>Sell reference</b>: Strategy A = the underlying's all-time intraday high <i>before the latest session</i> (the pre-drawdown ATH). Strategy B = the underlying's highest intraday price in the <i>previous completed calendar month</i>, advanced each month.</li>
+      <li><b>SELL ALL</b> when the underlying's daily close is at or above the sell reference and tracked shares are positive. It depends on the underlying, not on whether the ETF recovered its cost: actual proceeds can be below cost.</li>
+      <li><b>Action priority</b>: CHECK DATA (invalid or missing prices) &gt; SELL ALL &gt; CONSIDER BUYING &gt; WAIT. A disabled or paused pair always shows WAIT.</li>
+      <li><b>Cycle key</b> = ticker + cycle number; the number advances when a SELL takes tracked shares to zero. Used rungs and "new levels ready" count within the current cycle. A new ATH is the economic reset of the ladder; the tracker's cycle key follows recorded sells, so the two can differ.</li>
+      <li><b>Tracked cash</b> = starting cash + cash flows + sells (gross − fees) − buys (gross + fees). Tracked shares, cash and sale values include only what is recorded here; broker holdings not recorded (for example historical MUU shares) are outside the tracker.</li>
+      <li><b>Data quality</b>: a quote older than the last completed US session is flagged stale (weekday rule; holidays are not known to the page). Never act on a label while data are stale or invalid.</li>
+    </ol>
+    <h3>Daily workflow</h3>
+    <ol>
+      <li>After the close, click <b>Refresh prices</b> (or just reload the page).</li>
+      <li>On START HERE check the quote dates and DROP FROM ATH, then WHAT TO DO.</li>
+      <li>CONSIDER BUYING: decide the amount yourself (including $0); the ladder columns are optional context. SELL ALL: verify the completed session, the sell reference and actual broker holdings first.</li>
+      <li>Execute with the broker, then record the confirmed fill in TRADES. Confirm shares and cash moved as expected.</li>
+      <li>Monthly: confirm Strategy B's previous-month-high sell references advanced; review total exposure, actual cash and leveraged-ETF decay risk.</li>
+    </ol>
+    <p class="disclaimer">Decision support only. These pages do not connect to a broker, execute trades, or guarantee prices or profits. Leveraged ETFs reset daily and can lose value even when the underlying recovers. Not financial advice.</p>
+  </div>
+</section>
+
+</main>
+<div class="toast" id="toast"></div>
+<script>
+  document.getElementById('title').textContent = window.TRACKER_CONFIG.name;
+  document.getElementById('subtitle').textContent = window.TRACKER_CONFIG.pairs.filter(p => p.enabled).map(p => p.etf).join(', ') + ' · local tracker, nothing leaves this computer';
+  document.getElementById('th-sellref').textContent = window.TRACKER_CONFIG.sellLabel;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="shared/tracker.js"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strategy Trackers</title>
+<link rel="stylesheet" href="shared/tracker.css">
+<style>
+  .home { max-width: 900px; margin: 40px auto; padding: 0 24px; }
+  .choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin: 20px 0; }
+  .choice { display: block; text-decoration: none; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; }
+  .choice:hover { border-color: var(--blue); }
+  .choice h2 { margin: 0 0 6px; }
+  .choice .etfs { font-size: 12.5px; color: var(--ink-2); }
+</style>
+</head>
+<body>
+<header class="top"><h1>Strategy Trackers</h1><span class="sub">two local pages, one data refresh, nothing leaves this computer</span></header>
+<div class="home">
+  <p class="lead">Each tracker keeps its own trades, settings and cash in this browser. Prices load live from Yahoo via a Cloudflare Worker; click Refresh prices on either page any time, e.g. after the close.</p>
+  <div class="choices">
+    <a class="choice" href="strategy_a.html"><h2>Strategy A</h2><p>Buy on the underlying's drawdown from its ATH; sell everything when the underlying's daily close is back at the pre-drawdown ATH.</p><div class="etfs">TQQQ / QQQ (from 10%), UPRO / SPY (from 5%)</div></a>
+    <a class="choice" href="strategy_b.html"><h2>Strategy B</h2><p>Same buying ladder; sell everything when the underlying's daily close reaches the previous completed month's intraday high.</p><div class="etfs">15 ETFs: MUU, SNXX, LITX, NVDL (15%), AMDL, GGLL, AMZU, MSFU, GDXU (35%), NBIG, CRWL, METU, AAPX, PLTU, NOWL; the rest start at 20%</div></a>
+  </div>
+  <p class="disclaimer">Decision support only. No broker connection, no order execution, no price or profit guarantees. Not financial advice.</p>
+</div>
+</body>
+</html>
