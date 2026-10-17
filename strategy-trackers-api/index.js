@@ -19,6 +19,7 @@ const PAIRS = [
   ["AMDL", "AMD"], ["GGLL", "GOOGL"], ["AMZU", "AMZN"], ["MSFU", "MSFT"],
   ["GDXU", "GDX"], ["NBIG", "NBIS"], ["CRWL", "CRWD"], ["METU", "META"],
   ["AAPX", "AAPL"], ["PLTU", "PLTR"], ["NOWL", "NOW"],
+  ["BEX", "BE"], ["GEVX", "GEV"],
 ];
 
 function round4(n) {
