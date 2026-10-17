@@ -1,4 +1,4 @@
-/* Strategy Trackers API:  replaces refresh.py. Fetches Yahoo chart data for every
+/* Strategy Trackers API: replaces refresh.py. Fetches Yahoo chart data for every
    underlying (full daily history) and every leveraged ETF (latest close), and
    computes exactly what the pages' localStorage trackers need: last close, ATH
    (intraday, split-adjusted, not dividend-adjusted), the ATH from before the
