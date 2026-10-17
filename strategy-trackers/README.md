@@ -13,7 +13,7 @@ Python-refreshed version lives in `../strategy-trackers-py`.
 | `strategy_a.html` | Strategy A: TQQQ / QQQ (from 10%), UPRO / SPY (from 5%); SELL ALL when the underlying's close is back at the pre-drawdown ATH |
 | `strategy_b.html` | Strategy B: 15 ETFs (TQQQ / UPRO present as disabled reference rows); SELL ALL when the underlying's close reaches the previous completed month's intraday high |
 | `shared/tracker.js`, `shared/tracker.css` | The one script and stylesheet both pages use |
-| `worker/index.js`, `worker/wrangler.toml` | Cloudflare Worker: fetches Yahoo chart data for every underlying (full daily history) and ETF (latest close), computes ATH / prior ATH / previous-month high, serves it as JSON at `/api/prices` |
+`../strategy-trackers-api/` (sibling folder) | Cloudflare Worker: fetches Yahoo chart data for every underlying (full daily history) and ETF (latest close), computes ATH / prior ATH / previous-month high, serves it as JSON at `/api/prices`. Kept outside this folder so Cloudflare's Workers Builds doesn't confuse the two Git-connected builds (it did when the worker was nested inside here). |
 
 ## Daily use
 
@@ -43,9 +43,8 @@ RULES (the logic in words).
 
 ## Deploying
 
-* **Worker**: `cd worker && npx wrangler deploy` (deploys `strategy-trackers-api`, no KV/secrets needed).
-* **Pages**: deploy this folder (minus `worker/`) to Cloudflare Pages, same as the other
-  trackers in this repo.
+* **Worker**: `cd ../strategy-trackers-api && npx wrangler deploy --config wrangler.toml` (deploys `strategy-trackers-api`, no KV/secrets needed).
+* **Pages**: deploy this folder to Cloudflare Pages, same as the other trackers in this repo.
 * Update `API_BASE` in `shared/tracker.js` if the Worker's deployed URL differs from
   `https://strategy-trackers-api.<your-subdomain>.workers.dev`.
 
