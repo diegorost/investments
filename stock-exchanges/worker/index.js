@@ -21,7 +21,7 @@ const YAHOO_MARKETS = [
   { name: "Oil (WTI)",           ticker: "CL=F",      region: "FUTURES", icon: "🛢️" },
   { name: "US Dollar Index",     ticker: "DX-Y.NYB",  region: "FUTURES", icon: "💵", dec: 3 },
   { name: "Bitcoin",             ticker: "BTC-USD",   region: "FUTURES", icon: "₿" },
-  { name: "MXIPSAGC (México)",    ticker: "MXIPSAGC.SN", region: "FUTURES", flag: "mx" },
+  { name: "MXIPSAGC (Chile)",    ticker: "MXIPSAGC.SN", region: "FUTURES", flag: "cl" },
   { name: "BOVESPA (Brasil)",     ticker: "^BVSP",    region: "FUTURES", flag: "br" },
   { name: "MERVAL (Argentina)",   ticker: "^MERV",    region: "FUTURES", flag: "ar" },
   // Forex (1 USD = X) — flags: [base, quote]
