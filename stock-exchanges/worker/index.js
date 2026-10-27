@@ -21,6 +21,9 @@ const YAHOO_MARKETS = [
   { name: "Oil (WTI)",           ticker: "CL=F",      region: "FUTURES", icon: "🛢️" },
   { name: "US Dollar Index",     ticker: "DX-Y.NYB",  region: "FUTURES", icon: "💵", dec: 3 },
   { name: "Bitcoin",             ticker: "BTC-USD",   region: "FUTURES", icon: "₿" },
+  { name: "MXIPSAGC (México)",    ticker: "MXIPSAGC.SN", region: "FUTURES", flag: "mx" },
+  { name: "BOVESPA (Brasil)",     ticker: "^BVSP",    region: "FUTURES", flag: "br" },
+  { name: "MERVAL (Argentina)",   ticker: "^MERV",    region: "FUTURES", flag: "ar" },
   // Forex (1 USD = X) — flags: [base, quote]
   { name: "USD / CLP",           ticker: "USDCLP=X",  region: "FOREX", flags: ["us", "cl"] },
   { name: "USD / EUR",           ticker: "USDEUR=X",  region: "FOREX", flags: ["us", "eu"], dec: 4 },
@@ -30,7 +33,6 @@ const YAHOO_MARKETS = [
   { name: "USD / ARS",           ticker: "USDARS=X",  region: "FOREX", flags: ["us", "ar"] },
   // Miners
   { name: "AG",    ticker: "AG",   region: "MINERS", icon: "🥈" },
-  { name: "SILJ",  ticker: "SILJ", region: "MINERS", icon: "🥈" },
   { name: "GDX",   ticker: "GDX",  region: "MINERS", icon: "🥇" },
   { name: "NUGT",  ticker: "NUGT", region: "MINERS", icon: "🥇" },
   { name: "GDXU",  ticker: "GDXU", region: "MINERS", icon: "🥇" },
